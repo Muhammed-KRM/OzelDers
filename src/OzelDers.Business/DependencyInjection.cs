@@ -26,6 +26,9 @@ public static class DependencyInjection
         // Adım 3.3: Redis
         services.AddSingleton<ICacheService, OzelDers.Business.Infrastructure.Cache.RedisCacheService>();
 
+        // Adım 4.4: Payment Provider
+        services.AddScoped<IPaymentService, OzelDers.Business.Infrastructure.Payment.FakePaymentService>();
+
         // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)
         
         return services;

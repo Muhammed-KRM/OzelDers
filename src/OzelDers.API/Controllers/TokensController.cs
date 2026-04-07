@@ -36,4 +36,54 @@ public class TokensController : ControllerBase
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         return Ok(await _tokenService.GetTransactionHistoryAsync(userId));
     }
+
+    public class PurchaseRequestDto 
+    {
+        public int PackageId { get; set; }
+    }
+
+    [HttpPost("purchase")]
+    public async Task<IActionResult> Purchase([FromBody] PurchaseRequestDto req, [FromServices] IPaymentService paymentService)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var packages = await _tokenService.GetPackagesAsync();
+        var pkg = packages.FirstOrDefault(p => p.Id == req.PackageId);
+        
+        if (pkg == null) return BadRequest("Geçersiz paket");
+
+        var description = $"{pkg.TokenCount} Jeton Paketi Alımı";
+        var paymentUrl = await paymentService.InitiatePaymentAsync(pkg.Price, description, userId);
+        
+        // Demo amaçlı: Paket ID'sini URL query'sine ekleyerek callback'te bilmemizi sağlıyoruz
+        // Gerçek bir senaryoda bu iyzico'nun custom field'ları (ConversationId vs.) üzerinden gider.
+        return Ok(new { paymentUrl = $"{paymentUrl}&packageId={pkg.Id}" });
+    }
+
+    [HttpPost("payment-callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PaymentCallback(
+        [FromForm] string token, 
+        [FromQuery] int packageId,
+        [FromQuery] Guid userId,
+        [FromServices] IPaymentService paymentService,
+        [FromServices] MassTransit.IPublishEndpoint publishEndpoint)
+    {
+        var isValid = await paymentService.VerifyPaymentCallbackAsync(token);
+        if (!isValid) return BadRequest("Payment verification failed");
+
+        var packages = await _tokenService.GetPackagesAsync();
+        var pkg = packages.FirstOrDefault(p => p.Id == packageId);
+        if (pkg == null) return BadRequest("Invalid package in callback");
+
+        await _tokenService.AddTokenAsync(userId, pkg.TokenCount, "Kredi Kartı ile Alım");
+
+        await publishEndpoint.Publish(new OzelDers.Business.Events.TokenPurchasedEvent
+        {
+            UserId = userId,
+            Amount = pkg.TokenCount
+        });
+
+        // Redirect to a success page on the frontend
+        return Redirect("/panel/jetonlarim?status=success");
+    }
 }
