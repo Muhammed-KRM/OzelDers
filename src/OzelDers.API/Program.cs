@@ -7,6 +7,7 @@ using OzelDers.Business;
 using OzelDers.Data;
 using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
+using OzelDers.API;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,18 +53,9 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader()));
 
 // === 6. MassTransit (Event Publishing) ===
-builder.Services.AddMassTransit(x =>
-{
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
-        cfg.Host(mqHost, "/", h =>
-        {
-            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
-            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
-        });
-    });
-});
+// NOTE: MassTransit son sürümlerinde MT_LICENSE istiyor. Şimdilik lokal çalışması için
+// Dummy bir IPublishEndpoint kullanıyoruz. (Canlıda RabbitMQ için lisans key girilmelidir).
+builder.Services.AddScoped<IPublishEndpoint, DummyPublishEndpoint>();
 
 var app = builder.Build();
 
@@ -73,7 +65,11 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
+        c.RoutePrefix = string.Empty; // Swagger'ı ana dizinde (/) göster
+    });
 }
 
 app.UseCors("AllowAll");
