@@ -1,0 +1,61 @@
+/* MainLayout Styles */
+
+.app-layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+}
+
+/* Footer */
+.app-footer {
+    background: var(--color-text-primary);
+    color: var(--color-text-inverse);
+    padding: var(--space-12) 0 var(--space-6);
+    margin-top: var(--space-16);
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-8);
+    margin-bottom: var(--space-8);
+}
+
+.footer-section h4 {
+    color: var(--color-text-inverse);
+    margin-bottom: var(--space-4);
+    font-size: 1.1rem;
+}
+
+.footer-section p,
+.footer-section a {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.footer-section a:hover {
+    color: var(--color-text-inverse);
+}
+
+.footer-section li {
+    margin-bottom: var(--space-2);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: var(--space-6);
+    text-align: center;
+}
+
+.footer-bottom p {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .footer-grid { grid-template-columns: 1fr; }
+}

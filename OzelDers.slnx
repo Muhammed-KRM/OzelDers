@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OzelDers.API/OzelDers.API.csproj" />
+    <Project Path="src/OzelDers.App/OzelDers.App.csproj" />
+    <Project Path="src/OzelDers.Business/OzelDers.Business.csproj" />
+    <Project Path="src/OzelDers.Data/OzelDers.Data.csproj" />
+    <Project Path="src/OzelDers.SharedUI/OzelDers.SharedUI.csproj" />
+    <Project Path="src/OzelDers.Web/OzelDers.Web.csproj" />
+    <Project Path="src/OzelDers.Worker/OzelDers.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OzelDers.IntegrationTests/OzelDers.IntegrationTests.csproj" />
+    <Project Path="tests/OzelDers.UnitTests/OzelDers.UnitTests.csproj" />
+  </Folder>
+</Solution>

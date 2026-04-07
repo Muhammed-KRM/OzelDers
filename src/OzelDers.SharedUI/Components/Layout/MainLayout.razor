@@ -1,0 +1,37 @@
+@inherits LayoutComponentBase
+
+<div class="app-layout">
+    <NavMenu />
+    <main class="main-content">
+        @Body
+    </main>
+    <footer class="app-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h4>OzelDers.com</h4>
+                    <p>Türkiye'nin en güvenilir özel ders platformu.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Hızlı Erişim</h4>
+                    <ul>
+                        <li><a href="/arama">Öğretmen Bul</a></li>
+                        <li><a href="/kayit">Ücretsiz Kayıt</a></li>
+                        <li><a href="/hakkinda">Hakkımızda</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Yasal</h4>
+                    <ul>
+                        <li><a href="/gizlilik">Gizlilik Politikası</a></li>
+                        <li><a href="/kvkk">KVKK Aydınlatma</a></li>
+                        <li><a href="/sss">Sıkça Sorulan Sorular</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; @DateTime.Now.Year OzelDers.com — Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+</div>

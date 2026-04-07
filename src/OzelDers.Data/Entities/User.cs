@@ -1,0 +1,35 @@
+using OzelDers.Data.Enums;
+
+namespace OzelDers.Data.Entities;
+
+public class User
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Email { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    
+    // Öğretmen olarak bilgilerini tamamlamış mı? Zaten tek tip kullanıcı var.
+    public bool IsTeacherProfileComplete { get; set; } 
+    
+    // AES-256 Şifreli veya null olabilir
+    public string? PhoneEncrypted { get; set; }
+    public string? TCKNEncrypted { get; set; }  
+    
+    public string? ProfileImageUrl { get; set; }
+    public string? Bio { get; set; }
+    public int TokenBalance { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsEmailVerified { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+
+    // Navigation Properties
+    // Öğretmen veya öğrenci olarak kullanıcının açtığı tüm ilanlar
+    public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+    public ICollection<TokenTransaction> TokenTransactions { get; set; } = new List<TokenTransaction>();
+    public ICollection<Message> SentMessages { get; set; } = new List<Message>();
+    public ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
+    public ICollection<Review> GivenReviews { get; set; } = new List<Review>();
+    public ICollection<Review> ReceivedReviews { get; set; } = new List<Review>();
+}

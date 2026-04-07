@@ -1,0 +1,10 @@
+/* ===========================
+   OzelDers — Ana CSS Dosyası
+   Tüm modülleri buradan topluyoruz
+   =========================== */
+
+@import 'variables.css';
+@import 'reset.css';
+@import 'typography.css';
+@import 'animations.css';
+@import 'utilities.css';

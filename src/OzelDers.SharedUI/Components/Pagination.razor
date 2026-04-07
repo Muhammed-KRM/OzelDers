@@ -1,0 +1,26 @@
+@* Pagination Component — Döküman satır 344 *@
+
+<div class="pagination">
+    <button class="page-btn" disabled="@(CurrentPage <= 1)" @onclick="() => OnPageChanged.InvokeAsync(CurrentPage - 1)">
+        ← Önceki
+    </button>
+
+    @for (int i = 1; i <= TotalPages; i++)
+    {
+        var pageNumber = i;
+        <button class="page-btn @(pageNumber == CurrentPage ? "active" : "")"
+                @onclick="() => OnPageChanged.InvokeAsync(pageNumber)">
+            @pageNumber
+        </button>
+    }
+
+    <button class="page-btn" disabled="@(CurrentPage >= TotalPages)" @onclick="() => OnPageChanged.InvokeAsync(CurrentPage + 1)">
+        Sonraki →
+    </button>
+</div>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public int TotalPages { get; set; } = 1;
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+}

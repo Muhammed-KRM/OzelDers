@@ -1,0 +1,29 @@
+@* SearchBar Component — Döküman satır 342 *@
+
+<div class="search-bar">
+    <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text"
+               placeholder="Ne öğrenmek istiyorsun? (Matematik, Piyano, İngilizce...)"
+               @bind="Query"
+               @bind:event="oninput"
+               @onkeydown="HandleKeyDown" />
+    </div>
+    <button class="btn btn-primary search-btn" @onclick="OnSearch">Ara</button>
+</div>
+
+@code {
+    [Parameter] public string? Query { get; set; }
+    [Parameter] public EventCallback<string> OnSearchSubmit { get; set; }
+
+    private async Task OnSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(Query))
+            await OnSearchSubmit.InvokeAsync(Query);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await OnSearch();
+    }
+}

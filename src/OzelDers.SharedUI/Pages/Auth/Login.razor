@@ -1,0 +1,42 @@
+@page "/giris"
+
+<PageTitle>Giriş Yap | OzelDers.com</PageTitle>
+
+<section class="section">
+    <div class="container">
+        <div class="auth-card card">
+            <h2 class="text-center">Giriş Yap</h2>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <div class="form-group">
+                    <label>E-posta</label>
+                    <input type="email" @bind="loginModel.Email" class="form-input" placeholder="ornek@email.com" />
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" @bind="loginModel.Password" class="form-input" placeholder="••••••••" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Giriş Yap</button>
+            </EditForm>
+
+            <p class="text-center text-muted" style="margin-top: 1rem;">
+                Hesabınız yok mu? <a href="/kayit">Ücretsiz Kayıt Ol</a>
+            </p>
+        </div>
+    </div>
+</section>
+
+@code {
+    private UserLoginDto loginModel = new();
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        // API entegrasyonunda implement edilecek
+    }
+}

@@ -1,0 +1,70 @@
+.listing-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    position: relative;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.owner-avatar img, .avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.owner-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-title a {
+    color: var(--color-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+}
+
+.card-title a:hover {
+    color: var(--color-primary);
+}
+
+.card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.price {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.15rem;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+}
+
+.rating {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}

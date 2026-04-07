@@ -1,0 +1,45 @@
+@* ListingCard Component — Döküman satır 341 *@
+
+<div class="listing-card card @(Listing.IsVitrin ? "card-vitrin" : "") animate-fade-in">
+    @if (Listing.IsVitrin)
+    {
+        <span class="badge badge-vitrin">⭐ Vitrin</span>
+    }
+
+    <div class="card-header">
+        <div class="owner-avatar">
+            @if (!string.IsNullOrEmpty(Listing.OwnerImageUrl))
+            {
+                <img src="@Listing.OwnerImageUrl" alt="@Listing.OwnerName" />
+            }
+            else
+            {
+                <span class="avatar-placeholder">@Listing.OwnerName[..1]</span>
+            }
+        </div>
+        <div class="owner-info">
+            <strong>@Listing.OwnerName</strong>
+            <span class="text-muted text-sm">@Listing.DistrictName, @Listing.CityName</span>
+        </div>
+    </div>
+
+    <h3 class="card-title">
+        <a href="/ilan/@Listing.Slug">@Listing.Title</a>
+    </h3>
+
+    <div class="card-meta">
+        <span class="badge badge-primary">@Listing.BranchName</span>
+        <span class="price">@Listing.HourlyPrice TL/saat</span>
+    </div>
+
+    <div class="card-footer">
+        <div class="rating">
+            ⭐ @Listing.AverageRating.ToString("F1") (@Listing.ReviewCount yorum)
+        </div>
+        <a href="/ilan/@Listing.Slug" class="btn btn-secondary btn-sm">Detaylar</a>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ListingDto Listing { get; set; } = null!;
+}

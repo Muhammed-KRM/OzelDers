@@ -1,0 +1,106 @@
+@page "/"
+@inject IListingService ListingService
+
+<PageTitle>Özel Ders Bul | OzelDers.com</PageTitle>
+
+<!-- 1. Hero Section -->
+<section class="hero-section">
+    <div class="container text-center">
+        <h1 class="hero-title animate-slide-up">Aradığın <span class="text-primary">Öğretmeni</span> Bul</h1>
+        <p class="hero-subtitle animate-fade-in">Türkiye'nin en güvenilir özel ders platformunda binlerce öğretmen seni bekliyor.</p>
+        <SearchBar OnSearchSubmit="NavigateToSearch" />
+    </div>
+</section>
+
+<!-- 2. Popüler Kategoriler -->
+<section class="section">
+    <div class="container">
+        <h2 class="text-center">Popüler Kategoriler</h2>
+        <div class="grid grid-4 category-grid">
+            <a href="/arama?branch=matematik" class="category-card card">
+                <span class="category-icon">📐</span>
+                <span>Matematik</span>
+            </a>
+            <a href="/arama?branch=ingilizce" class="category-card card">
+                <span class="category-icon">🌍</span>
+                <span>İngilizce</span>
+            </a>
+            <a href="/arama?branch=fizik" class="category-card card">
+                <span class="category-icon">⚛️</span>
+                <span>Fizik</span>
+            </a>
+            <a href="/arama?branch=yazilim-csharp" class="category-card card">
+                <span class="category-icon">💻</span>
+                <span>Yazılım</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- 3. Vitrin İlanları -->
+<section class="section vitrin-section">
+    <div class="container">
+        <h2 class="text-center">⭐ Öne Çıkan İlanlar</h2>
+        @if (vitrinListings.Any())
+        {
+            <div class="grid grid-3">
+                @foreach (var listing in vitrinListings)
+                {
+                    <ListingCard Listing="listing" />
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-center text-muted">Henüz vitrin ilanı bulunmamaktadır.</p>
+        }
+    </div>
+</section>
+
+<!-- 4. Nasıl Çalışır -->
+<section class="section how-it-works">
+    <div class="container text-center">
+        <h2>Nasıl Çalışır?</h2>
+        <div class="grid grid-3 steps-grid">
+            <div class="step-card animate-fade-in">
+                <span class="step-number">1</span>
+                <h3>Arama Yap</h3>
+                <p>İhtiyacına uygun branş ve bölgede öğretmen ara.</p>
+            </div>
+            <div class="step-card animate-fade-in">
+                <span class="step-number">2</span>
+                <h3>İletişime Geç</h3>
+                <p>Beğendiğin öğretmene mesaj at ve detayları konuş.</p>
+            </div>
+            <div class="step-card animate-fade-in">
+                <span class="step-number">3</span>
+                <h3>Derse Başla</h3>
+                <p>Öğretmeninle anlaş ve özel dersine başla!</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 5. CTA -->
+<section class="section cta-section">
+    <div class="container text-center">
+        <h2>Öğretmen misiniz?</h2>
+        <p>Hemen ücretsiz kayıt olun ve öğrencilere ulaşın!</p>
+        <a href="/kayit" class="btn btn-primary btn-lg">Ücretsiz Kayıt Ol</a>
+    </div>
+</section>
+
+@code {
+    private List<ListingDto> vitrinListings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { vitrinListings = await ListingService.GetVitrinListingsAsync(); }
+        catch { /* API henüz çalışmıyorsa sessizce geç */ }
+    }
+
+    private void NavigateToSearch(string query)
+    {
+        // NavigationManager ile yönlendirme yapılacak
+    }
+}

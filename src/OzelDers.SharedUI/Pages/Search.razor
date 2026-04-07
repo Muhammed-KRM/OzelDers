@@ -1,0 +1,82 @@
+@page "/arama"
+@inject IListingService ListingService
+
+<PageTitle>Öğretmen Arama | OzelDers.com</PageTitle>
+
+<section class="section">
+    <div class="container">
+        <SearchBar Query="@query" OnSearchSubmit="HandleSearch" />
+
+        <div class="search-results-header">
+            <h2>Arama Sonuçları</h2>
+            @if (result != null)
+            {
+                <span class="text-muted">@result.TotalCount sonuç bulundu</span>
+            }
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="grid grid-3">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <div class="card skeleton" style="height: 280px;"></div>
+                }
+            </div>
+        }
+        else if (result?.Items.Any() == true)
+        {
+            <div class="grid grid-3">
+                @foreach (var listing in result.Items)
+                {
+                    <ListingCard Listing="listing" />
+                }
+            </div>
+            <Pagination CurrentPage="result.Page" TotalPages="result.TotalPages" OnPageChanged="ChangePage" />
+        }
+        else
+        {
+            <div class="text-center" style="padding: 3rem;">
+                <p class="text-muted">Aramanıza uygun ilan bulunamadı.</p>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private string? query;
+    private SearchResultDto? result;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListings();
+    }
+
+    private async Task HandleSearch(string searchQuery)
+    {
+        query = searchQuery;
+        await LoadListings();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        await LoadListings(page);
+    }
+
+    private async Task LoadListings(int page = 1)
+    {
+        isLoading = true;
+        try
+        {
+            result = await ListingService.SearchAsync(new SearchFilterDto
+            {
+                Query = query,
+                Page = page,
+                PageSize = 12
+            });
+        }
+        catch { /* API henüz çalışmıyorsa */ }
+        isLoading = false;
+    }
+}
