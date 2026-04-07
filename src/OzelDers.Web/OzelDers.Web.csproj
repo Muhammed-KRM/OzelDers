@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OzelDers.SharedUI\OzelDers.SharedUI.csproj" />
+    <ProjectReference Include="..\OzelDers.Data\OzelDers.Data.csproj" />
+    <ProjectReference Include="..\OzelDers.Business\OzelDers.Business.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,20 +1,28 @@
+using OzelDers.Business;
+using OzelDers.Data;
 using OzelDers.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// === 1. BAĞIMLILIKLAR (Döküman Notu: Hız için şimdilik Web tarafına direkt Business bağlanıyor) ===
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? "Host=localhost;Port=5432;Database=ozelders;Username=ozelders_user;Password=dev_password";
+
+builder.Services.AddDataLayer(connectionString);
+builder.Services.AddBusinessServices();
+
+// === 2. BLAZOR SERVİSLERİ ===
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -22,6 +30,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddAdditionalAssemblies(typeof(OzelDers.SharedUI.Routes).Assembly);
 
 app.Run();
