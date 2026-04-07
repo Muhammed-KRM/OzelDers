@@ -52,6 +52,16 @@ public class ReviewManager : IReviewService
         return MapToDto(review);
     }
 
+    public async Task ApproveReviewAsync(Guid reviewId)
+    {
+        var review = await _reviewRepo.GetByIdAsync(reviewId)
+            ?? throw new NotFoundException("Yorum", reviewId);
+
+        review.IsApproved = true;
+        _reviewRepo.Update(review);
+        await _reviewRepo.SaveChangesAsync();
+    }
+
     private static ReviewDto MapToDto(Review r) => new()
     {
         Id = r.Id,

@@ -71,11 +71,16 @@ public class TokensController : ControllerBase
         var isValid = await paymentService.VerifyPaymentCallbackAsync(token);
         if (!isValid) return BadRequest("Payment verification failed");
 
+        // Idempotency: Aynı token ile tekrar gelen callback'i işleme
+        var history = await _tokenService.GetTransactionHistoryAsync(userId);
+        if (history.Any(t => t.Description.Contains(token)))
+            return Ok(new { message = "Bu ödeme zaten işlendi." });
+
         var packages = await _tokenService.GetPackagesAsync();
         var pkg = packages.FirstOrDefault(p => p.Id == packageId);
         if (pkg == null) return BadRequest("Invalid package in callback");
 
-        await _tokenService.AddTokenAsync(userId, pkg.TokenCount, "Kredi Kartı ile Alım");
+        await _tokenService.AddTokenAsync(userId, pkg.TokenCount, $"Kredi Kartı ile Alım (Ref: {token})");
 
         await publishEndpoint.Publish(new OzelDers.Business.Events.TokenPurchasedEvent
         {
@@ -83,7 +88,6 @@ public class TokensController : ControllerBase
             Amount = pkg.TokenCount
         });
 
-        // Redirect to a success page on the frontend
         return Redirect("/panel/jetonlarim?status=success");
     }
 }

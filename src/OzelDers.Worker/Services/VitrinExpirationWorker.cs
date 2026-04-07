@@ -1,4 +1,6 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using OzelDers.Business.Events;
 using OzelDers.Data.Context;
 
 namespace OzelDers.Worker.Services;
@@ -24,10 +26,10 @@ public class VitrinExpirationWorker : BackgroundService
             {
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
 
                 var now = DateTime.UtcNow;
 
-                // Find listings whose Vitrin status has expired
                 var expiredListings = await dbContext.Listings
                     .Where(l => l.IsVitrin && l.VitrinExpiresAt.HasValue && l.VitrinExpiresAt.Value <= now)
                     .ToListAsync(stoppingToken);
@@ -43,8 +45,13 @@ public class VitrinExpirationWorker : BackgroundService
                     dbContext.Listings.UpdateRange(expiredListings);
                     await dbContext.SaveChangesAsync(stoppingToken);
 
-                    // Note: We could optionally publish an event here so Elasticsearch updates automatically.
-                    // E.g. _publishEndpoint.Publish(new ListingUpdatedEvent { ListingId = ... })
+                    // ES index'ini güncelle — her biri için ListingUpdatedEvent fırlat
+                    foreach (var listing in expiredListings)
+                    {
+                        await publishEndpoint.Publish(new ListingUpdatedEvent { ListingId = listing.Id }, stoppingToken);
+                    }
+
+                    _logger.LogInformation("{Count} vitrin listing(s) expired and ES updated.", expiredListings.Count);
                 }
             }
             catch (Exception ex)
@@ -52,8 +59,6 @@ public class VitrinExpirationWorker : BackgroundService
                 _logger.LogError(ex, "Error occurred executing VitrinExpirationWorker.");
             }
 
-            // Bekleme süresi: Örneğin her 1 saatte bir kontrol et (Şimdilik test amaçlı 1 dakika verilebilir)
-            // Prodüksiyonda 1 saat makuldur.
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }

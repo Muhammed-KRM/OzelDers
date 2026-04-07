@@ -7,7 +7,7 @@ namespace OzelDers.API.Helpers;
 
 public static class JwtHelper
 {
-    public static string GenerateToken(Guid userId, string email, string fullName, IConfiguration config)
+    public static string GenerateToken(Guid userId, string email, string fullName, string role, IConfiguration config)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -17,6 +17,7 @@ public static class JwtHelper
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Email, email),
             new Claim(ClaimTypes.Name, fullName),
+            new Claim(ClaimTypes.Role, role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

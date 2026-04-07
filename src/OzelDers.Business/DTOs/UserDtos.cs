@@ -10,6 +10,7 @@ public class UserDto
     public string? ProfileImageUrl { get; set; }
     public string? Bio { get; set; }
     public int TokenBalance { get; set; }
+    public string Role { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
 
@@ -36,4 +37,18 @@ public class AuthResultDto
     public string RefreshToken { get; set; } = string.Empty;
     public UserDto? User { get; set; }
     public string? ErrorMessage { get; set; }
+}
+
+// Profil güncelleme formu
+public class UserProfileUpdateDto
+{
+    public string FullName { get; set; } = string.Empty;
+    public string? Bio { get; set; }
+    public string? Phone { get; set; }
+}
+
+// Refresh token isteği
+public class RefreshTokenRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
 }

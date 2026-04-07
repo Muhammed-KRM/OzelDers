@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IMessageService, MessageManager>();
         services.AddScoped<IReviewService, ReviewManager>();
         services.AddScoped<IVitrinService, VitrinManager>();
+        services.AddScoped<IEmailService, OzelDers.Business.Infrastructure.Email.SmtpEmailService>();
 
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
         services.AddValidatorsFromAssemblyContaining<AuthManager>();
@@ -29,6 +30,9 @@ public static class DependencyInjection
 
         // Adım 4.4: Payment Provider
         services.AddScoped<IPaymentService, OzelDers.Business.Infrastructure.Payment.FakePaymentService>();
+
+        // Adım 6.3: Dosya Yükleme
+        services.AddScoped<IFileStorageService, OzelDers.Business.Infrastructure.Storage.LocalFileStorageService>();
 
         // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)
         

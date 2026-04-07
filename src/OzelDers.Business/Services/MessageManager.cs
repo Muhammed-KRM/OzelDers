@@ -96,8 +96,17 @@ public class MessageManager : IMessageService
         if (message.Status == MessageStatus.Unlocked)
             throw new BusinessException("Bu mesaj zaten açılmış.");
 
-        // 1 jeton harça
-        await _tokenService.SpendTokenAsync(userId, 1, "Mesaj kilidi açıldı");
+        // Aynı göndericiden daha önce açılmış mesaj var mı? Varsa jeton harcamaya gerek yok.
+        var previouslyUnlocked = await _messageRepo.FindAsync(m =>
+            m.SenderId == message.SenderId &&
+            m.ReceiverId == userId &&
+            m.Status == MessageStatus.Unlocked);
+
+        if (!previouslyUnlocked.Any())
+        {
+            // İlk kez bu göndericinin mesajını açıyor — 1 jeton harça
+            await _tokenService.SpendTokenAsync(userId, 1, "Mesaj kilidi açıldı");
+        }
 
         message.Status = MessageStatus.Unlocked;
         message.ReadAt = DateTime.UtcNow;

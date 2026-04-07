@@ -1,4 +1,5 @@
 using System.Text;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using OzelDers.API.Middleware;
@@ -50,6 +51,20 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod()
         .AllowAnyHeader()));
 
+// === 6. MassTransit (Event Publishing) ===
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        cfg.Host(mqHost, "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+        });
+    });
+});
+
 var app = builder.Build();
 
 // === MİDDLEWARE PİPELINE ===
@@ -62,6 +77,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAll");
+app.UseStaticFiles(); // uploads klasörü için
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

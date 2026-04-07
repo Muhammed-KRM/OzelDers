@@ -12,15 +12,23 @@ public class User
     // Öğretmen olarak bilgilerini tamamlamış mı? Zaten tek tip kullanıcı var.
     public bool IsTeacherProfileComplete { get; set; } 
     
+    public UserRole Role { get; set; } = UserRole.User;
+    
     // AES-256 Şifreli veya null olabilir
     public string? PhoneEncrypted { get; set; }
-    public string? TCKNEncrypted { get; set; }  
+    public string? TCKNEncrypted { get; set; }
+    public string? IBANEncrypted { get; set; }
     
     public string? ProfileImageUrl { get; set; }
     public string? Bio { get; set; }
     public int TokenBalance { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsEmailVerified { get; set; }
+    
+    // Refresh Token for JWT
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiryTime { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

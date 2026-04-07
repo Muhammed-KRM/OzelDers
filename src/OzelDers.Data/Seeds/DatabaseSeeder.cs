@@ -39,15 +39,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // 4. Jeton Paketleri
-        if (!context.TokenPackages.Any())
-        {
-            await context.TokenPackages.AddRangeAsync(
-                new TokenPackage { Name = "Başlangıç Paketi", TokenCount = 10, Price = 100m },
-                new TokenPackage { Name = "Avantajlı Paket", TokenCount = 25, Price = 220m, IsPopular = true, BadgeText = "En Çok Satan" },
-                new TokenPackage { Name = "Profesyonel Paket", TokenCount = 100, Price = 750m }
-            );
-            await context.SaveChangesAsync();
-        }
+        // Not: Jeton ve Vitrin paketleri artık PackageConfigurations.cs içinde EF Seed Data olarak yönetiliyor.
+        // Bu seeder'da tekrar tanımlamaya gerek yok.
     }
 }

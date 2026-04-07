@@ -27,8 +27,11 @@ public class AuthController : ControllerBase
         if (!result.Success) return BadRequest(result);
 
         // JWT token üret
-        result.Token = JwtHelper.GenerateToken(result.User!.Id, result.User.Email, result.User.FullName, _config);
+        result.Token = JwtHelper.GenerateToken(result.User!.Id, result.User.Email, result.User.FullName, result.User.Role, _config);
         result.RefreshToken = JwtHelper.GenerateRefreshToken();
+        
+        // Refresh token'ı DB'ye kaydet (7 gün geçerli)
+        await _authService.UpdateRefreshTokenAsync(result.User.Id, result.RefreshToken, DateTime.UtcNow.AddDays(7));
 
         return Ok(result);
     }
@@ -39,8 +42,11 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(dto);
         if (!result.Success) return Unauthorized(result);
 
-        result.Token = JwtHelper.GenerateToken(result.User!.Id, result.User.Email, result.User.FullName, _config);
+        result.Token = JwtHelper.GenerateToken(result.User!.Id, result.User.Email, result.User.FullName, result.User.Role, _config);
         result.RefreshToken = JwtHelper.GenerateRefreshToken();
+
+        // Refresh token'ı DB'ye kaydet (7 gün geçerli)
+        await _authService.UpdateRefreshTokenAsync(result.User.Id, result.RefreshToken, DateTime.UtcNow.AddDays(7));
 
         return Ok(result);
     }
@@ -52,5 +58,30 @@ public class AuthController : ControllerBase
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var user = await _authService.GetCurrentUserAsync(userId);
         return user is null ? NotFound() : Ok(user);
+    }
+
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> UpdateProfile(UserProfileUpdateDto dto)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _authService.UpdateProfileAsync(userId, dto);
+        return Ok(result);
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<ActionResult<AuthResultDto>> RefreshToken(RefreshTokenRequestDto dto)
+    {
+        var result = await _authService.RefreshTokenAsync(dto.RefreshToken);
+        if (!result.Success) return Unauthorized(result);
+
+        // Yeni tokenleri üret
+        result.Token = JwtHelper.GenerateToken(result.User!.Id, result.User.Email, result.User.FullName, result.User.Role, _config);
+        result.RefreshToken = JwtHelper.GenerateRefreshToken();
+
+        // Yeni refresh token'ı DB'ye kaydet
+        await _authService.UpdateRefreshTokenAsync(result.User.Id, result.RefreshToken, DateTime.UtcNow.AddDays(7));
+
+        return Ok(result);
     }
 }

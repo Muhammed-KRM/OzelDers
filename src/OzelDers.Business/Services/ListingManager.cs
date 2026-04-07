@@ -1,5 +1,7 @@
 using FluentValidation;
+using MassTransit;
 using OzelDers.Business.DTOs;
+using OzelDers.Business.Events;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Helpers;
 using OzelDers.Business.Interfaces;
@@ -15,17 +17,20 @@ public class ListingManager : IListingService
     private readonly IRepository<Branch> _branchRepo;
     private readonly IRepository<District> _districtRepo;
     private readonly IValidator<ListingCreateDto> _createValidator;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public ListingManager(
         IListingRepository listingRepo,
         IRepository<Branch> branchRepo,
         IRepository<District> districtRepo,
-        IValidator<ListingCreateDto> createValidator)
+        IValidator<ListingCreateDto> createValidator,
+        IPublishEndpoint publishEndpoint)
     {
         _listingRepo = listingRepo;
         _branchRepo = branchRepo;
         _districtRepo = districtRepo;
         _createValidator = createValidator;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId)
@@ -57,7 +62,10 @@ public class ListingManager : IListingService
         await _listingRepo.AddAsync(listing);
         await _listingRepo.SaveChangesAsync();
 
-        // 5. DTO olarak döndür
+        // 5. Event fırlat (Consumer ES'e indexleyecek + cache'i temizleyecek)
+        await _publishEndpoint.Publish(new ListingCreatedEvent { ListingId = listing.Id });
+
+        // 6. DTO olarak döndür
         return MapToDto(listing);
     }
 
@@ -107,6 +115,9 @@ public class ListingManager : IListingService
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
 
+        // Event fırlat
+        await _publishEndpoint.Publish(new ListingUpdatedEvent { ListingId = listing.Id });
+
         return MapToDto(listing);
     }
 
@@ -121,6 +132,9 @@ public class ListingManager : IListingService
         listing.Status = ListingStatus.Closed;
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
+
+        // Event fırlat
+        await _publishEndpoint.Publish(new ListingDeletedEvent { ListingId = listing.Id });
     }
 
     public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters)

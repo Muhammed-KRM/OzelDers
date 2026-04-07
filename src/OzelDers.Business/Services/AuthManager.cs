@@ -1,9 +1,11 @@
 using FluentValidation;
+using Microsoft.Extensions.Configuration;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Helpers;
 using OzelDers.Business.Interfaces;
 using OzelDers.Data.Entities;
+using OzelDers.Data.Enums;
 using OzelDers.Data.Repositories;
 
 namespace OzelDers.Business.Services;
@@ -12,13 +14,19 @@ public class AuthManager : IAuthService
 {
     private readonly IUserRepository _userRepo;
     private readonly IValidator<UserRegisterDto> _registerValidator;
+    private readonly IEmailService _emailService;
+    private readonly IConfiguration _config;
 
     public AuthManager(
         IUserRepository userRepo,
-        IValidator<UserRegisterDto> registerValidator)
+        IValidator<UserRegisterDto> registerValidator,
+        IEmailService emailService,
+        IConfiguration config)
     {
         _userRepo = userRepo;
         _registerValidator = registerValidator;
+        _emailService = emailService;
+        _config = config;
     }
 
     public async Task<AuthResultDto> RegisterAsync(UserRegisterDto dto)
@@ -44,6 +52,13 @@ public class AuthManager : IAuthService
 
         await _userRepo.AddAsync(user);
         await _userRepo.SaveChangesAsync();
+
+        // Hoşgeldin ve doğrulama e-postası (Arka planda çalışması için ateşle-unut yapılabilir)
+        _ = _emailService.SendTemplatedEmailAsync(
+            user.Email,
+            "Hoş Geldiniz!",
+            new Dictionary<string, string> { { "FullName", user.FullName } }
+        );
 
         // JWT token üretimi API katmanında JwtHelper ile yapılacak
         return new AuthResultDto
@@ -79,11 +94,66 @@ public class AuthManager : IAuthService
         var user = await _userRepo.GetByIdAsync(userId);
         return user is null ? null : MapToDto(user);
     }
-
-    public Task<AuthResultDto> RefreshTokenAsync(string refreshToken)
+    public async Task<UserDto> UpdateProfileAsync(Guid userId, UserProfileUpdateDto dto)
     {
-        // Refresh token yenileme mantığı API katmanında JwtHelper ile implement edilecek
-        throw new NotImplementedException("RefreshToken API katmanında implement edilecek.");
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("Kullanıcı", userId);
+
+        user.FullName = dto.FullName;
+        user.Bio = dto.Bio;
+        
+        if (!string.IsNullOrWhiteSpace(dto.Phone))
+        {
+            var aesKey = _config["Encryption:AesKey"] ?? _config["Jwt:Key"] ?? "default_very_secret_aes_key_here";
+            user.PhoneEncrypted = AesEncryptionHelper.Encrypt(dto.Phone, aesKey);
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync();
+
+        return MapToDto(user);
+    }
+
+    public async Task<AuthResultDto> RefreshTokenAsync(string refreshToken)
+    {
+        var user = (await _userRepo.FindAsync(u => 
+            u.RefreshToken == refreshToken && 
+            u.RefreshTokenExpiryTime > DateTime.UtcNow)).FirstOrDefault();
+
+        if (user is null || !user.IsActive)
+        {
+            return new AuthResultDto { Success = false, ErrorMessage = "Geçersiz veya süresi dolmuş refresh token." };
+        }
+
+        return new AuthResultDto
+        {
+            Success = true,
+            User = MapToDto(user),
+            Token = "", // API katmanında dolacak
+            RefreshToken = "" // API katmanında dolacak
+        };
+    }
+
+    public async Task UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime expiryTime)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("Kullanıcı", userId);
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = expiryTime;
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync();
+    }
+
+    public async Task SetUserStatusAsync(Guid userId, bool isActive)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("Kullanıcı", userId);
+
+        user.IsActive = isActive;
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync();
     }
 
     private static UserDto MapToDto(User u) => new()
@@ -95,6 +165,7 @@ public class AuthManager : IAuthService
         ProfileImageUrl = u.ProfileImageUrl,
         Bio = u.Bio,
         TokenBalance = u.TokenBalance,
+        Role = u.Role.ToString(),
         CreatedAt = u.CreatedAt
     };
 }
