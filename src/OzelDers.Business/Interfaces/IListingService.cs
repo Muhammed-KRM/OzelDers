@@ -5,6 +5,7 @@ namespace OzelDers.Business.Interfaces;
 public interface IListingService
 {
     Task<SearchResultDto> SearchAsync(SearchFilterDto filters);
+    Task<ListingDto?> GetByIdAsync(Guid id);
     Task<ListingDto?> GetBySlugAsync(string slug);
     Task<List<ListingDto>> GetVitrinListingsAsync();
     Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId);

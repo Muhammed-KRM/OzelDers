@@ -61,6 +61,15 @@ public class ListingManager : IListingService
         return MapToDto(listing);
     }
 
+    public async Task<ListingDto?> GetByIdAsync(Guid id)
+    {
+        var listing = await _listingRepo.GetByIdAsync(id);
+        
+        // Ensure entity navigations like Branch, District, Owner are loaded when manually mapping
+        // In a real scenario we use eager loading (e.g. Include).
+        return listing is null ? null : MapToDto(listing);
+    }
+
     public async Task<ListingDto?> GetBySlugAsync(string slug)
     {
         var listing = await _listingRepo.GetBySlugWithDetailsAsync(slug);

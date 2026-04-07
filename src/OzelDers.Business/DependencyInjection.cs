@@ -19,6 +19,15 @@ public static class DependencyInjection
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
         services.AddValidatorsFromAssemblyContaining<AuthManager>();
 
+        // Adım 3.2: Elasticsearch
+        OzelDers.Business.Infrastructure.Search.ElasticsearchExtensions.AddElasticsearch(services);
+        services.AddScoped<ISearchService, OzelDers.Business.Infrastructure.Search.ElasticsearchService>();
+
+        // Adım 3.3: Redis
+        services.AddSingleton<ICacheService, OzelDers.Business.Infrastructure.Cache.RedisCacheService>();
+
+        // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)
+        
         return services;
     }
 }
