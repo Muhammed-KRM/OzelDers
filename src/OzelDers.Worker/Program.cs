@@ -34,5 +34,8 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+// Adım 5.4: Vitrin Süresi Dolum Kontrolcüsü
+builder.Services.AddHostedService<OzelDers.Worker.Services.VitrinExpirationWorker>();
+
 var host = builder.Build();
 host.Run();

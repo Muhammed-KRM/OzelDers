@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenManager>();
         services.AddScoped<IMessageService, MessageManager>();
         services.AddScoped<IReviewService, ReviewManager>();
+        services.AddScoped<IVitrinService, VitrinManager>();
 
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
         services.AddValidatorsFromAssemblyContaining<AuthManager>();
