@@ -431,59 +431,41 @@ VitrinExpiryCheckJob (Worker - her saat):
 
 ---
 
-## FAZ 6: Bildirim + Admin Paneli + Dosya Yükleme
+## FAZ 6: Web Temelleri, Kullanıcı Paneli ve Dosya Yükleme
 
-### Adım 6.1: Bildirim Sistemi
+### Adım 6.1: Blazor Web Temel İnşası ve UI Tasarımı
+Projenin görsel kimliğini yansıtacak 60-30-10 tasarım kurallarına uygun temel altyapı:
+*   `Components/Layout/MainLayout.razor` ve `NavMenu.razor`
+*   `wwwroot/css/index.css` (Glassmorphism ve yumuşak UI)
+*   **Yetkilendirme:** `CustomAuthenticationStateProvider` yazılarak kullanıcıların giriş durumunu tarayıcıda yönetme.
 
-**E-posta Şablonları:**
+### Adım 6.2: Herkese Açık (Public) Sayfalar
+*   `Pages/Home.razor`: Karşılama, vitrin ve hızlı arama barı.
+*   `Pages/Search.razor`: Gelişmiş filtrelemeli sonuç listesi.
+*   `Pages/ListingDetail.razor`: İlan detay alanı ve ücretsiz/jetonlu mesaj atma butonları.
+*   `Pages/Auth/Login.razor` ve `Pages/Auth/Register.razor`
 
-| Şablon | Tetikleyici | Alıcı |
-|--------|-------------|-------|
-| welcome.html | Yeni kayıt | Kullanıcı |
-| new-message.html | Öğrenci mesaj gönderdi | Öğretmen |
-| message-unlocked.html | Öğretmen mesajı açtı | Öğrenci |
-| token-purchased.html | Jeton satın alındı | Öğretmen |
-| vitrin-expiring.html | Vitrin 2 gün içinde bitiyor | Öğretmen |
-| new-review.html | Yeni yorum yapıldı | Öğretmen |
+### Adım 6.3: Yasal Sözleşmeler ve Zorunlu Sayfalar (Türkiye Mevzuatı)
+Türkiye e-ticaret (6563) ve KVKK (6698) yasaları gereğince sitede olması zorunlu sayfalar:
+*   `Pages/Legal/KullanimKosullari.razor`: Üyelik sözleşmesi.
+*   `Pages/Legal/KVKK.razor`: Aydınlatma metni ve açık rıza beyanı.
+*   `Pages/Legal/CerezPolitikasi.razor`: Çerez (cookie) bilgilendirmesi.
+*   `Pages/Legal/MesafeliSatis.razor`: Jeton veya Vitrin satın alırken "Okudum ve kabul ediyorum" checkbox'ı ile onaylatılacak Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi.
+*   `Pages/Legal/IptalIade.razor`: Cayma hakkı politikası sayfası.
 
-```
-OzelDers.Business/Infrastructure/Email/
-├── SmtpEmailService.cs        # IEmailService implementasyonu
-├── EmailTemplates/
-│   ├── _layout.html           # Ana şablon (header, footer, logo)
-│   ├── welcome.html
-│   ├── new-message.html
-│   └── ...
-└── EmailOptions.cs            # SMTP host, port, credentials
-```
+### Adım 6.4: Kullanıcı Paneli (Unified Dashboard)
+Öğretmen veya öğrenci fark etmeksizin profillerine erişen kullanıcı sayfaları:
+*   `Pages/User/Dashboard.razor`: Kısa özet bakiye/istatistik.
+*   `Pages/User/MyListings.razor`, `CreateListing.razor`, `EditListing.razor`: İlan yönetimi.
+*   `Pages/User/Messages.razor`: Jeton mekanizmalı mesaj kutusu.
+*   `Pages/User/Wallet.razor`: Jeton satın alma ve harcama ekranı.
+*   `Pages/User/ProfileSettings.razor`: Kişisel bilgiler ve IBAN ekranı.
 
-### Adım 6.2: Admin Paneli (SharedUI İçinde)
+### Adım 6.5: Bildirim Sistemi
+*   **E-posta Şablonları:** `welcome.html`, `new-message.html`, vb.
+*   (Altyapı Faz 5'te SmtpEmailService ile tamamlanmıştır)
 
-Admin sayfaları SharedUI/Pages/Admin/ altında yer alır. Yetkilendirme DI ile sağlanır:
-
-```
-SharedUI/Pages/Admin/
-├── AdminDashboard.razor       # İstatistikler: üye, ilan, gelir
-├── UserManagement.razor       # Kullanıcı listesi, ban/aktif, jeton tanımla
-├── ListingManagement.razor    # İlan onaylama (Pending→Active)
-├── TokenPackages.razor        # Jeton paketleri CRUD
-├── VitrinPackages.razor       # Vitrin paketleri CRUD
-├── Reports.razor              # Gelir raporları, grafikler
-└── SystemSettings.razor       # Site ayarları
-```
-
-**Admin Dashboard Metrikleri:**
-- Bugünkü kayıt sayısı, toplam aktif ilan, toplam gelir
-- Grafik: Günlük kayıt/gelir trendi (chart component)
-- Son 10 işlem (jeton, vitrin satışları)
-
-**Route koruması:**
-```razor
-@page "/admin"
-@attribute [Authorize(Roles = "Admin")]
-```
-
-### Adım 6.3: Dosya Yükleme ve İşleme
+### Adım 6.6: Dosya Yükleme ve İşleme
 
 ```
   Kullanıcı         SharedUI          API/Business        RabbitMQ         Worker           Disk
@@ -512,7 +494,7 @@ SharedUI/Pages/Admin/
 **Dosya İsimlendirme:** `{userId}/{listingId}/{size}_{guid}.webp`
 **Kütüphane:** `ImageSharp` (.NET cross-platform image processing)
 
-### Adım 6.4: MAUI Platformda Kamera Entegrasyonu
+### Adım 6.7: MAUI Platformda Kamera Entegrasyonu
 
 MAUI'de fotoğraf yüklerken platforma özel kamera/galeri erişimi:
 
@@ -556,9 +538,16 @@ MAUI Host DI: `builder.Services.AddScoped<IFilePickerService, MauiFilePickerServ
 
 ---
 
-## FAZ 7: Güvenlik Sertleştirme + KVKK
+## FAZ 7: Admin Paneli, Güvenlik Sertleştirme ve MAUI
 
-### Adım 7.1: Güvenlik Katmanları
+### Adım 7.1: Admin Paneli (SharedUI İçinde)
+Tüm sistem çalıştığında yöneticinin sistemi denetlemesi üzerine kurulur.
+*   `SharedUI/Pages/Admin/AdminDashboard.razor`
+*   `SharedUI/Pages/Admin/UserManagement.razor`
+*   `SharedUI/Pages/Admin/ListingManagement.razor`
+*   `SharedUI/Pages/Admin/Reports.razor`
+
+### Adım 7.2: Güvenlik Katmanları
 
 | Katman | Uygulama | Detay |
 |--------|----------|-------|
@@ -576,7 +565,7 @@ MAUI Host DI: `builder.Services.AddScoped<IFilePickerService, MauiFilePickerServ
 > istemciye gönderilmez. Bu, Angular/React'tan farklı olarak iş mantığının reverse-engineer
 > edilememesi anlamına gelir. MAUI Hybrid'da ise kod derlenmiş binary olarak cihazda çalışır.
 
-### Adım 7.2: JWT Akışı (Web vs MAUI)
+### Adım 7.3: JWT Akışı (Web vs MAUI)
 
 **Web Host (Blazor Server):**
 - JWT'ye ihtiyaç yok (zaten sunucuda çalışıyor)
@@ -671,6 +660,29 @@ public class AuthHandler : DelegatingHandler
 </ErrorBoundary>
 ```
 
+---
+
+## FAZ 8: SEO, İçerik Pazarlaması ve Dizin Sayfaları
+Bir pazaryerinin kan damarı SEO'dur (Google'dan gelecek ücretsiz organik trafik).
+
+### Adım 8.1: Statik Bilgi ve Güven Sayfaları
+Kullanıcıların siteye güven duyması ve öğrenim işleyişini kavraması için:
+*   `Pages/Marketing/NasilCalisir.razor`: İllüstrasyonlarla öğrenci ve öğretmen akışının anlatımı.
+*   `Pages/Marketing/Hakkimizda.razor`: Kurumsal iletişim bilgileri.
+*   `Pages/Marketing/SSS.razor`: Sıkça Sorulan Sorular (Fiyatlandırma, güvenlik, şikayetler).
+
+### Adım 8.2: SEO Dizin (Directory) Sayfaları
+Arka planda dinamik oluşan, on binlerce anahtar kelimeyi yakalayan kategori sayfaları:
+*   **Şehir Bazlı:** `/{city}/ozel-ders-verenler` (Örn: `/istanbul/ozel-ders-verenler` -> Tüm İstanbul ilanlarını gösteren özel optimize edilmiş sayfa).
+*   **Branş Bazlı:** `/{branch}/ozel-ders` (Örn: `/matematik/ozel-ders` -> Matematik ile ilgili genel makale ve yetenekli öğretmen listesi).
+*   **Karma (Şehir + Branş):** `/{city}/{branch}-ozel-ders` (Örn: `/ankara/keman-ozel-ders`).
+
+### Adım 8.3: Dinamik Site Haritası (Sitemap) & SSR
+*   Bütün yayınlanan ilanların, öğretmenlerin ve kategorilerin `sitemap.xml` üzerinden Google botlarına otomatik servis edilmesi.
+*   SEO sayfalarında Blazor Server'ın **Server-Side Rendering (SSR)** avantajıyla meta-tag (`<title>`, `<meta name="description">`) alanlarının dinamik atanması.
+*   (Opsiyonel) Eğitici Blog içerikleri için statik markdown okuyucusu veya CMS entegrasyonu.
+
+
 ### Adım 7.5: Structured Logging (Serilog)
 
 ```csharp
@@ -686,9 +698,9 @@ Log.Logger = new LoggerConfiguration()
 
 ---
 
-## FAZ 8: Docker + CI/CD + Production
+## FAZ 9: Docker + CI/CD + Production
 
-### Adım 8.1: Docker Containerization
+### Adım 9.1: Docker Containerization
 
 ```
 d:\OZELDERS\
@@ -808,7 +820,7 @@ server {
 }
 ```
 
-### Adım 8.2: MAUI App Build & Publish
+### Adım 9.2: MAUI App Build & Publish
 
 ```powershell
 # Android APK
@@ -821,7 +833,7 @@ dotnet publish src/OzelDers.App -f net9.0-windows10.0.19041.0 -c Release
 dotnet publish src/OzelDers.App -f net9.0-ios -c Release
 ```
 
-### Adım 8.3: CI/CD Pipeline (GitHub Actions)
+### Adım 9.3: CI/CD Pipeline (GitHub Actions)
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -857,7 +869,7 @@ jobs:
       # → APK artifact upload
 ```
 
-### Adım 8.4: Monitoring & Alerting
+### Adım 9.4: Monitoring & Alerting
 
 | Araç | Amaç |
 |------|-------|
@@ -866,7 +878,7 @@ jobs:
 | **Uptime Kuma** | URL health check + Telegram alert |
 | **PgHero** | PostgreSQL slow query analizi |
 
-### Adım 8.5: Performance Hedefleri (SLA)
+### Adım 9.5: Performance Hedefleri (SLA)
 
 | Metrik | Hedef |
 |--------|-------|
@@ -928,9 +940,14 @@ jobs:
 | Kayıt | `/kayit` | Hayır | Evet |
 | Panel | `/panel/*` | Hayır | Evet |
 | Admin | `/admin/*` | Hayır | Hayır (Web only) |
+| Nasıl Çalışır | `/nasil-calisir` | Evet | Evet |
 | Hakkımızda | `/hakkimizda` | Evet | Evet |
 | KVKK | `/kvkk` | Evet | Evet |
+| Kullanım K. | `/kullanim-kosullari`| Evet | Evet |
+| Gizlilik | `/gizlilik` | Evet | Evet |
 | SSS | `/sss` | Evet | Evet |
+| SEO Şehir Dizin | `/{city}/ozel-ders-verenler` | Evet | Hayır |
+| SEO Branş Dizin | `/{branch}/ozel-ders` | Evet | Hayır |
 
 ---
 
@@ -953,5 +970,5 @@ jobs:
 | 5 | Vitrin boost | Arama sonuçlarında vitrin üstte |
 | 6 | Fotoğraf işleme | Upload → Worker → boyutlandırılmış dosya |
 | 7 | Rate limit | 6. login denemesi → 429 |
-| 8 | Docker deploy | `docker-compose up -d` → healthy |
-| 8 | Android APK | `dotnet publish -f net9.0-android` başarılı |
+| 9 | Docker deploy | `docker-compose up -d` → healthy |
+| 9 | Android APK | `dotnet publish -f net9.0-android` başarılı |
