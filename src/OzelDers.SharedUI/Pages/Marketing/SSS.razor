@@ -1,0 +1,207 @@
+@page "/sss"
+@page "/sikca-sorulan-sorular"
+
+<PageTitle>Sıkça Sorulan Sorular | OzelDers.com</PageTitle>
+
+<section class="section faq-page">
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero-section">
+            <h1>❓ Sıkça Sorulan Sorular</h1>
+            <p class="hero-subtitle">Merak ettiklerinizin yanıtları burada</p>
+        </div>
+
+        <!-- Kategoriler -->
+        <div class="categories">
+            <button class="category-btn @(activeCategory == "genel" ? "active" : "")" 
+                    @onclick='() => activeCategory = "genel"'>
+                🏠 Genel
+            </button>
+            <button class="category-btn @(activeCategory == "ogretmen" ? "active" : "")" 
+                    @onclick='() => activeCategory = "ogretmen"'>
+                👨‍🏫 Öğretmenler İçin
+            </button>
+            <button class="category-btn @(activeCategory == "ogrenci" ? "active" : "")" 
+                    @onclick='() => activeCategory = "ogrenci"'>
+                👨‍🎓 Öğrenciler İçin
+            </button>
+            <button class="category-btn @(activeCategory == "odeme" ? "active" : "")" 
+                    @onclick='() => activeCategory = "odeme"'>
+                💰 Ödeme & Fiyatlandırma
+            </button>
+            <button class="category-btn @(activeCategory == "guvenlik" ? "active" : "")" 
+                    @onclick='() => activeCategory = "guvenlik"'>
+                🔒 Güvenlik
+            </button>
+        </div>
+
+        <!-- Genel Sorular -->
+        @if (activeCategory == "genel")
+        {
+            <div class="faq-section">
+                <h2>🏠 Genel Sorular</h2>
+                
+                <div class="faq-item card">
+                    <h3>OzelDers.com nedir?</h3>
+                    <p>OzelDers.com, özel ders vermek isteyen öğretmenler ile özel ders almak isteyen öğrencileri bir araya getiren Türkiye'nin en güvenilir platformudur. Komisyonsuz ve şeffaf bir sistem sunuyoruz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Kayıt olmak ücretli mi?</h3>
+                    <p>Hayır, kayıt olmak tamamen ücretsizdir. Hem öğretmenler hem de öğrenciler hiçbir ücret ödemeden platformumuza katılabilir.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Nasıl çalışır?</h3>
+                    <p>Öğrenciler arama yaparak öğretmen bulur ve ücretsiz mesaj gönderir. Öğretmenler gelen mesajları 1 jeton ile açar. Mesaj açıldıktan sonra tüm sohbet ücretsizdir. Ders ve ödeme detayları öğretmen ile öğrenci arasında belirlenir.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Hangi branşlarda ders bulabilirim?</h3>
+                    <p>Matematik, Fizik, Kimya, İngilizce, Türkçe gibi akademik derslerden müzik, spor, sanat gibi alanlara kadar 50'den fazla branşta öğretmen bulabilirsiniz.</p>
+                </div>
+            </div>
+        }
+
+        <!-- Öğretmen Soruları -->
+        @if (activeCategory == "ogretmen")
+        {
+            <div class="faq-section">
+                <h2>👨‍🏫 Öğretmenler İçin</h2>
+                
+                <div class="faq-item card">
+                    <h3>Komisyon alıyor musunuz?</h3>
+                    <p>Hayır! OzelDers.com öğretmenlerden hiçbir komisyon almaz. Tüm kazancınız size aittir. Sadece mesajlaşma için kullanılan jeton sistemi mevcuttur.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Jeton sistemi nasıl çalışır?</h3>
+                    <p>Yeni öğretmenlere 3 ücretsiz jeton hediye ediyoruz. İlanınıza gelen mesajları açmak için 1 jeton kullanırsınız. Mesaj açıldıktan sonra o öğrenci ile tüm sohbet ücretsizdir. İhtiyaç duyduğunuzda paket halinde jeton satın alabilirsiniz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Jeton paketleri ve fiyatları nedir?</h3>
+                    <ul>
+                        <li><strong>Başlangıç:</strong> 5 jeton - 99 TL</li>
+                        <li><strong>Popüler:</strong> 10 jeton - 149 TL (En avantajlı)</li>
+                        <li><strong>Profesyonel:</strong> 25 jeton - 299 TL</li>
+                        <li><strong>Kurumsal:</strong> 50 jeton - 499 TL</li>
+                    </ul>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Vitrin nedir?</h3>
+                    <p>Vitrin, ilanınızı arama sonuçlarında üst sıralara çıkaran ve öne çıkaran premium özelliktir. Haftalık (79 TL), Aylık (249 TL) ve Premium (449 TL) paketler mevcuttur.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>İlanımı nasıl oluştururum?</h3>
+                    <p>Kayıt olduktan sonra "İlan Oluştur" butonuna tıklayın. Branşınızı, deneyimlerinizi, saatlik ücretinizi ve ders verme şeklinizi (online/yüz yüze) belirtin. Fotoğraf ekleyerek profilinizi güçlendirebilirsiniz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Ödemeler nasıl yapılır?</h3>
+                    <p>Ders ücreti öğrenci ile doğrudan sizin aranızda belirlenir ve ödenir. Platform bu sürece dahil olmaz. Sadece jeton ve vitrin ödemeleri platform üzerinden yapılır.</p>
+                </div>
+            </div>
+        }
+
+        <!-- Öğrenci Soruları -->
+        @if (activeCategory == "ogrenci")
+        {
+            <div class="faq-section">
+                <h2>👨‍🎓 Öğrenciler İçin</h2>
+                
+                <div class="faq-item card">
+                    <h3>Öğretmenlere mesaj göndermek ücretli mi?</h3>
+                    <p>Hayır, öğrenciler olarak öğretmenlere ücretsiz mesaj gönderebilirsiniz. Öğretmen mesajınızı açtığında size yanıt verecektir.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Nasıl öğretmen bulurum?</h3>
+                    <p>Ana sayfadaki arama kutusundan branş, şehir ve bütçenize göre arama yapabilirsiniz. Filtreleri kullanarak ders türü (online/yüz yüze), fiyat aralığı ve diğer kriterlere göre sonuçları daraltabilirsiniz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Öğretmen yorumları güvenilir mi?</h3>
+                    <p>Evet, sadece gerçekten ders almış öğrenciler yorum yapabilir. Tüm yorumlar moderasyon sürecinden geçer.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>İletişim bilgilerim paylaşılır mı?</h3>
+                    <p>Hayır, telefon numaranız ve e-posta adresiniz gizli tutulur. Öğretmen ile iletişim platform üzerinden mesajlaşma sistemi ile sağlanır.</p>
+                </div>
+            </div>
+        }
+
+        <!-- Ödeme Soruları -->
+        @if (activeCategory == "odeme")
+        {
+            <div class="faq-section">
+                <h2>💰 Ödeme & Fiyatlandırma</h2>
+                
+                <div class="faq-item card">
+                    <h3>Hangi ödeme yöntemlerini kabul ediyorsunuz?</h3>
+                    <p>Kredi kartı ve banka kartı ile ödeme yapabilirsiniz. Tüm ödemeler 3D Secure güvencesi altındadır.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Jetonların kullanım süresi var mı?</h3>
+                    <p>Hayır, satın aldığınız jetonların kullanım süresi yoktur. İstediğiniz zaman kullanabilirsiniz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>İade politikanız nedir?</h3>
+                    <p>Satın alınan jetonlar ve vitrin paketleri dijital ürün olduğu için iade edilemez. Ancak teknik bir sorun yaşarsanız destek ekibimiz size yardımcı olacaktır.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Fatura alabilir miyim?</h3>
+                    <p>Evet, tüm ödemeleriniz için e-fatura düzenlenir ve hesabınızdan indirebilirsiniz.</p>
+                </div>
+            </div>
+        }
+
+        <!-- Güvenlik Soruları -->
+        @if (activeCategory == "guvenlik")
+        {
+            <div class="faq-section">
+                <h2>🔒 Güvenlik</h2>
+                
+                <div class="faq-item card">
+                    <h3>Kişisel verilerim güvende mi?</h3>
+                    <p>Evet, tüm kişisel verileriniz AES-256 şifreleme ile korunur. KVKK (Kişisel Verilerin Korunması Kanunu) uyumlu çalışıyoruz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Ödeme bilgilerim saklanır mı?</h3>
+                    <p>Hayır, kredi kartı bilgileriniz sistemimizde saklanmaz. Ödemeler güvenli ödeme altyapısı üzerinden gerçekleşir.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Dolandırıcılığa karşı ne yapıyorsunuz?</h3>
+                    <p>Tüm ilanlar moderasyon sürecinden geçer. Şüpheli aktiviteler tespit edildiğinde hesaplar askıya alınır. Kullanıcılarımızdan gelen şikayetleri ciddiye alıyoruz.</p>
+                </div>
+
+                <div class="faq-item card">
+                    <h3>Hesabımı nasıl silebilirim?</h3>
+                    <p>Profil ayarlarından "Hesabı Sil" seçeneğini kullanabilirsiniz. Hesabınız ve tüm verileriniz kalıcı olarak silinir.</p>
+                </div>
+            </div>
+        }
+
+        <!-- İletişim CTA -->
+        <div class="contact-cta card">
+            <h2>Sorunuz mu var?</h2>
+            <p>Aradığınız soruyu bulamadınız mı? Destek ekibimiz size yardımcı olmaktan mutluluk duyar.</p>
+            <div class="cta-buttons">
+                <a href="mailto:destek@ozelders.com" class="btn btn-primary">📧 Bize Yazın</a>
+                <a href="/hakkimizda" class="btn btn-secondary">📞 İletişim Bilgileri</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private string activeCategory = "genel";
+}

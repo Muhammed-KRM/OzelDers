@@ -1,4 +1,4 @@
-<nav class="navbar">
+<nav class="navbar navbar-glass">
     <div class="container flex-between">
         <a href="/" class="navbar-brand">
             <span class="brand-icon">🎓</span>
@@ -7,8 +7,22 @@
 
         <div class="navbar-links">
             <a href="/arama" class="nav-link">Öğretmen Bul</a>
-            <a href="/giris" class="btn btn-secondary btn-sm">Giriş Yap</a>
-            <a href="/kayit" class="btn btn-primary btn-sm">Ücretsiz Kayıt</a>
+            
+            <AuthorizeView>
+                <Authorized>
+                    <a href="/panel/mesajlarim" class="nav-link">Mesajlar</a>
+                    <a href="/panel/ilanlarim" class="nav-link">İlanlarım</a>
+                    <div class="user-menu-wrapper">
+                        <a href="/panel/dashboard" class="btn btn-secondary btn-sm">
+                            Profilim
+                        </a>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/giris" class="btn btn-secondary btn-sm">Giriş Yap</a>
+                    <a href="/kayit" class="btn btn-primary btn-sm">Ücretsiz Kayıt</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     </div>
 </nav>

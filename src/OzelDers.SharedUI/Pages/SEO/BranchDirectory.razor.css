@@ -1,0 +1,91 @@
+/* BranchDirectory.razor özel stil sayfası */
+
+.branch-hero {
+    background: var(--color-surface);
+    padding: var(--space-12) 0;
+    margin-bottom: var(--space-8);
+    overflow: hidden;
+}
+
+.flex-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+}
+
+.content-side {
+    flex: 1;
+}
+
+.graphic-side {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    min-height: 250px;
+}
+
+.glass-orb {
+    width: 250px;
+    height: 250px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, rgba(250, 98, 107, 0.2) 0%, rgba(30, 41, 59, 0.1) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-glass);
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0px); }
+}
+
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-6 { margin-bottom: var(--space-6); }
+
+.branch-title {
+    color: var(--color-secondary);
+    font-size: 2.75rem;
+    font-weight: 800;
+    margin-bottom: var(--space-4);
+    letter-spacing: -0.5px;
+}
+
+.branch-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1.15rem;
+    line-height: 1.7;
+    max-width: 90%;
+}
+
+.bg-soft {
+    background: var(--color-background);
+}
+
+.text-secondary {
+    color: var(--color-secondary);
+}
+
+@media (max-width: 768px) {
+    .flex-row {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .content-side {
+        text-align: center;
+    }
+
+    .branch-subtitle {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .glass-orb {
+        width: 150px;
+        height: 150px;
+    }
+}

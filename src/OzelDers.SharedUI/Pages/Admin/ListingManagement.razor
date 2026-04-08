@@ -1,0 +1,262 @@
+@page "/admin/listings"
+@* @attribute [Authorize(Roles = "Admin")] *@
+@inject NavigationManager Navigation
+
+<PageTitle>İlan Yönetimi | Admin Panel</PageTitle>
+
+<section class="section listing-management">
+    <div class="container">
+        <!-- Başlık -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>📋 İlan Yönetimi</h1>
+                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
+                    ← Panele Dön
+                </button>
+            </div>
+            <p class="text-muted">Tüm ilanları görüntüleyin ve yönetin</p>
+        </div>
+
+        <!-- Filtre ve Arama -->
+        <div class="filters-bar card">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" @bind="searchQuery" @bind:event="oninput" 
+                       class="search-input" placeholder="İlan başlığı veya öğretmen adı ile ara..." />
+            </div>
+
+            <div class="filter-group">
+                <select @bind="filterStatus" class="filter-select">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="Active">Aktif</option>
+                    <option value="Pending">Onay Bekliyor</option>
+                    <option value="Rejected">Reddedildi</option>
+                    <option value="Expired">Süresi Doldu</option>
+                </select>
+
+                <select @bind="filterType" class="filter-select">
+                    <option value="">Tüm Türler</option>
+                    <option value="Teacher">Öğretmen</option>
+                    <option value="Student">Öğrenci</option>
+                </select>
+
+                <label class="checkbox-filter">
+                    <input type="checkbox" @bind="filterVitrin" />
+                    <span>Sadece Vitrin</span>
+                </label>
+
+                <button class="btn btn-secondary" @onclick="ResetFilters">
+                    Filtreleri Temizle
+                </button>
+            </div>
+        </div>
+
+        <!-- İlan Listesi -->
+        <div class="listings-grid">
+            @foreach (var listing in filteredListings)
+            {
+                <div class="listing-card card">
+                    @if (listing.IsVitrin)
+                    {
+                        <div class="vitrin-badge">⭐ Vitrin</div>
+                    }
+
+                    <div class="listing-header">
+                        <div class="listing-type @listing.Type.ToLower()">
+                            @(listing.Type == "Teacher" ? "👨‍🏫 Öğretmen" : "👨‍🎓 Öğrenci")
+                        </div>
+                        <div class="listing-status @listing.Status.ToLower()">
+                            @listing.Status
+                        </div>
+                    </div>
+
+                    <h3 class="listing-title">@listing.Title</h3>
+                    
+                    <div class="listing-meta">
+                        <div class="meta-item">
+                            <span class="meta-icon">👤</span>
+                            <span>@listing.TeacherName</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">📚</span>
+                            <span>@listing.Branch</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">📍</span>
+                            <span>@listing.City</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">💰</span>
+                            <span>@listing.HourlyPrice TL/saat</span>
+                        </div>
+                    </div>
+
+                    <div class="listing-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">@listing.ViewCount</span>
+                            <span class="stat-label">Görüntülenme</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@listing.MessageCount</span>
+                            <span class="stat-label">Mesaj</span>
+                        </div>
+                    </div>
+
+                    <div class="listing-date">
+                        Oluşturulma: @listing.CreatedAt.ToString("dd.MM.yyyy")
+                    </div>
+
+                    <div class="listing-actions">
+                        <button class="btn-action view" @onclick="() => ViewListing(listing.Id)">
+                            👁️ Görüntüle
+                        </button>
+                        @if (listing.Status == "Pending")
+                        {
+                            <button class="btn-action approve" @onclick="() => ApproveListing(listing.Id)">
+                                ✅ Onayla
+                            </button>
+                            <button class="btn-action reject" @onclick="() => RejectListing(listing.Id)">
+                                ❌ Reddet
+                            </button>
+                        }
+                        else if (listing.Status == "Active")
+                        {
+                            <button class="btn-action suspend" @onclick="() => SuspendListing(listing.Id)">
+                                🚫 Askıya Al
+                            </button>
+                        }
+                        <button class="btn-action delete" @onclick="() => DeleteListing(listing.Id)">
+                            🗑️ Sil
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!filteredListings.Any())
+        {
+            <div class="empty-state card">
+                <div class="empty-icon">📭</div>
+                <p>İlan bulunamadı</p>
+            </div>
+        }
+
+        <!-- Sayfalama -->
+        <div class="pagination">
+            <button class="btn btn-secondary" disabled="@(currentPage == 1)">
+                ← Önceki
+            </button>
+            <span class="page-info">Sayfa @currentPage / @totalPages</span>
+            <button class="btn btn-secondary" disabled="@(currentPage == totalPages)">
+                Sonraki →
+            </button>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<ListingDto> listings = new();
+    private List<ListingDto> filteredListings = new();
+    private string searchQuery = string.Empty;
+    private string filterStatus = string.Empty;
+    private string filterType = string.Empty;
+    private bool filterVitrin = false;
+    private int currentPage = 1;
+    private int totalPages = 3;
+
+    protected override void OnInitialized()
+    {
+        LoadListings();
+        ApplyFilters();
+    }
+
+    private void LoadListings()
+    {
+        // Mock data
+        listings = new List<ListingDto>
+        {
+            new() { Id = Guid.NewGuid(), Title = "Deneyimli Matematik Öğretmeni", TeacherName = "Ahmet Yılmaz", Branch = "Matematik", City = "İstanbul", HourlyPrice = 250, Type = "Teacher", Status = "Active", IsVitrin = true, ViewCount = 145, MessageCount = 12, CreatedAt = DateTime.Now.AddDays(-30) },
+            new() { Id = Guid.NewGuid(), Title = "İngilizce Konuşma Pratiği", TeacherName = "Ayşe Demir", Branch = "İngilizce", City = "Ankara", HourlyPrice = 180, Type = "Teacher", Status = "Active", IsVitrin = false, ViewCount = 89, MessageCount = 7, CreatedAt = DateTime.Now.AddDays(-15) },
+            new() { Id = Guid.NewGuid(), Title = "Fizik Dersi Arıyorum", TeacherName = "Mehmet Kaya", Branch = "Fizik", City = "İzmir", HourlyPrice = 200, Type = "Student", Status = "Pending", IsVitrin = false, ViewCount = 23, MessageCount = 2, CreatedAt = DateTime.Now.AddDays(-2) },
+            new() { Id = Guid.NewGuid(), Title = "Kimya Özel Ders", TeacherName = "Fatma Şahin", Branch = "Kimya", City = "Bursa", HourlyPrice = 220, Type = "Teacher", Status = "Active", IsVitrin = true, ViewCount = 67, MessageCount = 5, CreatedAt = DateTime.Now.AddDays(-45) }
+        };
+    }
+
+    private void ApplyFilters()
+    {
+        filteredListings = listings
+            .Where(l => string.IsNullOrEmpty(searchQuery) || 
+                       l.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                       l.TeacherName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .Where(l => string.IsNullOrEmpty(filterStatus) || l.Status == filterStatus)
+            .Where(l => string.IsNullOrEmpty(filterType) || l.Type == filterType)
+            .Where(l => !filterVitrin || l.IsVitrin)
+            .ToList();
+    }
+
+    private void ResetFilters()
+    {
+        searchQuery = string.Empty;
+        filterStatus = string.Empty;
+        filterType = string.Empty;
+        filterVitrin = false;
+        ApplyFilters();
+    }
+
+    private void ViewListing(Guid listingId)
+    {
+        Navigation.NavigateTo($"/ilan/{listingId}");
+    }
+
+    private void ApproveListing(Guid listingId)
+    {
+        var listing = listings.FirstOrDefault(l => l.Id == listingId);
+        if (listing != null)
+        {
+            listing.Status = "Active";
+            ApplyFilters();
+        }
+    }
+
+    private void RejectListing(Guid listingId)
+    {
+        var listing = listings.FirstOrDefault(l => l.Id == listingId);
+        if (listing != null)
+        {
+            listing.Status = "Rejected";
+            ApplyFilters();
+        }
+    }
+
+    private void SuspendListing(Guid listingId)
+    {
+        var listing = listings.FirstOrDefault(l => l.Id == listingId);
+        if (listing != null)
+        {
+            listing.Status = "Expired";
+            ApplyFilters();
+        }
+    }
+
+    private void DeleteListing(Guid listingId)
+    {
+        listings.RemoveAll(l => l.Id == listingId);
+        ApplyFilters();
+    }
+
+    private class ListingDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string TeacherName { get; set; } = string.Empty;
+        public string Branch { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public int HourlyPrice { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public bool IsVitrin { get; set; }
+        public int ViewCount { get; set; }
+        public int MessageCount { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

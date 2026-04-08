@@ -1,0 +1,306 @@
+@page "/panel/jetonlarim"
+@* @inject ITokenService TokenService *@
+@* @inject IPaymentService PaymentService *@
+@inject NavigationManager Navigation
+
+<PageTitle>Jeton Cüzdanım | OzelDers.com</PageTitle>
+
+<section class="section wallet-page">
+    <div class="container">
+        <!-- Bakiye Hero -->
+        <div class="balance-hero card">
+            <div class="balance-content">
+                <h1>Jeton Bakiyeniz</h1>
+                <div class="balance-display">
+                    <span class="balance-icon">🪙</span>
+                    <span class="balance-number">@currentBalance</span>
+                    <span class="balance-label">Jeton</span>
+                </div>
+                <p class="balance-hint">Her jeton ile bir mesaj kutusunun kilidini açabilirsiniz</p>
+            </div>
+        </div>
+
+        <!-- Jeton Paketleri -->
+        <div class="section-header">
+            <h2>Jeton Paketleri</h2>
+            <p class="text-muted">İhtiyacınıza uygun paketi seçin</p>
+        </div>
+
+        <div class="packages-grid">
+            @foreach (var package in packages)
+            {
+                <div class="package-card card @(package.IsPopular ? "popular" : "")">
+                    @if (package.IsPopular)
+                    {
+                        <div class="popular-badge">⭐ En Çok Tercih Edilen</div>
+                    }
+                    
+                    <div class="package-header">
+                        <h3 class="package-name">@package.Name</h3>
+                        <div class="package-icon">@package.Icon</div>
+                    </div>
+
+                    <div class="package-details">
+                        <div class="token-amount">
+                            <span class="token-number">@package.TokenCount</span>
+                            <span class="token-text">Jeton</span>
+                        </div>
+
+                        <div class="price-info">
+                            <span class="price-amount">@package.Price TL</span>
+                            <span class="unit-price">(@((package.Price / (decimal)package.TokenCount).ToString("F2")) TL/jeton)</span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(package.Badge))
+                        {
+                            <div class="package-badge">@package.Badge</div>
+                        }
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="() => PurchasePackage(package.Id)" disabled="@isPurchasing">
+                        @if (isPurchasing && selectedPackageId == package.Id)
+                        {
+                            <span>İşleniyor...</span>
+                        }
+                        else
+                        {
+                            <span>Satın Al</span>
+                        }
+                    </button>
+                </div>
+            }
+        </div>
+
+        <!-- Harcama Geçmişi -->
+        <div class="section-header">
+            <h2>Harcama Geçmişi</h2>
+            <p class="text-muted">Jeton alım ve harcamalarınız</p>
+        </div>
+
+        @if (!transactions.Any())
+        {
+            <div class="empty-state card">
+                <div class="empty-icon">📊</div>
+                <p>Henüz işlem geçmişiniz bulunmuyor</p>
+            </div>
+        }
+        else
+        {
+            <div class="transactions-table card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>İşlem</th>
+                            <th>Miktar</th>
+                            <th>Bakiye</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tx in transactions)
+                        {
+                            <tr>
+                                <td class="date-cell">@tx.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td class="description-cell">
+                                    <span class="tx-icon">@(tx.Amount > 0 ? "💰" : "📤")</span>
+                                    <span>@tx.Description</span>
+                                </td>
+                                <td class="amount-cell @(tx.Amount > 0 ? "positive" : "negative")">
+                                    @(tx.Amount > 0 ? "+" : "")@tx.Amount
+                                </td>
+                                <td class="balance-cell">@tx.BalanceAfter</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <!-- Bilgilendirme -->
+        <div class="info-panel card">
+            <h3>💡 Jeton Sistemi Hakkında</h3>
+            <ul>
+                <li><strong>Mesaj Kilidi Açma:</strong> İlanınıza gelen bir mesajı okumak için 1 jeton harcanır.</li>
+                <li><strong>Ücretsiz Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
+                <li><strong>Süresi Dolmaz:</strong> Jetonlarınızın kullanım süresi yoktur.</li>
+                <li><strong>Güvenli Ödeme:</strong> Tüm ödemeler 3D Secure ile güvence altındadır.</li>
+                <li><strong>Hoş Geldin Bonusu:</strong> Yeni öğretmenler 3 ücretsiz jeton kazanır.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+@code {
+    private int currentBalance = 0;
+    private List<TokenPackageDto> packages = new();
+    private List<TransactionDto> transactions = new();
+    private bool isPurchasing = false;
+    private int? selectedPackageId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBalance();
+        await LoadPackages();
+        await LoadTransactions();
+    }
+
+    private async Task LoadBalance()
+    {
+        try
+        {
+            // API'den bakiye çekilecek
+            // currentBalance = await TokenService.GetBalanceAsync();
+            currentBalance = 5; // Mock
+        }
+        catch
+        {
+            currentBalance = 0;
+        }
+    }
+
+    private async Task LoadPackages()
+    {
+        // Implementation plan'daki paketler
+        packages = new List<TokenPackageDto>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Başlangıç",
+                TokenCount = 5,
+                Price = 99,
+                Icon = "🌱",
+                IsPopular = false,
+                Badge = ""
+            },
+            new()
+            {
+                Id = 2,
+                Name = "Popüler",
+                TokenCount = 10,
+                Price = 149,
+                Icon = "⭐",
+                IsPopular = true,
+                Badge = "En Avantajlı"
+            },
+            new()
+            {
+                Id = 3,
+                Name = "Profesyonel",
+                TokenCount = 25,
+                Price = 299,
+                Icon = "💎",
+                IsPopular = false,
+                Badge = "Maksimum Tasarruf"
+            },
+            new()
+            {
+                Id = 4,
+                Name = "Kurumsal",
+                TokenCount = 50,
+                Price = 499,
+                Icon = "👑",
+                IsPopular = false,
+                Badge = "En Ekonomik"
+            }
+        };
+    }
+
+    private async Task LoadTransactions()
+    {
+        try
+        {
+            // API'den işlem geçmişi çekilecek
+            // transactions = await TokenService.GetTransactionsAsync();
+
+            // Mock data
+            transactions = new List<TransactionDto>
+            {
+                new()
+                {
+                    CreatedAt = DateTime.Now.AddDays(-1),
+                    Description = "10 Jeton Paketi Satın Alımı",
+                    Amount = 10,
+                    BalanceAfter = 13
+                },
+                new()
+                {
+                    CreatedAt = DateTime.Now.AddDays(-2),
+                    Description = "Mesaj kilidi açma",
+                    Amount = -1,
+                    BalanceAfter = 3
+                },
+                new()
+                {
+                    CreatedAt = DateTime.Now.AddDays(-5),
+                    Description = "Hoş geldin bonusu",
+                    Amount = 3,
+                    BalanceAfter = 4
+                }
+            };
+        }
+        catch
+        {
+            transactions = new List<TransactionDto>();
+        }
+    }
+
+    private async Task PurchasePackage(int packageId)
+    {
+        isPurchasing = true;
+        selectedPackageId = packageId;
+
+        try
+        {
+            // Ödeme işlemi başlatılacak (İyzico 3D Secure)
+            // var paymentUrl = await PaymentService.InitiatePaymentAsync(packageId);
+            // Navigation.NavigateTo(paymentUrl, true); // External redirect
+
+            // Geçici: Başarılı ödeme simülasyonu
+            await Task.Delay(1500);
+            
+            var package = packages.FirstOrDefault(p => p.Id == packageId);
+            if (package != null)
+            {
+                currentBalance += package.TokenCount;
+                
+                transactions.Insert(0, new TransactionDto
+                {
+                    CreatedAt = DateTime.Now,
+                    Description = $"{package.Name} Paketi Satın Alımı",
+                    Amount = package.TokenCount,
+                    BalanceAfter = currentBalance
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Hata göster
+        }
+        finally
+        {
+            isPurchasing = false;
+            selectedPackageId = null;
+        }
+    }
+
+    // Geçici DTO'lar
+    private class TokenPackageDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int TokenCount { get; set; }
+        public decimal Price { get; set; }
+        public string Icon { get; set; } = string.Empty;
+        public bool IsPopular { get; set; }
+        public string Badge { get; set; } = string.Empty;
+    }
+
+    private class TransactionDto
+    {
+        public DateTime CreatedAt { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public int Amount { get; set; }
+        public int BalanceAfter { get; set; }
+    }
+}

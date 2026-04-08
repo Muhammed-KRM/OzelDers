@@ -1,0 +1,45 @@
+/* CityDirectory.razor özel stil sayfası - 60-30-10 Kuralına uygun */
+
+.seo-hero {
+    background: linear-gradient(135deg, var(--color-background) 0%, var(--color-surface) 100%);
+    padding: var(--space-12) 0;
+    margin-bottom: var(--space-8);
+    position: relative;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.seo-title {
+    color: var(--color-secondary);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: var(--space-3);
+    text-transform: capitalize;
+}
+
+.seo-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.seo-results {
+    background: var(--color-background);
+    padding-bottom: var(--space-16);
+}
+
+.pagination-wrapper {
+    margin-top: var(--space-12);
+}
+
+/* Küçük ekran düzenlemesi */
+@media (max-width: 768px) {
+    .seo-title {
+        font-size: 2rem;
+    }
+    
+    .seo-hero {
+        padding: var(--space-8) 0;
+    }
+}

@@ -1,0 +1,202 @@
+@page "/ilan/{slug}"
+@inject IListingService ListingService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>@(listing?.Title ?? "İlan Detayı") | OzelDers.com</PageTitle>
+
+@if (isLoading)
+{
+    <section class="section">
+        <div class="container">
+            <div class="skeleton" style="height: 400px; margin-bottom: 2rem;"></div>
+            <div class="skeleton" style="height: 200px;"></div>
+        </div>
+    </section>
+}
+else if (listing == null)
+{
+    <section class="section">
+        <div class="container text-center">
+            <h2>İlan Bulunamadı</h2>
+            <p class="text-muted">Aradığınız ilan mevcut değil veya kaldırılmış.</p>
+            <a href="/arama" class="btn btn-primary">Aramaya Dön</a>
+        </div>
+    </section>
+}
+else
+{
+    <!-- Hero Section - Öğretmen Bilgisi -->
+    <section class="listing-hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="teacher-profile">
+                    <div class="teacher-avatar-large">
+                        @if (!string.IsNullOrEmpty(listing.OwnerImageUrl))
+                        {
+                            <img src="@listing.OwnerImageUrl" alt="@listing.OwnerName" />
+                        }
+                        else
+                        {
+                            <span class="avatar-placeholder-large">@listing.OwnerName[..1]</span>
+                        }
+                    </div>
+                    <div class="teacher-info">
+                        <h1>@listing.OwnerName</h1>
+                        <div class="rating-large">
+                            <StarRating Rating="@listing.AverageRating" />
+                            <span class="rating-text">@listing.AverageRating.ToString("F1") (@listing.ReviewCount yorum)</span>
+                        </div>
+                        <div class="location">
+                            <span class="icon">📍</span>
+                            <span>@listing.DistrictName, @listing.CityName</span>
+                        </div>
+                    </div>
+                </div>
+                
+                @if (listing.IsVitrin)
+                {
+                    <span class="badge badge-vitrin-large">⭐ Vitrin İlan</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Ana İçerik -->
+    <section class="section">
+        <div class="container">
+            <div class="listing-grid">
+                <!-- Sol Kolon - İlan Detayları -->
+                <div class="listing-main">
+                    <div class="card">
+                        <h2>@listing.Title</h2>
+                        <div class="meta-tags">
+                            <span class="badge badge-primary">@listing.BranchName</span>
+                            <span class="badge">@listing.LessonType</span>
+                        </div>
+                        
+                        <div class="description">
+                            <h3>Ders Hakkında</h3>
+                            <p>@listing.Description</p>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(experience))
+                        {
+                            <div class="experience">
+                                <h3>Deneyim</h3>
+                                <p>@experience</p>
+                            </div>
+                        }
+
+                        @if (images?.Any() == true)
+                        {
+                            <div class="gallery">
+                                <h3>Fotoğraflar</h3>
+                                <div class="gallery-grid">
+                                    @foreach (var image in images)
+                                    {
+                                        <img src="@image.Url" alt="Ders fotoğrafı" class="gallery-image" />
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Sağ Kolon - İletişim Kartı -->
+                <div class="listing-sidebar">
+                    <div class="card contact-card">
+                        <div class="price-section">
+                            <span class="price-label">Ders Ücreti</span>
+                            <span class="price-value">@listing.HourlyPrice TL</span>
+                            <span class="price-unit">/ saat</span>
+                        </div>
+
+                        <AuthorizeView>
+                            <Authorized>
+                                <button class="btn btn-primary btn-full" @onclick="SendMessage">
+                                    💬 Mesaj Gönder
+                                </button>
+                                <p class="text-muted text-center text-sm">İlk mesaj ücretsiz</p>
+                            </Authorized>
+                            <NotAuthorized>
+                                <a href="/giris?returnUrl=@Navigation.Uri" class="btn btn-primary btn-full">
+                                    Mesaj Göndermek İçin Giriş Yap
+                                </a>
+                            </NotAuthorized>
+                        </AuthorizeView>
+
+                        <div class="listing-features">
+                            <div class="feature-item">
+                                <span class="feature-icon">🎓</span>
+                                <span>@listing.BranchName</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📍</span>
+                                <span>@listing.LessonType</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">⏰</span>
+                                <span>Esnek Saatler</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Güvenlik Notu -->
+                    <div class="card safety-card">
+                        <h4>🛡️ Güvenli İletişim</h4>
+                        <p class="text-sm text-muted">
+                            Tüm mesajlaşmalar platform üzerinden yapılır. 
+                            Kişisel bilgilerinizi paylaşmadan güvenle iletişim kurun.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    
+    private ListingDto? listing;
+    private bool isLoading = true;
+    private string? experience;
+    private List<ImageDto>? images;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListing();
+    }
+
+    private async Task LoadListing()
+    {
+        isLoading = true;
+        try
+        {
+            listing = await ListingService.GetBySlugAsync(Slug);
+            if (listing != null)
+            {
+                // Deneyim ve resimler için geçici çözüm
+                experience = "5+ yıl deneyim"; // API'den gelecek
+                images = listing.ImageUrls?.Select(url => new ImageDto { Url = url }).ToList();
+            }
+        }
+        catch
+        {
+            // API henüz çalışmıyorsa
+        }
+        isLoading = false;
+    }
+
+    private async Task SendMessage()
+    {
+        // Mesajlaşma sayfasına yönlendir
+        Navigation.NavigateTo($"/panel/mesajlarim?newMessage={listing?.OwnerId}");
+    }
+
+    private class ImageDto
+    {
+        public string Url { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,59 @@
+/* CityBranchDirectory.razor özel stil sayfası */
+
+.city-branch-hero {
+    background: var(--color-surface);
+    padding: var(--space-12) 0 var(--space-8);
+    position: relative;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.top-badge {
+    display: inline-block;
+    padding: var(--space-2) var(--space-4);
+    background: rgba(30, 41, 59, 0.05); /* Gece mavisi hafif opak */
+    color: var(--color-secondary);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: var(--space-4);
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: var(--space-4);
+    line-height: 1.2;
+}
+
+.text-secondary {
+    color: var(--color-secondary);
+}
+
+.text-primary {
+    color: var(--color-primary);
+}
+
+.hero-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 1.2rem;
+    max-width: 700px;
+    margin: 0 auto;
+    font-weight: 400;
+}
+
+.detail-results {
+    background: var(--color-background);
+    padding-top: var(--space-12);
+    min-height: 50vh;
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.05rem;
+        padding: 0 var(--space-2);
+    }
+}

@@ -11,7 +11,20 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDataLayer(connectionString);
 builder.Services.AddBusinessServices();
 
-// === 2. BLAZOR SERVİSLERİ ===
+// === 2. BLAZOR SERVİSLERİ VE KİMLİK DOĞRULAMA ===
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "OzelDersAuth";
+        options.LoginPath = "/giris";
+        options.AccessDeniedPath = "/giris";
+        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, OzelDers.Web.States.CustomAuthenticationStateProvider>();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -26,6 +39,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();

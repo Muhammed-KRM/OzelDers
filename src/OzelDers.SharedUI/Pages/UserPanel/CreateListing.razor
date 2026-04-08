@@ -1,0 +1,296 @@
+@page "/panel/ilan-olustur"
+@* @inject IListingService ListingService *@
+@* @inject IBranchService BranchService *@
+@* @inject ICityService CityService *@
+@inject NavigationManager Navigation
+
+<PageTitle>Yeni İlan Oluştur | OzelDers.com</PageTitle>
+
+<section class="section create-listing-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Yeni İlan Oluştur</h1>
+            <p class="text-muted">Öğrencilere ulaşmak için ilanınızı oluşturun</p>
+        </div>
+
+        <div class="form-container card">
+            <EditForm Model="model" OnValidSubmit="HandleSubmit">
+                <!-- İlan Türü -->
+                <div class="form-section">
+                    <h2>İlan Türü</h2>
+                    <div class="radio-group">
+                        <label class="radio-card">
+                            <input type="radio" name="type" value="teacher" @onchange="() => model.Type = ListingType.Teacher" checked />
+                            <div class="radio-content">
+                                <span class="radio-icon">👨‍🏫</span>
+                                <span class="radio-label">Öğretmen</span>
+                                <span class="radio-desc">Ders vermek istiyorum</span>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="type" value="student" @onchange="() => model.Type = ListingType.Student" />
+                            <div class="radio-content">
+                                <span class="radio-icon">👨‍🎓</span>
+                                <span class="radio-label">Öğrenci</span>
+                                <span class="radio-desc">Ders almak istiyorum</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Temel Bilgiler -->
+                <div class="form-section">
+                    <h2>Temel Bilgiler</h2>
+                    
+                    <div class="form-group">
+                        <label>İlan Başlığı <span class="required">*</span></label>
+                        <input type="text" @bind="model.Title" class="form-input" 
+                               placeholder="Örn: Deneyimli Matematik Öğretmeni" maxlength="100" />
+                        <span class="form-hint">Dikkat çekici ve açıklayıcı bir başlık yazın</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Açıklama <span class="required">*</span></label>
+                        <textarea @bind="model.Description" class="form-textarea" rows="6"
+                                  placeholder="Kendinizi, deneyimlerinizi ve ders verme tarzınızı anlatın..." maxlength="1000"></textarea>
+                        <span class="form-hint">@model.Description?.Length / 1000 karakter</span>
+                    </div>
+                </div>
+
+                <!-- Ders Detayları -->
+                <div class="form-section">
+                    <h2>Ders Detayları</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Branş <span class="required">*</span></label>
+                            <select @bind="model.BranchId" class="form-select">
+                                <option value="0">Branş Seçin</option>
+                                @foreach (var branch in branches)
+                                {
+                                    <option value="@branch.Id">@branch.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ders Türü <span class="required">*</span></label>
+                            <select @bind="model.LessonType" class="form-select">
+                                <option value="@LessonType.InPerson">Yüz Yüze</option>
+                                <option value="@LessonType.Online">Online</option>
+                                <option value="@LessonType.Both">Her İkisi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Saatlik Ücret (TL) <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">💰</span>
+                            <input type="number" @bind="model.HourlyPrice" class="form-input" 
+                                   placeholder="0" min="0" max="10000" />
+                            <span class="input-suffix">TL/saat</span>
+                        </div>
+                        <span class="form-hint">Piyasa ortalamasına uygun bir fiyat belirleyin</span>
+                    </div>
+                </div>
+
+                <!-- Konum -->
+                <div class="form-section">
+                    <h2>Konum Bilgileri</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Şehir <span class="required">*</span></label>
+                            <select @bind="selectedCityId" @bind:after="LoadDistricts" class="form-select">
+                                <option value="0">Şehir Seçin</option>
+                                @foreach (var city in cities)
+                                {
+                                    <option value="@city.Id">@city.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>İlçe <span class="required">*</span></label>
+                            <select @bind="model.DistrictId" class="form-select" disabled="@(districts.Count == 0)">
+                                <option value="0">İlçe Seçin</option>
+                                @foreach (var district in districts)
+                                {
+                                    <option value="@district.Id">@district.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hata Mesajı -->
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @errorMessage
+                    </div>
+                }
+
+                <!-- Form Aksiyonları -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        İptal
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span>Oluşturuluyor...</span>
+                        }
+                        else
+                        {
+                            <span>✓ İlanı Yayınla</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+
+        <!-- Bilgilendirme Kutusu -->
+        <div class="info-box card">
+            <h3>💡 İpuçları</h3>
+            <ul>
+                <li>Başlığınızı kısa ve öz tutun</li>
+                <li>Deneyimlerinizi ve eğitim geçmişinizi belirtin</li>
+                <li>Ders verme tarzınızı açıklayın</li>
+                <li>Başarı hikayelerinizi paylaşın</li>
+                <li>İletişim bilgilerinizi açıklamaya eklemeyin (platform üzerinden iletişim kurulur)</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+@code {
+    private ListingCreateDto model = new();
+    private List<BranchDto> branches = new();
+    private List<CityDto> cities = new();
+    private List<DistrictDto> districts = new();
+    private int selectedCityId = 0;
+    private bool isSubmitting = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFormData();
+    }
+
+    private async Task LoadFormData()
+    {
+        try
+        {
+            // API'den branş ve şehir listesi çekilecek
+            branches = new List<BranchDto>
+            {
+                new() { Id = 1, Name = "Matematik" },
+                new() { Id = 2, Name = "Fizik" },
+                new() { Id = 3, Name = "Kimya" },
+                new() { Id = 4, Name = "İngilizce" }
+            };
+
+            cities = new List<CityDto>
+            {
+                new() { Id = 1, Name = "İstanbul" },
+                new() { Id = 2, Name = "Ankara" },
+                new() { Id = 3, Name = "İzmir" }
+            };
+        }
+        catch
+        {
+            // API henüz çalışmıyorsa
+        }
+    }
+
+    private async Task LoadDistricts()
+    {
+        districts.Clear();
+        model.DistrictId = 0;
+
+        if (selectedCityId > 0)
+        {
+            try
+            {
+                // API'den ilçeler çekilecek
+                districts = new List<DistrictDto>
+                {
+                    new() { Id = 1, Name = "Kadıköy" },
+                    new() { Id = 2, Name = "Beşiktaş" }
+                };
+            }
+            catch
+            {
+                // API henüz çalışmıyorsa
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            // Validasyon
+            if (string.IsNullOrWhiteSpace(model.Title))
+            {
+                errorMessage = "İlan başlığı zorunludur.";
+                return;
+            }
+
+            if (model.BranchId == 0)
+            {
+                errorMessage = "Lütfen bir branş seçin.";
+                return;
+            }
+
+            if (model.DistrictId == 0)
+            {
+                errorMessage = "Lütfen şehir ve ilçe seçin.";
+                return;
+            }
+
+            // API'ye gönder
+            // await ListingService.CreateAsync(model);
+            
+            // Başarılı, ilanlar sayfasına yönlendir
+            Navigation.NavigateTo("/panel/ilanlarim");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "İlan oluşturulurken bir hata oluştu: " + ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/panel/ilanlarim");
+    }
+
+    // Geçici DTO'lar
+    private class ListingCreateDto
+    {
+        public ListingType Type { get; set; } = ListingType.Teacher;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int BranchId { get; set; }
+        public LessonType LessonType { get; set; } = LessonType.InPerson;
+        public int HourlyPrice { get; set; }
+        public int DistrictId { get; set; }
+    }
+
+    private enum ListingType { Teacher, Student }
+    private enum LessonType { InPerson, Online, Both }
+
+    private class BranchDto { public int Id { get; set; } public string Name { get; set; } = ""; }
+    private class CityDto { public int Id { get; set; } public string Name { get; set; } = ""; }
+    private class DistrictDto { public int Id { get; set; } public string Name { get; set; } = ""; }
+}

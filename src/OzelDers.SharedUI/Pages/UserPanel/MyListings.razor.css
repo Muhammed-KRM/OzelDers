@@ -1,0 +1,246 @@
+/* MyListings.razor scoped styles */
+
+.my-listings-page {
+    background: var(--color-background);
+    min-height: 100vh;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-8);
+}
+
+.page-header h1 {
+    color: var(--color-secondary);
+    font-size: 2.5rem;
+    margin-bottom: var(--space-2);
+}
+
+/* Filters */
+.filters-bar {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.filter-group label {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.filter-select {
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* Listings Grid */
+.listings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--space-6);
+}
+
+.listing-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    transition: all var(--transition-normal);
+}
+
+.listing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.listing-status {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+}
+
+.status-badge {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-inactive {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-rejected {
+    background: #E5E7EB;
+    color: #374151;
+}
+
+.listing-card h3 {
+    color: var(--color-secondary);
+    font-size: 1.25rem;
+    margin-top: var(--space-2);
+}
+
+/* Listing Details */
+.listing-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+.detail-icon {
+    font-size: 1rem;
+}
+
+/* Listing Stats */
+.listing-stats {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-4) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-value {
+    color: var(--color-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-label {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+}
+
+/* Listing Actions */
+.listing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.listing-actions .btn {
+    flex: 1;
+    min-width: 100px;
+    font-size: 0.875rem;
+}
+
+.btn-danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #DC2626;
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-16);
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: var(--space-6);
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--color-secondary);
+    margin-bottom: var(--space-3);
+}
+
+.empty-state p {
+    margin-bottom: var(--space-6);
+    max-width: 400px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .filters-bar {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-select {
+        flex: 1;
+    }
+
+    .listings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .listing-actions {
+        flex-direction: column;
+    }
+
+    .listing-actions .btn {
+        width: 100%;
+    }
+}

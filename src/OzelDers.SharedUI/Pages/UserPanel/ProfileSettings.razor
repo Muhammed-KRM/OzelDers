@@ -1,0 +1,419 @@
+@page "/panel/profil-ayarlari"
+@* @inject IUserService UserService *@
+@inject NavigationManager Navigation
+
+<PageTitle>Profil Ayarları | OzelDers.com</PageTitle>
+
+<section class="section profile-settings-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Profil Ayarları</h1>
+            <p class="text-muted">Kişisel bilgilerinizi ve hesap ayarlarınızı yönetin</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Profil yükleniyor...</p>
+            </div>
+        }
+        else
+        {
+            <div class="settings-grid">
+                <!-- Kişisel Bilgiler -->
+                <div class="settings-card card">
+                    <div class="card-header">
+                        <h2>👤 Kişisel Bilgiler</h2>
+                    </div>
+                    <EditForm Model="personalInfo" OnValidSubmit="SavePersonalInfo">
+                        <div class="form-group">
+                            <label>Ad Soyad <span class="required">*</span></label>
+                            <input type="text" @bind="personalInfo.FullName" class="form-input" 
+                                   placeholder="Adınız ve soyadınız" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>E-posta <span class="required">*</span></label>
+                            <input type="email" @bind="personalInfo.Email" class="form-input" 
+                                   placeholder="ornek@email.com" />
+                            <span class="form-hint">E-posta adresiniz gizli tutulur</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Telefon <span class="required">*</span></label>
+                            <input type="tel" @bind="personalInfo.Phone" class="form-input" 
+                                   placeholder="0555 123 45 67" />
+                            <span class="form-hint">Telefon numaranız gizli tutulur</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Doğum Tarihi</label>
+                            <input type="date" @bind="personalInfo.BirthDate" class="form-input" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(personalInfoError))
+                        {
+                            <div class="alert alert-danger">@personalInfoError</div>
+                        }
+
+                        @if (personalInfoSuccess)
+                        {
+                            <div class="alert alert-success">✓ Bilgileriniz başarıyla güncellendi</div>
+                        }
+
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingPersonalInfo">
+                            @(isSavingPersonalInfo ? "Kaydediliyor..." : "Değişiklikleri Kaydet")
+                        </button>
+                    </EditForm>
+                </div>
+
+                <!-- Ödeme Bilgileri -->
+                <div class="settings-card card">
+                    <div class="card-header">
+                        <h2>💳 Ödeme Bilgileri</h2>
+                        <span class="security-badge">🔒 Güvenli</span>
+                    </div>
+                    <EditForm Model="paymentInfo" OnValidSubmit="SavePaymentInfo">
+                        <div class="form-group">
+                            <label>IBAN <span class="required">*</span></label>
+                            <input type="text" @bind="paymentInfo.IBAN" class="form-input" 
+                                   placeholder="TR00 0000 0000 0000 0000 0000 00" maxlength="32" />
+                            <span class="form-hint">Ödemeleriniz bu hesaba yapılacaktır (AES-256 şifreli)</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hesap Sahibi Adı</label>
+                            <input type="text" @bind="paymentInfo.AccountHolderName" class="form-input" 
+                                   placeholder="Hesap sahibinin adı" />
+                        </div>
+
+                        <div class="info-box">
+                            <span class="info-icon">ℹ️</span>
+                            <p>IBAN bilginiz AES-256 şifreleme ile güvenli bir şekilde saklanır ve sadece ödeme işlemlerinde kullanılır.</p>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(paymentInfoError))
+                        {
+                            <div class="alert alert-danger">@paymentInfoError</div>
+                        }
+
+                        @if (paymentInfoSuccess)
+                        {
+                            <div class="alert alert-success">✓ Ödeme bilgileriniz güncellendi</div>
+                        }
+
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingPaymentInfo">
+                            @(isSavingPaymentInfo ? "Kaydediliyor..." : "IBAN Kaydet")
+                        </button>
+                    </EditForm>
+                </div>
+
+                <!-- Şifre Değiştirme -->
+                <div class="settings-card card">
+                    <div class="card-header">
+                        <h2>🔐 Şifre Değiştir</h2>
+                    </div>
+                    <EditForm Model="passwordChange" OnValidSubmit="ChangePassword">
+                        <div class="form-group">
+                            <label>Mevcut Şifre <span class="required">*</span></label>
+                            <input type="password" @bind="passwordChange.CurrentPassword" class="form-input" 
+                                   placeholder="Mevcut şifreniz" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Yeni Şifre <span class="required">*</span></label>
+                            <input type="password" @bind="passwordChange.NewPassword" class="form-input" 
+                                   placeholder="En az 8 karakter" />
+                        </div>
+
+                        <div class="form-group">
+                            <label>Yeni Şifre (Tekrar) <span class="required">*</span></label>
+                            <input type="password" @bind="passwordChange.ConfirmPassword" class="form-input" 
+                                   placeholder="Yeni şifrenizi tekrar girin" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(passwordError))
+                        {
+                            <div class="alert alert-danger">@passwordError</div>
+                        }
+
+                        @if (passwordSuccess)
+                        {
+                            <div class="alert alert-success">✓ Şifreniz başarıyla değiştirildi</div>
+                        }
+
+                        <button type="submit" class="btn btn-primary" disabled="@isChangingPassword">
+                            @(isChangingPassword ? "Değiştiriliyor..." : "Şifreyi Değiştir")
+                        </button>
+                    </EditForm>
+                </div>
+
+                <!-- Bildirim Tercihleri -->
+                <div class="settings-card card">
+                    <div class="card-header">
+                        <h2>🔔 Bildirim Tercihleri</h2>
+                    </div>
+                    <EditForm Model="notificationSettings" OnValidSubmit="SaveNotificationSettings">
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="notificationSettings.EmailNotifications" />
+                                <span>E-posta bildirimleri</span>
+                            </label>
+                            <span class="form-hint">Yeni mesajlar ve önemli güncellemeler</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="notificationSettings.MarketingEmails" />
+                                <span>Pazarlama e-postaları</span>
+                            </label>
+                            <span class="form-hint">Kampanyalar ve özel teklifler</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="notificationSettings.SmsNotifications" />
+                                <span>SMS bildirimleri</span>
+                            </label>
+                            <span class="form-hint">Acil durumlar için SMS</span>
+                        </div>
+
+                        @if (notificationSuccess)
+                        {
+                            <div class="alert alert-success">✓ Bildirim tercihleriniz güncellendi</div>
+                        }
+
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingNotifications">
+                            @(isSavingNotifications ? "Kaydediliyor..." : "Tercihleri Kaydet")
+                        </button>
+                    </EditForm>
+                </div>
+
+                <!-- Hesap İşlemleri -->
+                <div class="settings-card card danger-zone">
+                    <div class="card-header">
+                        <h2>⚠️ Tehlikeli Bölge</h2>
+                    </div>
+                    <div class="danger-content">
+                        <p class="danger-text">Hesabınızı kalıcı olarak silmek isterseniz aşağıdaki butona tıklayın. Bu işlem geri alınamaz.</p>
+                        <button class="btn btn-danger" @onclick="ShowDeleteConfirmation">
+                            Hesabımı Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private bool isLoading = true;
+    private PersonalInfoDto personalInfo = new();
+    private PaymentInfoDto paymentInfo = new();
+    private PasswordChangeDto passwordChange = new();
+    private NotificationSettingsDto notificationSettings = new();
+
+    private bool isSavingPersonalInfo = false;
+    private bool isSavingPaymentInfo = false;
+    private bool isChangingPassword = false;
+    private bool isSavingNotifications = false;
+
+    private string? personalInfoError;
+    private string? paymentInfoError;
+    private string? passwordError;
+    
+    private bool personalInfoSuccess = false;
+    private bool paymentInfoSuccess = false;
+    private bool passwordSuccess = false;
+    private bool notificationSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfile();
+    }
+
+    private async Task LoadProfile()
+    {
+        try
+        {
+            // API'den profil bilgileri çekilecek
+            // var profile = await UserService.GetProfileAsync();
+
+            // Mock data
+            personalInfo = new PersonalInfoDto
+            {
+                FullName = "Ahmet Yılmaz",
+                Email = "ahmet@example.com",
+                Phone = "0555 123 45 67",
+                BirthDate = new DateTime(1990, 1, 1)
+            };
+
+            paymentInfo = new PaymentInfoDto
+            {
+                IBAN = "TR00 0000 0000 0000 0000 0000 00",
+                AccountHolderName = "Ahmet Yılmaz"
+            };
+
+            notificationSettings = new NotificationSettingsDto
+            {
+                EmailNotifications = true,
+                MarketingEmails = false,
+                SmsNotifications = true
+            };
+        }
+        catch
+        {
+            // Hata durumu
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SavePersonalInfo()
+    {
+        personalInfoError = null;
+        personalInfoSuccess = false;
+        isSavingPersonalInfo = true;
+
+        try
+        {
+            // await UserService.UpdatePersonalInfoAsync(personalInfo);
+            await Task.Delay(1000); // Mock
+            personalInfoSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            personalInfoError = "Bilgiler kaydedilirken bir hata oluştu: " + ex.Message;
+        }
+        finally
+        {
+            isSavingPersonalInfo = false;
+        }
+    }
+
+    private async Task SavePaymentInfo()
+    {
+        paymentInfoError = null;
+        paymentInfoSuccess = false;
+        isSavingPaymentInfo = true;
+
+        try
+        {
+            // IBAN validasyonu
+            if (string.IsNullOrWhiteSpace(paymentInfo.IBAN) || paymentInfo.IBAN.Length < 26)
+            {
+                paymentInfoError = "Geçerli bir IBAN numarası girin.";
+                return;
+            }
+
+            // await UserService.UpdatePaymentInfoAsync(paymentInfo);
+            await Task.Delay(1000); // Mock
+            paymentInfoSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            paymentInfoError = "IBAN kaydedilirken bir hata oluştu: " + ex.Message;
+        }
+        finally
+        {
+            isSavingPaymentInfo = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        passwordError = null;
+        passwordSuccess = false;
+        isChangingPassword = true;
+
+        try
+        {
+            if (passwordChange.NewPassword != passwordChange.ConfirmPassword)
+            {
+                passwordError = "Yeni şifreler eşleşmiyor.";
+                return;
+            }
+
+            if (passwordChange.NewPassword.Length < 8)
+            {
+                passwordError = "Şifre en az 8 karakter olmalıdır.";
+                return;
+            }
+
+            // await UserService.ChangePasswordAsync(passwordChange);
+            await Task.Delay(1000); // Mock
+            passwordSuccess = true;
+            
+            // Formu temizle
+            passwordChange = new PasswordChangeDto();
+        }
+        catch (Exception ex)
+        {
+            passwordError = "Şifre değiştirilirken bir hata oluştu: " + ex.Message;
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private async Task SaveNotificationSettings()
+    {
+        notificationSuccess = false;
+        isSavingNotifications = true;
+
+        try
+        {
+            // await UserService.UpdateNotificationSettingsAsync(notificationSettings);
+            await Task.Delay(1000); // Mock
+            notificationSuccess = true;
+        }
+        catch
+        {
+            // Hata durumu
+        }
+        finally
+        {
+            isSavingNotifications = false;
+        }
+    }
+
+    private void ShowDeleteConfirmation()
+    {
+        // Modal veya confirmation dialog gösterilecek
+        // Şimdilik basit bir alert
+        // await JSRuntime.InvokeVoidAsync("alert", "Hesap silme işlemi henüz aktif değil.");
+    }
+
+    // Geçici DTO'lar
+    private class PersonalInfoDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public DateTime? BirthDate { get; set; }
+    }
+
+    private class PaymentInfoDto
+    {
+        public string IBAN { get; set; } = string.Empty;
+        public string AccountHolderName { get; set; } = string.Empty;
+    }
+
+    private class PasswordChangeDto
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private class NotificationSettingsDto
+    {
+        public bool EmailNotifications { get; set; }
+        public bool MarketingEmails { get; set; }
+        public bool SmsNotifications { get; set; }
+    }
+}

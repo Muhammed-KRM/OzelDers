@@ -1,0 +1,301 @@
+@page "/panel/mesajlarim"
+@* @inject IMessageService MessageService *@
+@* @inject ITokenService TokenService *@
+@inject NavigationManager Navigation
+
+<PageTitle>Mesajlarım | OzelDers.com</PageTitle>
+
+<section class="section messages-page">
+    <div class="container">
+        <div class="page-header">
+            <div class="header-content">
+                <h1>Mesajlarım</h1>
+                <div class="token-badge">
+                    <span class="token-icon">🪙</span>
+                    <span class="token-count">@tokenBalance Jeton</span>
+                </div>
+            </div>
+            <p class="text-muted">İlanlarınıza gelen mesajları görüntüleyin ve yanıtlayın</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Mesajlar yükleniyor...</p>
+            </div>
+        }
+        else if (!messages.Any())
+        {
+            <div class="empty-state card">
+                <div class="empty-icon">📭</div>
+                <h3>Henüz mesajınız yok</h3>
+                <p>İlanlarınıza gelen mesajlar burada görünecek</p>
+            </div>
+        }
+        else
+        {
+            <div class="messages-grid">
+                @foreach (var msg in messages)
+                {
+                    <div class="message-card card @(msg.IsUnlocked || msg.IsInitiatedWithToken ? "" : "locked")">
+                        <!-- Mesaj Başlığı -->
+                        <div class="message-header">
+                            <div class="sender-info">
+                                <div class="avatar">@msg.SenderName[0]</div>
+                                <div class="sender-details">
+                                    <strong class="sender-name">@msg.SenderName</strong>
+                                    <span class="message-date">@msg.SentAt.ToString("dd MMM yyyy, HH:mm")</span>
+                                </div>
+                            </div>
+                            @if (msg.IsInitiatedWithToken)
+                            {
+                                <span class="badge badge-special">Sana Özel Teklif 🌟</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-normal">İlanına Gelen Mesaj</span>
+                            }
+                        </div>
+
+                        <!-- İlan Bilgisi -->
+                        <div class="listing-info">
+                            <span class="listing-label">İlan:</span>
+                            <span class="listing-title">@msg.ListingTitle</span>
+                        </div>
+
+                        <!-- Mesaj İçeriği -->
+                        <div class="message-content">
+                            @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
+                            {
+                                <p class="content-text">@msg.Content</p>
+                                
+                                @if (!string.IsNullOrEmpty(msg.ReplyContent))
+                                {
+                                    <div class="reply-box">
+                                        <div class="reply-header">
+                                            <span class="reply-icon">↩️</span>
+                                            <span class="reply-label">Yanıtınız:</span>
+                                        </div>
+                                        <p class="reply-text">@msg.ReplyContent</p>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="locked-content">
+                                    <div class="blur-overlay">
+                                        <p class="blurred-text">Bu mesajın içeriğini görmek için kilidi açmalısınız...</p>
+                                    </div>
+                                    <div class="unlock-prompt">
+                                        <span class="lock-icon">🔒</span>
+                                        <p class="unlock-text">Bu mesajı açmak için 1 jeton gerekiyor</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Aksiyon Butonları -->
+                        <div class="message-actions">
+                            @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
+                            {
+                                @if (string.IsNullOrEmpty(msg.ReplyContent))
+                                {
+                                    <button class="btn btn-primary" @onclick="() => ShowReplyForm(msg.Id)">
+                                        ✉️ Ücretsiz Yanıtla
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="replied-badge">✓ Yanıtlandı</span>
+                                }
+                            }
+                            else
+                            {
+                                <button class="btn btn-unlock" @onclick="() => UnlockMessage(msg.Id)" disabled="@(tokenBalance < 1)">
+                                    🔓 1 Jeton ile Aç
+                                </button>
+                                @if (tokenBalance < 1)
+                                {
+                                    <a href="/panel/jetonlarim" class="link-buy-tokens">Jeton Satın Al →</a>
+                                }
+                            }
+                        </div>
+
+                        <!-- Yanıt Formu -->
+                        @if (replyingToMessageId == msg.Id)
+                        {
+                            <div class="reply-form">
+                                <textarea @bind="replyText" class="form-textarea" rows="4" 
+                                          placeholder="Yanıtınızı yazın..." maxlength="500"></textarea>
+                                <div class="reply-form-actions">
+                                    <button class="btn btn-secondary" @onclick="CancelReply">İptal</button>
+                                    <button class="btn btn-primary" @onclick="SendReply" disabled="@isSendingReply">
+                                        @(isSendingReply ? "Gönderiliyor..." : "Gönder")
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Bilgilendirme -->
+        <div class="info-panel card">
+            <h3>💡 Mesajlaşma Nasıl Çalışır?</h3>
+            <ul>
+                <li><strong>İlan Üzerinden Gelen Mesajlar:</strong> İlk mesajı açmak için 1 jeton harcarsınız. Açtıktan sonra sohbet ücretsizdir.</li>
+                <li><strong>Sana Özel Teklifler:</strong> Karşı taraf zaten jeton harcamıştır, mesaj açıktır ve ücretsiz yanıtlayabilirsiniz.</li>
+                <li><strong>Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<MessageDto> messages = new();
+    private int tokenBalance = 0;
+    private bool isLoading = true;
+    private Guid? replyingToMessageId = null;
+    private string replyText = string.Empty;
+    private bool isSendingReply = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMessages();
+        await LoadTokenBalance();
+    }
+
+    private async Task LoadMessages()
+    {
+        try
+        {
+            // API'den mesajlar çekilecek
+            // messages = await MessageService.GetInboxAsync();
+
+            // Geçici mock data
+            messages = new List<MessageDto>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    SenderName = "Ahmet Yılmaz",
+                    ListingTitle = "Deneyimli Matematik Öğretmeni",
+                    Content = "Merhaba, lise matematik dersi için müsait misiniz?",
+                    SentAt = DateTime.Now.AddHours(-2),
+                    IsUnlocked = false,
+                    IsInitiatedWithToken = false
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    SenderName = "Ayşe Demir",
+                    ListingTitle = "İngilizce Konuşma Pratiği",
+                    Content = "Ben de İngilizce öğretmeniyim. Belki işbirliği yapabiliriz?",
+                    SentAt = DateTime.Now.AddDays(-1),
+                    IsUnlocked = true,
+                    IsInitiatedWithToken = true,
+                    ReplyContent = "Merhaba, fikir çok güzel. Detayları konuşalım."
+                }
+            };
+        }
+        catch
+        {
+            // Hata durumu
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadTokenBalance()
+    {
+        try
+        {
+            // API'den bakiye çekilecek
+            // tokenBalance = await TokenService.GetBalanceAsync();
+            tokenBalance = 5; // Mock
+        }
+        catch
+        {
+            tokenBalance = 0;
+        }
+    }
+
+    private async Task UnlockMessage(Guid messageId)
+    {
+        try
+        {
+            // await MessageService.UnlockAsync(messageId);
+            // await TokenService.SpendAsync(1, "Mesaj kilidi açma");
+            
+            var msg = messages.FirstOrDefault(m => m.Id == messageId);
+            if (msg != null)
+            {
+                msg.IsUnlocked = true;
+                tokenBalance--;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Hata göster
+        }
+    }
+
+    private void ShowReplyForm(Guid messageId)
+    {
+        replyingToMessageId = messageId;
+        replyText = string.Empty;
+    }
+
+    private void CancelReply()
+    {
+        replyingToMessageId = null;
+        replyText = string.Empty;
+    }
+
+    private async Task SendReply()
+    {
+        if (string.IsNullOrWhiteSpace(replyText) || replyingToMessageId == null)
+            return;
+
+        isSendingReply = true;
+
+        try
+        {
+            // await MessageService.ReplyAsync(replyingToMessageId.Value, replyText);
+            
+            var msg = messages.FirstOrDefault(m => m.Id == replyingToMessageId);
+            if (msg != null)
+            {
+                msg.ReplyContent = replyText;
+            }
+
+            replyingToMessageId = null;
+            replyText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            // Hata göster
+        }
+        finally
+        {
+            isSendingReply = false;
+        }
+    }
+
+    // Geçici DTO
+    private class MessageDto
+    {
+        public Guid Id { get; set; }
+        public string SenderName { get; set; } = string.Empty;
+        public string ListingTitle { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public DateTime SentAt { get; set; }
+        public bool IsUnlocked { get; set; }
+        public bool IsInitiatedWithToken { get; set; }
+        public string? ReplyContent { get; set; }
+    }
+}

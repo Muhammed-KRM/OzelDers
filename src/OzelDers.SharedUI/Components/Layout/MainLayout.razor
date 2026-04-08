@@ -3,7 +3,18 @@
 <div class="app-layout">
     <NavMenu />
     <main class="main-content">
-        @Body
+        <ErrorBoundary @ref="errorBoundary">
+            <ChildContent>
+                @Body
+            </ChildContent>
+            <ErrorContent Context="exception">
+                <div class="error-panel text-center padding-xl">
+                    <h3 class="text-danger">Beklenmeyen Bir Hata Oluştu</h3>
+                    <p class="text-muted">@exception.Message</p>
+                    <button class="btn btn-secondary mt-4" @onclick="() => errorBoundary?.Recover()">Tekrar Dene</button>
+                </div>
+            </ErrorContent>
+        </ErrorBoundary>
     </main>
     <footer class="app-footer">
         <div class="container">
@@ -35,3 +46,13 @@
         </div>
     </footer>
 </div>
+
+@code {
+    private Microsoft.AspNetCore.Components.Web.ErrorBoundary? errorBoundary;
+
+    protected override void OnParametersSet()
+    {
+        // Sayfa değiştiğinde hataları sıfırla
+        errorBoundary?.Recover();
+    }
+}

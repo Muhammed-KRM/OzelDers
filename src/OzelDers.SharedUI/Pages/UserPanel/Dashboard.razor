@@ -1,0 +1,199 @@
+@page "/panel/dashboard"
+@* @attribute [Authorize] *@
+@* @inject IUserService UserService *@
+@inject IListingService ListingService
+@inject ITokenService TokenService
+
+<PageTitle>Kontrol Paneli | OzelDers.com</PageTitle>
+
+<section class="section dashboard-page">
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Hoş Geldiniz, @userName</h1>
+            <p class="text-muted">Hesap özetiniz ve son aktiviteleriniz</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="grid grid-3">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <div class="skeleton" style="height: 150px;"></div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- İstatistik Kartları -->
+            <div class="stats-grid">
+                <div class="stat-card card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <h3>@tokenBalance</h3>
+                        <p>Jeton Bakiyesi</p>
+                    </div>
+                    <a href="/panel/jetonlarim" class="stat-link">Jeton Al →</a>
+                </div>
+
+                <div class="stat-card card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <h3>@activeListingsCount</h3>
+                        <p>Aktif İlanlarım</p>
+                    </div>
+                    <a href="/panel/ilanlarim" class="stat-link">İlanları Gör →</a>
+                </div>
+
+                <div class="stat-card card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-content">
+                        <h3>@unreadMessagesCount</h3>
+                        <p>Okunmamış Mesaj</p>
+                    </div>
+                    <a href="/panel/mesajlarim" class="stat-link">Mesajlar →</a>
+                </div>
+
+                <div class="stat-card card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-content">
+                        <h3>@averageRating.ToString("F1")</h3>
+                        <p>Ortalama Puan</p>
+                    </div>
+                    <span class="stat-link text-muted">@totalReviews yorum</span>
+                </div>
+            </div>
+
+            <!-- Hızlı Aksiyonlar -->
+            <div class="quick-actions card">
+                <h2>Hızlı İşlemler</h2>
+                <div class="actions-grid">
+                    <a href="/panel/ilan-olustur" class="action-btn">
+                        <span class="action-icon">➕</span>
+                        <span>Yeni İlan Oluştur</span>
+                    </a>
+                    <a href="/panel/mesajlarim" class="action-btn">
+                        <span class="action-icon">💬</span>
+                        <span>Mesajlarım</span>
+                    </a>
+                    <a href="/panel/jetonlarim" class="action-btn">
+                        <span class="action-icon">💰</span>
+                        <span>Jeton Satın Al</span>
+                    </a>
+                    <a href="/panel/ayarlar" class="action-btn">
+                        <span class="action-icon">⚙️</span>
+                        <span>Hesap Ayarları</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Son İlanlarım -->
+            @if (recentListings?.Any() == true)
+            {
+                <div class="recent-section card">
+                    <div class="section-header">
+                        <h2>Son İlanlarım</h2>
+                        <a href="/panel/ilanlarim" class="btn btn-secondary btn-sm">Tümünü Gör</a>
+                    </div>
+                    <div class="listings-list">
+                        @foreach (var listing in recentListings)
+                        {
+                            <div class="listing-item">
+                                <div class="listing-info">
+                                    <h3>@listing.Title</h3>
+                                    <div class="listing-meta">
+                                        <span class="badge badge-primary">@listing.BranchName</span>
+                                        <span class="text-muted">@listing.HourlyPrice TL/saat</span>
+                                        @if (listing.IsVitrin)
+                                        {
+                                            <span class="badge badge-vitrin">⭐ Vitrin</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="listing-actions">
+                                    <a href="/ilan/@listing.Slug" class="btn btn-secondary btn-sm">Görüntüle</a>
+                                    <a href="/panel/ilan-duzenle/@listing.Id" class="btn btn-secondary btn-sm">Düzenle</a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Son Aktiviteler -->
+            @if (recentActivities?.Any() == true)
+            {
+                <div class="activities-section card">
+                    <h2>Son Aktiviteler</h2>
+                    <div class="activities-list">
+                        @foreach (var activity in recentActivities)
+                        {
+                            <div class="activity-item">
+                                <div class="activity-icon">@activity.Icon</div>
+                                <div class="activity-content">
+                                    <p>@activity.Description</p>
+                                    <span class="activity-time text-muted">@activity.CreatedAt.ToString("dd MMM, HH:mm")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+@code {
+    private string userName = "Kullanıcı";
+    private int tokenBalance = 0;
+    private int activeListingsCount = 0;
+    private int unreadMessagesCount = 0;
+    private double averageRating = 0;
+    private int totalReviews = 0;
+    private bool isLoading = true;
+
+    private List<ListingDto>? recentListings;
+    private List<ActivityDto>? recentActivities;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        try
+        {
+            // API'den veri çekilecek
+            userName = "Ahmet Yılmaz"; // Geçici
+            tokenBalance = 5;
+            activeListingsCount = 3;
+            unreadMessagesCount = 2;
+            averageRating = 4.8;
+            totalReviews = 12;
+
+            // Son ilanlar
+            recentListings = new List<ListingDto>();
+
+            // Son aktiviteler
+            recentActivities = new List<ActivityDto>
+            {
+                new() { Icon = "💬", Description = "Yeni mesaj aldınız", CreatedAt = DateTime.Now.AddHours(-2) },
+                new() { Icon = "⭐", Description = "Yeni bir yorum aldınız", CreatedAt = DateTime.Now.AddHours(-5) },
+                new() { Icon = "📋", Description = "İlanınız görüntülendi", CreatedAt = DateTime.Now.AddDays(-1) }
+            };
+        }
+        catch
+        {
+            // API henüz çalışmıyorsa
+        }
+        isLoading = false;
+    }
+
+    private class ActivityDto
+    {
+        public string Icon { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+}

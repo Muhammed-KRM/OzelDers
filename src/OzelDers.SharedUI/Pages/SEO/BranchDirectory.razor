@@ -1,0 +1,65 @@
+@page "/{Branch}/ozel-ders"
+@* @inject IListingService ListingService *@
+@* @inject ISearchService SearchService *@
+
+<PageTitle>@FormattedBranch Özel Ders Seçenekleri | OzelDers.com</PageTitle>
+<HeadContent>
+    <meta name="description" content="En iyi @FormattedBranch eğitmenlerinden özel ders alın. Binlerce onaylı profili inceleyin, bütçenize uygun uzman öğretmeni hemen bulun." />
+    <meta property="og:title" content="@FormattedBranch Özel Ders" />
+</HeadContent>
+
+<section class="branch-hero">
+    <div class="container flex-row">
+        <div class="content-side text-left">
+            <span class="badge badge-primary mb-2">Popüler Kategori</span>
+            <h1 class="branch-title animate-slide-up">
+                <span class="text-primary">@FormattedBranch</span> Öğrenme Vakti Geldi
+            </h1>
+            <p class="branch-subtitle animate-fade-in">
+                Hedeflerine daha hızlı ulaşmak için alanında uzman binlerce öğretmen seni bekliyor. Seç, iletişime geç ve hemen başla.
+            </p>
+        </div>
+        <div class="graphic-side">
+            <!-- Glassmorphism grafik efekti -->
+            <div class="glass-orb"></div>
+        </div>
+    </div>
+</section>
+
+<section class="section seo-results bg-soft">
+    <div class="container">
+        <h2 class="text-center mb-6 text-secondary">Tüm @FormattedBranch Eğitmenleri</h2>
+        <div class="grid grid-3">
+            @if (listings.Any())
+            {
+                @foreach (var listing in listings)
+                {
+                    <OzelDers.SharedUI.Components.ListingCard Listing="listing" />
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string Branch { get; set; } = string.Empty;
+
+    public string FormattedBranch => char.ToUpper(Branch[0]) + Branch.Substring(1).Replace("-", " ");
+
+    private List<OzelDers.Business.DTOs.ListingDto> listings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // listings = await SearchService.SearchAsync(new SearchFilterDto { Branch = Branch });
+        
+        listings = new List<OzelDers.Business.DTOs.ListingDto>
+        {
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "Eksiklerimi Kapatmak İstiyorum", Slug = "eksikler-matematik", OwnerName = "Oğuz Ç.", DistrictName = "Beşiktaş", CityName = "İstanbul", HourlyPrice = 300, BranchName = FormattedBranch, AverageRating = 4.7, ReviewCount = 5, OwnerImageUrl = "", IsVitrin = true },
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "Pratikle Yeni Diller", Slug = "pratik-diller", OwnerName = "Merve E.", DistrictName = "Nilüfer", CityName = "Bursa", HourlyPrice = 250, BranchName = FormattedBranch, AverageRating = 4.8, ReviewCount = 14, OwnerImageUrl = "", IsVitrin = false },
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "0'dan İleri Düzey", Slug = "sifirdan-ileri", OwnerName = "Eren T.", DistrictName = "Çankaya", CityName = "Ankara", HourlyPrice = 400, BranchName = FormattedBranch, AverageRating = 5.0, ReviewCount = 50, OwnerImageUrl = "", IsVitrin = false }
+        };
+        
+        await Task.CompletedTask;
+    }
+}

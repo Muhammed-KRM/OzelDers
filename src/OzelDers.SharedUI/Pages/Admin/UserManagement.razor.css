@@ -1,0 +1,379 @@
+/* ===========================
+   UserManagement.razor - Kullanıcı Yönetimi
+   Tablo, filtreler, aksiyonlar
+   =========================== */
+
+.user-management {
+    padding: var(--space-8) 0;
+    background: var(--color-background);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+}
+
+/* Sayfa Başlığı */
+.page-header {
+    margin-bottom: var(--space-6);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.page-header h1 {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    color: var(--color-text-primary);
+}
+
+.text-muted {
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+}
+
+/* Filtre Bar */
+.filters-bar {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.25rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 2rem);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    transition: all var(--transition-fast);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: var(--space-3) var(--space-4);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* Butonlar */
+.btn {
+    padding: var(--space-3) var(--space-4);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    border: 2px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-surface);
+    border-color: var(--color-secondary);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Kullanıcı Tablosu */
+.users-table {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: var(--shadow-md);
+    overflow-x: auto;
+    margin-bottom: var(--space-6);
+}
+
+.users-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table thead {
+    border-bottom: 2px solid var(--color-border);
+}
+
+.users-table th {
+    padding: var(--space-4);
+    text-align: left;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: 0.9375rem;
+}
+
+.users-table td {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.users-table tbody tr:hover {
+    background: var(--color-background);
+}
+
+/* Kullanıcı Hücresi */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-info strong {
+    color: var(--color-text-primary);
+}
+
+.user-id {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Badge'ler */
+.role-badge,
+.status-badge {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.role-badge.teacher {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.role-badge.student {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.role-badge.admin {
+    background: #FED7AA;
+    color: #9A3412;
+}
+
+.status-badge.active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-badge.suspended {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-badge.banned {
+    background: #1F2937;
+    color: white;
+}
+
+/* Tarih Hücresi */
+.date-cell {
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+    white-space: nowrap;
+}
+
+/* Aksiyon Hücresi */
+.actions-cell {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.action-icon-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--color-background);
+    cursor: pointer;
+    font-size: 1.125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.action-icon-btn:hover {
+    background: var(--color-border);
+    transform: scale(1.1);
+}
+
+.action-icon-btn.danger:hover {
+    background: #FEE2E2;
+}
+
+.action-icon-btn.success:hover {
+    background: #D1FAE5;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: var(--space-12) var(--space-8);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-4);
+}
+
+.empty-state p {
+    color: var(--color-text-secondary);
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+/* Sayfalama */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.page-info {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+    }
+
+    .filters-bar {
+        padding: var(--space-4);
+    }
+
+    .filter-group {
+        flex-direction: column;
+    }
+
+    .filter-select,
+    .btn {
+        width: 100%;
+    }
+
+    .users-table {
+        padding: var(--space-4);
+    }
+
+    .users-table table {
+        font-size: 0.875rem;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: var(--space-2);
+    }
+
+    .user-cell {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actions-cell {
+        flex-wrap: wrap;
+    }
+}

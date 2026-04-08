@@ -1,0 +1,171 @@
+@page "/admin"
+@page "/admin/dashboard"
+@* @attribute [Authorize(Roles = "Admin")] *@
+@inject NavigationManager Navigation
+
+<PageTitle>Admin Paneli | OzelDers.com</PageTitle>
+
+<section class="section admin-dashboard">
+    <div class="container">
+        <!-- Başlık -->
+        <div class="page-header">
+            <h1>🎛️ Admin Paneli</h1>
+            <p class="text-muted">Sistem genel bakış ve yönetim</p>
+        </div>
+
+        <!-- İstatistik Kartları -->
+        <div class="stats-grid">
+            <div class="stat-card card">
+                <div class="stat-icon users">👥</div>
+                <div class="stat-content">
+                    <h3 class="stat-number">@totalUsers</h3>
+                    <p class="stat-label">Toplam Kullanıcı</p>
+                    <span class="stat-change positive">+@newUsersToday bugün</span>
+                </div>
+            </div>
+
+            <div class="stat-card card">
+                <div class="stat-icon listings">📋</div>
+                <div class="stat-content">
+                    <h3 class="stat-number">@totalListings</h3>
+                    <p class="stat-label">Aktif İlan</p>
+                    <span class="stat-change positive">+@newListingsToday bugün</span>
+                </div>
+            </div>
+
+            <div class="stat-card card">
+                <div class="stat-icon messages">💬</div>
+                <div class="stat-content">
+                    <h3 class="stat-number">@totalMessages</h3>
+                    <p class="stat-label">Toplam Mesaj</p>
+                    <span class="stat-change neutral">@messagesToday bugün</span>
+                </div>
+            </div>
+
+            <div class="stat-card card">
+                <div class="stat-icon revenue">💰</div>
+                <div class="stat-content">
+                    <h3 class="stat-number">@totalRevenue TL</h3>
+                    <p class="stat-label">Toplam Gelir</p>
+                    <span class="stat-change positive">+@revenueToday TL bugün</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hızlı Aksiyonlar -->
+        <div class="quick-actions card">
+            <h2>⚡ Hızlı İşlemler</h2>
+            <div class="actions-grid">
+                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/users")'>
+                    <span class="action-icon">👥</span>
+                    <span class="action-text">Kullanıcı Yönetimi</span>
+                </button>
+                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/listings")'>
+                    <span class="action-icon">📋</span>
+                    <span class="action-text">İlan Yönetimi</span>
+                </button>
+                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/reports")'>
+                    <span class="action-icon">📊</span>
+                    <span class="action-text">Raporlar</span>
+                </button>
+                <button class="action-btn" @onclick="ClearCache">
+                    <span class="action-icon">🗑️</span>
+                    <span class="action-text">Cache Temizle</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Son Aktiviteler -->
+        <div class="recent-activity card">
+            <h2>📌 Son Aktiviteler</h2>
+            <div class="activity-list">
+                @foreach (var activity in recentActivities)
+                {
+                    <div class="activity-item">
+                        <div class="activity-icon @activity.Type">@activity.Icon</div>
+                        <div class="activity-content">
+                            <p class="activity-text">@activity.Description</p>
+                            <span class="activity-time">@activity.Time</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Sistem Durumu -->
+        <div class="system-status card">
+            <h2>🔧 Sistem Durumu</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">API</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">PostgreSQL</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Elasticsearch</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Redis</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">RabbitMQ</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Worker</span>
+                    <span class="status-badge online">🟢 Çalışıyor</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private int totalUsers = 1247;
+    private int newUsersToday = 23;
+    private int totalListings = 856;
+    private int newListingsToday = 12;
+    private int totalMessages = 3421;
+    private int messagesToday = 89;
+    private decimal totalRevenue = 45680;
+    private decimal revenueToday = 1250;
+
+    private List<ActivityDto> recentActivities = new();
+
+    protected override void OnInitialized()
+    {
+        LoadRecentActivities();
+    }
+
+    private void LoadRecentActivities()
+    {
+        // Mock data
+        recentActivities = new List<ActivityDto>
+        {
+            new() { Icon = "👤", Type = "user", Description = "Yeni kullanıcı kaydı: Ahmet Yılmaz", Time = "5 dakika önce" },
+            new() { Icon = "📋", Type = "listing", Description = "Yeni ilan oluşturuldu: Matematik Öğretmeni", Time = "12 dakika önce" },
+            new() { Icon = "💰", Type = "payment", Description = "Jeton satın alımı: 10 jeton - 149 TL", Time = "25 dakika önce" },
+            new() { Icon = "⭐", Type = "vitrin", Description = "Vitrin paketi satın alındı: Aylık paket", Time = "1 saat önce" },
+            new() { Icon = "💬", Type = "message", Description = "Yeni mesaj gönderildi", Time = "2 saat önce" }
+        };
+    }
+
+    private void ClearCache()
+    {
+        // Cache temizleme işlemi
+        // await CacheService.ClearAllAsync();
+    }
+
+    private class ActivityDto
+    {
+        public string Icon { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+    }
+}

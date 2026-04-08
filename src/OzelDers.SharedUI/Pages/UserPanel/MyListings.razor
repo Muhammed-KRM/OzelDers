@@ -1,0 +1,240 @@
+@page "/panel/ilanlarim"
+@* @attribute [Authorize] *@
+@inject IListingService ListingService
+@inject NavigationManager Navigation
+
+<PageTitle>İlanlarım | OzelDers.com</PageTitle>
+
+<section class="section my-listings-page">
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1>İlanlarım</h1>
+                <p class="text-muted">Tüm ilanlarınızı buradan yönetebilirsiniz</p>
+            </div>
+            <a href="/panel/ilan-olustur" class="btn btn-primary">
+                ➕ Yeni İlan Oluştur
+            </a>
+        </div>
+
+        <!-- Filtreler -->
+        <div class="filters-bar card">
+            <div class="filter-group">
+                <label>Durum:</label>
+                <select @bind="statusFilter" @bind:after="FilterListings" class="filter-select">
+                    <option value="all">Tümü</option>
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Pasif</option>
+                    <option value="pending">Onay Bekliyor</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Sıralama:</label>
+                <select @bind="sortBy" @bind:after="FilterListings" class="filter-select">
+                    <option value="newest">En Yeni</option>
+                    <option value="oldest">En Eski</option>
+                    <option value="price-high">Fiyat (Yüksek)</option>
+                    <option value="price-low">Fiyat (Düşük)</option>
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="listings-grid">
+                @for (int i = 0; i < 4; i++)
+                {
+                    <div class="skeleton" style="height: 200px;"></div>
+                }
+            </div>
+        }
+        else if (filteredListings?.Any() == true)
+        {
+            <div class="listings-grid">
+                @foreach (var listing in filteredListings)
+                {
+                    <div class="listing-card card">
+                        @if (listing.IsVitrin)
+                        {
+                            <span class="badge badge-vitrin">⭐ Vitrin</span>
+                        }
+                        
+                        <div class="listing-status">
+                            <span class="status-badge status-@listing.Status.ToString().ToLower()">
+                                @GetStatusText(listing.Status)
+                            </span>
+                        </div>
+
+                        <h3>@listing.Title</h3>
+                        
+                        <div class="listing-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">🎓</span>
+                                <span>@listing.BranchName</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📍</span>
+                                <span>@listing.CityName</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">💰</span>
+                                <span>@listing.HourlyPrice TL/saat</span>
+                            </div>
+                        </div>
+
+                        <div class="listing-stats">
+                            <div class="stat-item">
+                                <span class="stat-value">@listing.ViewCount</span>
+                                <span class="stat-label">Görüntülenme</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@listing.ReviewCount</span>
+                                <span class="stat-label">Yorum</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">@listing.AverageRating.ToString("F1")</span>
+                                <span class="stat-label">Puan</span>
+                            </div>
+                        </div>
+
+                        <div class="listing-actions">
+                            <a href="/ilan/@listing.Slug" class="btn btn-secondary btn-sm" target="_blank">
+                                👁️ Görüntüle
+                            </a>
+                            <a href="/panel/ilan-duzenle/@listing.Id" class="btn btn-secondary btn-sm">
+                                ✏️ Düzenle
+                            </a>
+                            @if (!listing.IsVitrin)
+                            {
+                                <button class="btn btn-accent btn-sm" @onclick="() => PromoteListing(listing.Id)">
+                                    ⭐ Vitrine Çıkar
+                                </button>
+                            }
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteListing(listing.Id)">
+                                🗑️ Sil
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state card">
+                <div class="empty-icon">📋</div>
+                <h3>Henüz İlan Oluşturmadınız</h3>
+                <p class="text-muted">İlk ilanınızı oluşturarak öğrencilere ulaşmaya başlayın!</p>
+                <a href="/panel/ilan-olustur" class="btn btn-primary">
+                    ➕ İlk İlanımı Oluştur
+                </a>
+            </div>
+        }
+    </div>
+</section>
+
+@code {
+    private List<ListingDto>? listings;
+    private List<ListingDto>? filteredListings;
+    private bool isLoading = true;
+    private string statusFilter = "all";
+    private string sortBy = "newest";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListings();
+    }
+
+    private async Task LoadListings()
+    {
+        isLoading = true;
+        try
+        {
+            // API'den kullanıcının ilanları çekilecek
+            listings = new List<ListingDto>();
+            FilterListings();
+        }
+        catch
+        {
+            // API henüz çalışmıyorsa
+        }
+        isLoading = false;
+    }
+
+    private void FilterListings()
+    {
+        if (listings == null)
+        {
+            filteredListings = null;
+            return;
+        }
+
+        var filtered = listings.AsEnumerable();
+
+        // Durum filtresi
+        if (statusFilter != "all")
+        {
+            filtered = filtered.Where(l => l.Status.ToString().ToLower() == statusFilter);
+        }
+
+        // Sıralama
+        filtered = sortBy switch
+        {
+            "newest" => filtered.OrderByDescending(l => l.CreatedAt),
+            "oldest" => filtered.OrderBy(l => l.CreatedAt),
+            "price-high" => filtered.OrderByDescending(l => l.HourlyPrice),
+            "price-low" => filtered.OrderBy(l => l.HourlyPrice),
+            _ => filtered
+        };
+
+        filteredListings = filtered.ToList();
+    }
+
+    private string GetStatusText(ListingStatus status)
+    {
+        return status switch
+        {
+            ListingStatus.Active => "Aktif",
+            ListingStatus.Inactive => "Pasif",
+            ListingStatus.Pending => "Onay Bekliyor",
+            ListingStatus.Rejected => "Reddedildi",
+            _ => "Bilinmiyor"
+        };
+    }
+
+    private async Task PromoteListing(Guid listingId)
+    {
+        // Vitrin satın alma sayfasına yönlendir
+        Navigation.NavigateTo($"/panel/vitrin-satin-al/{listingId}");
+    }
+
+    private async Task DeleteListing(Guid listingId)
+    {
+        // Onay dialogu göster ve sil
+        // TODO: Implement
+    }
+
+    // Geçici DTO extension
+    private class ListingDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public string CityName { get; set; } = string.Empty;
+        public int HourlyPrice { get; set; }
+        public bool IsVitrin { get; set; }
+        public ListingStatus Status { get; set; }
+        public int ViewCount { get; set; }
+        public int ReviewCount { get; set; }
+        public double AverageRating { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private enum ListingStatus
+    {
+        Active,
+        Inactive,
+        Pending,
+        Rejected
+    }
+}

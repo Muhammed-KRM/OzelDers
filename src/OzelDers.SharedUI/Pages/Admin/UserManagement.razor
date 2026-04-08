@@ -1,0 +1,222 @@
+@page "/admin/users"
+@* @attribute [Authorize(Roles = "Admin")] *@
+@inject NavigationManager Navigation
+
+<PageTitle>Kullanıcı Yönetimi | Admin Panel</PageTitle>
+
+<section class="section user-management">
+    <div class="container">
+        <!-- Başlık ve Filtreler -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>👥 Kullanıcı Yönetimi</h1>
+                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
+                    ← Panele Dön
+                </button>
+            </div>
+            <p class="text-muted">Tüm kullanıcıları görüntüleyin ve yönetin</p>
+        </div>
+
+        <!-- Filtre ve Arama -->
+        <div class="filters-bar card">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" @bind="searchQuery" @bind:event="oninput" 
+                       class="search-input" placeholder="Ad, e-posta veya telefon ile ara..." />
+            </div>
+
+            <div class="filter-group">
+                <select @bind="filterRole" class="filter-select">
+                    <option value="">Tüm Roller</option>
+                    <option value="Teacher">Öğretmen</option>
+                    <option value="Student">Öğrenci</option>
+                    <option value="Admin">Admin</option>
+                </select>
+
+                <select @bind="filterStatus" class="filter-select">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="Active">Aktif</option>
+                    <option value="Suspended">Askıya Alınmış</option>
+                    <option value="Banned">Yasaklı</option>
+                </select>
+
+                <button class="btn btn-secondary" @onclick="ResetFilters">
+                    Filtreleri Temizle
+                </button>
+            </div>
+        </div>
+
+        <!-- Kullanıcı Tablosu -->
+        <div class="users-table card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kullanıcı</th>
+                        <th>E-posta</th>
+                        <th>Telefon</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in filteredUsers)
+                    {
+                        <tr>
+                            <td class="user-cell">
+                                <div class="user-avatar">@user.FullName[0]</div>
+                                <div class="user-info">
+                                    <strong>@user.FullName</strong>
+                                    <span class="user-id">ID: @user.Id.ToString().Substring(0, 8)</span>
+                                </div>
+                            </td>
+                            <td>@user.Email</td>
+                            <td>@user.Phone</td>
+                            <td>
+                                <span class="role-badge @user.Role.ToLower()">@user.Role</span>
+                            </td>
+                            <td>
+                                <span class="status-badge @user.Status.ToLower()">@user.Status</span>
+                            </td>
+                            <td class="date-cell">@user.CreatedAt.ToString("dd.MM.yyyy")</td>
+                            <td class="actions-cell">
+                                <button class="action-icon-btn" @onclick="() => ViewUser(user.Id)" title="Görüntüle">
+                                    👁️
+                                </button>
+                                <button class="action-icon-btn" @onclick="() => EditUser(user.Id)" title="Düzenle">
+                                    ✏️
+                                </button>
+                                @if (user.Status == "Active")
+                                {
+                                    <button class="action-icon-btn danger" @onclick="() => SuspendUser(user.Id)" title="Askıya Al">
+                                        🚫
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="action-icon-btn success" @onclick="() => ActivateUser(user.Id)" title="Aktifleştir">
+                                        ✅
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (!filteredUsers.Any())
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <p>Kullanıcı bulunamadı</p>
+                </div>
+            }
+        </div>
+
+        <!-- Sayfalama -->
+        <div class="pagination">
+            <button class="btn btn-secondary" disabled="@(currentPage == 1)">
+                ← Önceki
+            </button>
+            <span class="page-info">Sayfa @currentPage / @totalPages</span>
+            <button class="btn btn-secondary" disabled="@(currentPage == totalPages)">
+                Sonraki →
+            </button>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<UserDto> users = new();
+    private List<UserDto> filteredUsers = new();
+    private string searchQuery = string.Empty;
+    private string filterRole = string.Empty;
+    private string filterStatus = string.Empty;
+    private int currentPage = 1;
+    private int totalPages = 5;
+
+    protected override void OnInitialized()
+    {
+        LoadUsers();
+        ApplyFilters();
+    }
+
+    private void LoadUsers()
+    {
+        // Mock data
+        users = new List<UserDto>
+        {
+            new() { Id = Guid.NewGuid(), FullName = "Ahmet Yılmaz", Email = "ahmet@example.com", Phone = "0555 123 45 67", Role = "Teacher", Status = "Active", CreatedAt = DateTime.Now.AddMonths(-6) },
+            new() { Id = Guid.NewGuid(), FullName = "Ayşe Demir", Email = "ayse@example.com", Phone = "0555 234 56 78", Role = "Student", Status = "Active", CreatedAt = DateTime.Now.AddMonths(-3) },
+            new() { Id = Guid.NewGuid(), FullName = "Mehmet Kaya", Email = "mehmet@example.com", Phone = "0555 345 67 89", Role = "Teacher", Status = "Suspended", CreatedAt = DateTime.Now.AddMonths(-12) },
+            new() { Id = Guid.NewGuid(), FullName = "Fatma Şahin", Email = "fatma@example.com", Phone = "0555 456 78 90", Role = "Student", Status = "Active", CreatedAt = DateTime.Now.AddDays(-15) },
+            new() { Id = Guid.NewGuid(), FullName = "Ali Çelik", Email = "ali@example.com", Phone = "0555 567 89 01", Role = "Admin", Status = "Active", CreatedAt = DateTime.Now.AddYears(-2) }
+        };
+    }
+
+    private void ApplyFilters()
+    {
+        filteredUsers = users
+            .Where(u => string.IsNullOrEmpty(searchQuery) || 
+                       u.FullName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                       u.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                       u.Phone.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .Where(u => string.IsNullOrEmpty(filterRole) || u.Role == filterRole)
+            .Where(u => string.IsNullOrEmpty(filterStatus) || u.Status == filterStatus)
+            .ToList();
+    }
+
+    private void ResetFilters()
+    {
+        searchQuery = string.Empty;
+        filterRole = string.Empty;
+        filterStatus = string.Empty;
+        ApplyFilters();
+    }
+
+    private void ViewUser(Guid userId)
+    {
+        // Kullanıcı detay sayfasına yönlendir
+        Navigation.NavigateTo($"/admin/users/{userId}");
+    }
+
+    private void EditUser(Guid userId)
+    {
+        // Kullanıcı düzenleme sayfasına yönlendir
+        Navigation.NavigateTo($"/admin/users/{userId}/edit");
+    }
+
+    private void SuspendUser(Guid userId)
+    {
+        // Kullanıcıyı askıya al
+        var user = users.FirstOrDefault(u => u.Id == userId);
+        if (user != null)
+        {
+            user.Status = "Suspended";
+            ApplyFilters();
+        }
+    }
+
+    private void ActivateUser(Guid userId)
+    {
+        // Kullanıcıyı aktifleştir
+        var user = users.FirstOrDefault(u => u.Id == userId);
+        if (user != null)
+        {
+            user.Status = "Active";
+            ApplyFilters();
+        }
+    }
+
+    private class UserDto
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+}

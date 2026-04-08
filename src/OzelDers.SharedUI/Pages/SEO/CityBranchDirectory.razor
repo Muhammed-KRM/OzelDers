@@ -1,0 +1,64 @@
+@page "/{City}/{Branch}-ozel-ders"
+@* @inject IListingService ListingService *@
+@* @inject ISearchService SearchService *@
+
+<PageTitle>@FormattedCity @FormattedBranch Özel Ders Verenler | OzelDers.com</PageTitle>
+<HeadContent>
+    <meta name="description" content="@FormattedCity bölgesinde deneyimli @FormattedBranch özel ders eğitmenlerini inceleyin. Seçkin profillere hemen ulaşın." />
+    <meta property="og:title" content="@FormattedCity @FormattedBranch Özel Ders" />
+</HeadContent>
+
+<section class="city-branch-hero">
+    <div class="container text-center">
+        <!-- Vitrin Badge -->
+        <div class="top-badge animate-fade-in">📌 Hedefe Özel Listeleme</div>
+        
+        <h1 class="hero-title animate-slide-up">
+            <span class="text-secondary">@FormattedCity</span> bölgesinde <br />
+            <span class="text-primary">@FormattedBranch</span> Dersleri
+        </h1>
+        <p class="hero-subtitle animate-fade-in">
+            Hedeflerinize ulaşmanızı sağlayacak doğru kişiyi binlerce filtre eşleşmesiyle bulduk.
+        </p>
+    </div>
+</section>
+
+<section class="section detail-results">
+    <div class="container">
+        <div class="grid grid-3">
+            @if (listings.Any())
+            {
+                @foreach (var listing in listings)
+                {
+                    <OzelDers.SharedUI.Components.ListingCard Listing="listing" />
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string City { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Branch { get; set; } = string.Empty;
+
+    public string FormattedCity => char.ToUpper(City[0]) + City.Substring(1).Replace("-", " ");
+    public string FormattedBranch => char.ToUpper(Branch[0]) + Branch.Substring(1).Replace("-", " ");
+
+    private List<OzelDers.Business.DTOs.ListingDto> listings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // listings = await SearchService.SearchAsync(new SearchFilterDto { City = City, Branch = Branch });
+        
+        listings = new List<OzelDers.Business.DTOs.ListingDto>
+        {
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = $"{FormattedBranch} Temel Eğitimi", Slug = "temel-egitim", OwnerName = "Ahmet K.", DistrictName = "Merkez", CityName = FormattedCity, HourlyPrice = 300, BranchName = FormattedBranch, AverageRating = 4.6, ReviewCount = 11, OwnerImageUrl = "", IsVitrin = true },
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = $"İleri {FormattedBranch} Dersleri", Slug = "ileri-seviye", OwnerName = "Selin Y.", DistrictName = "Merkez", CityName = FormattedCity, HourlyPrice = 450, BranchName = FormattedBranch, AverageRating = 4.9, ReviewCount = 28, OwnerImageUrl = "", IsVitrin = false }
+        };
+        
+        await Task.CompletedTask;
+    }
+}

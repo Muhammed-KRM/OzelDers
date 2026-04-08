@@ -1,0 +1,70 @@
+@page "/{City}/ozel-ders-verenler"
+@* @inject IListingService ListingService *@
+@* @inject ISearchService SearchService *@
+
+<PageTitle>@FormattedCity Özel Ders Verenler | OzelDers.com</PageTitle>
+<HeadContent>
+    <meta name="description" content="@FormattedCity bölgesindeki en iyi özel ders öğretmenlerini keşfedin. Bütçenize ve hedeflerinize en uygun eğitmene anında ulaşın." />
+    <meta property="og:title" content="@FormattedCity Özel Ders Verenler" />
+</HeadContent>
+
+<!-- 1. Hero Section -->
+<section class="seo-hero">
+    <div class="container text-center">
+        <h1 class="seo-title animate-slide-up">
+            <span class="text-primary">@FormattedCity</span> Özel Ders Verenler
+        </h1>
+        <p class="seo-subtitle animate-fade-in">
+            @FormattedCity bölgesinde alanında uzman eğitmenleri inceleyin, değerlendirmeleri okuyun ve ihtiyacınız olan özel dersi hemen almaya başlayın.
+        </p>
+    </div>
+</section>
+
+<!-- 2. Sonuçlar Section -->
+<section class="section seo-results">
+    <div class="container">
+        <div class="grid grid-3">
+            @if (listings.Any())
+            {
+                @foreach (var listing in listings)
+                {
+                    <OzelDers.SharedUI.Components.ListingCard Listing="listing" />
+                }
+            }
+            else
+            {
+                <DummyListings />
+            }
+        </div>
+        
+        <div class="pagination-wrapper text-center mt-4">
+            <OzelDers.SharedUI.Components.Pagination />
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public string City { get; set; } = string.Empty;
+
+    public string FormattedCity => char.ToUpper(City[0]) + City.Substring(1).Replace("-", " ");
+
+    // Mock Data Listesi (API bağlanana kadar kullanılacak)
+    private List<OzelDers.Business.DTOs.ListingDto> listings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Gerçek entegrasyonda SearchService üzerinden filtrelenecek
+        // listings = await SearchService.SearchAsync(new SearchFilterDto { City = City });
+        
+        // Şimdilik mock data
+        listings = new List<OzelDers.Business.DTOs.ListingDto>
+        {
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "İleri Düzey İngilizce Konuşma Pratiği", Slug = "ileri-duzey-ingilizce", OwnerName = "Ahmet Y.", DistrictName = "Kadıköy", CityName = FormattedCity, HourlyPrice = 300, BranchName = "İngilizce", AverageRating = 4.8, ReviewCount = 12, OwnerImageUrl = "", IsVitrin = true },
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "LGS ve YKS Matematik Uzmanı Eğitmen", Slug = "lgs-yks-matematik", OwnerName = "Zeynep K.", DistrictName = "Beşiktaş", CityName = FormattedCity, HourlyPrice = 450, BranchName = "Matematik", AverageRating = 5.0, ReviewCount = 34, OwnerImageUrl = "", IsVitrin = false },
+            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "C# ve .NET Core ile Yazılım Dersleri", Slug = "csharp-dotnet-core", OwnerName = "Burak M.", DistrictName = "Şişli", CityName = FormattedCity, HourlyPrice = 500, BranchName = "Yazılım", AverageRating = 4.9, ReviewCount = 8, OwnerImageUrl = "", IsVitrin = false }
+        };
+        
+        await Task.CompletedTask;
+    }
+}
