@@ -19,24 +19,24 @@
                 <!-- İlan Türü -->
                 <div class="form-section">
                     <h2>İlan Türü</h2>
-                    <div class="radio-group">
-                        <label class="radio-card">
-                            <input type="radio" name="type" value="teacher" @onchange="() => model.Type = ListingType.TeacherOffering" checked />
-                            <div class="radio-content">
-                                <span class="radio-icon">👨‍🏫</span>
-                                <span class="radio-label">Öğretmen</span>
-                                <span class="radio-desc">Ders vermek istiyorum</span>
-                            </div>
-                        </label>
-                        <label class="radio-card">
-                            <input type="radio" name="type" value="student" @onchange="() => model.Type = ListingType.StudentLooking" />
-                            <div class="radio-content">
-                                <span class="radio-icon">👨‍🎓</span>
-                                <span class="radio-label">Öğrenci</span>
-                                <span class="radio-desc">Ders almak istiyorum</span>
-                            </div>
-                        </label>
-                    </div>
+                        <InputRadioGroup @bind-Value="model.Type">
+                            <label class="radio-card">
+                                <InputRadio Value="ListingType.TeacherOffering" />
+                                <div class="radio-content">
+                                    <span class="radio-icon">👨‍🏫</span>
+                                    <span class="radio-label">Öğretmen</span>
+                                    <span class="radio-desc">Ders vermek istiyorum</span>
+                                </div>
+                            </label>
+                            <label class="radio-card">
+                                <InputRadio Value="ListingType.StudentLooking" />
+                                <div class="radio-content">
+                                    <span class="radio-icon">👨‍🎓</span>
+                                    <span class="radio-label">Öğrenci</span>
+                                    <span class="radio-desc">Ders almak istiyorum</span>
+                                </div>
+                            </label>
+                        </InputRadioGroup>
                 </div>
 
                 <!-- Temel Bilgiler -->
@@ -167,7 +167,11 @@
 </section>
 
 @code {
-    private ListingCreateDto model = new();
+    private ListingCreateDto model = new() 
+    { 
+        Type = ListingType.TeacherOffering,
+        LessonType = LessonType.FaceToFace 
+    };
     private List<BranchDto> branches = new();
     private List<CityDto> cities = new();
     private List<DistrictDto> districts = new();
@@ -255,7 +259,19 @@
                 return;
             }
 
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği atılıyor: /api/listings");
+            // Payload ve Header loglama
+            var payloadStr = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            
+            // Jetonu manual olarak LocalStorage'dan alıp logluyoruz
+            var tokenRaw = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var authHeaderStr = !string.IsNullOrEmpty(tokenRaw) ? $"Bearer {tokenRaw.Replace("\"", "")}" : "Token Yok";
+
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ----- API İSTEK DETAYI -----");
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] URL: /api/listings");
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Headers: \n { Authorization: '" + authHeaderStr + "' }");
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Payload: \n" + payloadStr);
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ------------------------------");
+
             // API'ye gönder
             await ListingService.CreateAsync(model, Guid.Empty);
             
@@ -263,10 +279,15 @@
             // Başarılı, ilanlar sayfasına yönlendir
             Navigation.NavigateTo("/panel/ilanlarim");
         }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = "Kayıt Başarısız. Girdiğiniz bilgileri kontrol edin. Lütfen konsola bakın.";
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA DETAYI: İlan API'ye kaydedilemedi.", ex.Message);
+        }
         catch (Exception ex)
         {
-            errorMessage = "İlan oluşturulurken bir hata oluştu: " + ex.Message;
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlan API'ye kaydedilemedi.", ex.Message);
+            errorMessage = "Beklenmeyen bir hata oluştu: " + ex.Message;
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA:", ex.Message);
         }
         finally
         {

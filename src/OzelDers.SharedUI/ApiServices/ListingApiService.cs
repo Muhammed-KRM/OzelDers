@@ -17,7 +17,13 @@ public class ListingApiService : IListingService
     public async Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId)
     {
         var response = await _http.PostAsJsonAsync("api/listings", dto);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"API Hatası ({response.StatusCode}): {errorContent}");
+        }
+
         return await response.Content.ReadFromJsonAsync<ListingDto>() ?? new ListingDto();
     }
 

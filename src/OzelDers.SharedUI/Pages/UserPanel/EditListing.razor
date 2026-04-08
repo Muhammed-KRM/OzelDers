@@ -1,8 +1,6 @@
-@page "/panel/ilan-duzenle/{ListingId:guid}"
-@attribute [Authorize]
-@* @inject IListingService ListingService *@
-@* @inject IBranchService BranchService *@
-@* @inject ICityService CityService *@
+@inject IListingService ListingService
+@inject HttpClient Http
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>İlan Düzenle | OzelDers.com</PageTitle>
@@ -31,12 +29,11 @@
         {
             <div class="form-container card">
                 <EditForm Model="model" OnValidSubmit="HandleSubmit">
-                    <!-- İlan Türü (Değiştirilemez) -->
                     <div class="form-section">
                         <h2>İlan Türü</h2>
                         <div class="info-badge">
-                            <span class="badge-icon">@(model.Type == ListingType.Teacher ? "👨‍🏫" : "👨‍🎓")</span>
-                            <span class="badge-text">@(model.Type == ListingType.Teacher ? "Öğretmen İlanı" : "Öğrenci İlanı")</span>
+                            <span class="badge-icon">@(model.Type == ListingType.TeacherOffering ? "👨‍🏫" : "👨‍🎓")</span>
+                            <span class="badge-text">@(model.Type == ListingType.TeacherOffering ? "Öğretmen İlanı" : "Öğrenci İlanı")</span>
                             <span class="badge-note">(Değiştirilemez)</span>
                         </div>
                     </div>
@@ -79,7 +76,7 @@
                             <div class="form-group">
                                 <label>Ders Türü <span class="required">*</span></label>
                                 <select @bind="model.LessonType" class="form-select">
-                                    <option value="@LessonType.InPerson">Yüz Yüze</option>
+                                    <option value="@LessonType.FaceToFace">Yüz Yüze</option>
                                     <option value="@LessonType.Online">Online</option>
                                     <option value="@LessonType.Both">Her İkisi</option>
                                 </select>
@@ -183,35 +180,36 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadListing();
         await LoadFormData();
+        await LoadListing();
     }
 
     private async Task LoadListing()
     {
         try
         {
-            // API'den ilan bilgisi çekilecek
-            // var listing = await ListingService.GetByIdAsync(ListingId);
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] İlan detayları çekiliyor: {ListingId}");
+            var listing = await ListingService.GetByIdAsync(ListingId);
             
-            // Geçici mock data
-            model = new ListingEditDto
+            if (listing != null)
             {
-                Id = ListingId,
-                Type = ListingType.Teacher,
-                Title = "Deneyimli Matematik Öğretmeni",
-                Description = "10 yıllık deneyim...",
-                BranchId = 1,
-                LessonType = LessonType.Both,
-                HourlyPrice = 250,
-                DistrictId = 1,
-                IsActive = true
-            };
-
-            selectedCityId = 1; // İlçeden şehir bulunacak
+                model = new ListingEditDto
+                {
+                    Id = listing.Id,
+                    Type = listing.Type,
+                    Title = listing.Title,
+                    Description = listing.Description,
+                    BranchId = branches.FirstOrDefault(b => b.Name == listing.BranchName)?.Id ?? 0,
+                    LessonType = listing.LessonType,
+                    HourlyPrice = listing.HourlyPrice,
+                    DistrictId = 0, // Bu kısmı şehir/ilçe listesi gelince eşleştireceğiz
+                    IsActive = listing.Status == ListingStatus.Active
+                };
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: İlan yüklenemedi.", ex.Message);
             model = null;
         }
         finally
@@ -224,26 +222,17 @@
     {
         try
         {
-            branches = new List<BranchDto>
-            {
-                new() { Id = 1, Name = "Matematik" },
-                new() { Id = 2, Name = "Fizik" },
-                new() { Id = 3, Name = "Kimya" },
-                new() { Id = 4, Name = "İngilizce" }
-            };
+            var branchResult = await Http.GetFromJsonAsync<List<BranchDto>>("api/branches");
+            if (branchResult != null) branches = branchResult;
 
-            cities = new List<CityDto>
-            {
-                new() { Id = 1, Name = "İstanbul" },
-                new() { Id = 2, Name = "Ankara" },
-                new() { Id = 3, Name = "İzmir" }
-            };
-
+            var cityResult = await Http.GetFromJsonAsync<List<CityDto>>("api/cities");
+            if (cityResult != null) cities = cityResult;
+            
             await LoadDistricts();
         }
-        catch
+        catch (Exception ex)
         {
-            // API henüz çalışmıyorsa
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: Form verileri (branş/şehir) yüklenemedi.", ex.Message);
         }
     }
 
@@ -293,14 +282,27 @@
                 return;
             }
 
-            // API'ye gönder
-            // await ListingService.UpdateAsync(model);
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] İlan güncelleniyor: {ListingId}");
             
+            var updateDto = new ListingUpdateDto
+            {
+                Title = model.Title,
+                Description = model.Description,
+                HourlyPrice = model.HourlyPrice,
+                LessonType = model.LessonType,
+                BranchId = model.BranchId,
+                DistrictId = model.DistrictId
+            };
+            
+            await ListingService.UpdateAsync(ListingId, updateDto, Guid.Empty);
+            
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: İlan güncellendi.");
             Navigation.NavigateTo("/panel/ilanlarim");
         }
         catch (Exception ex)
         {
             errorMessage = "İlan güncellenirken bir hata oluştu: " + ex.Message;
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: İlan güncellenemedi.", ex.Message);
         }
         finally
         {
@@ -313,7 +315,6 @@
         Navigation.NavigateTo("/panel/ilanlarim");
     }
 
-    // Geçici DTO'lar
     private class ListingEditDto
     {
         public Guid Id { get; set; }
@@ -327,10 +328,7 @@
         public bool IsActive { get; set; }
     }
 
-    private enum ListingType { Teacher, Student }
-    private enum LessonType { InPerson, Online, Both }
-
     private class BranchDto { public int Id { get; set; } public string Name { get; set; } = ""; }
-    private class CityDto { public int Id { get; set; } public string Name { get; set; } = ""; }
+    private class CityDto { public int Id { get; set; } public string Name { get; set; } = ""; public List<DistrictDto> Districts { get; set; } = new(); }
     private class DistrictDto { public int Id { get; set; } public string Name { get; set; } = ""; }
 }
