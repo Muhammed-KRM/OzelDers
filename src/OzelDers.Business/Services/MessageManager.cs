@@ -1,4 +1,5 @@
 using FluentValidation;
+using Ganss.Xss;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Interfaces;
@@ -55,12 +56,14 @@ public class MessageManager : IMessageService
         if (!validationResult.IsValid)
             throw new BusinessException(string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
 
+        var sanitizer = new HtmlSanitizer();
+
         var message = new Message
         {
             SenderId = senderId,
             ReceiverId = dto.ReceiverId,
             ListingId = dto.ListingId,
-            Content = dto.Content,
+            Content = sanitizer.Sanitize(dto.Content),
             IsInitiatedWithToken = dto.IsDirectOffer,
         };
 

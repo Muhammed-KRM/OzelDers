@@ -1,0 +1,70 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: src/OzelDers.Web/Dockerfile
+    ports: ["8080:8080"]
+    depends_on: [postgres, redis]
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+
+  api:
+    build:
+      context: .
+      dockerfile: src/OzelDers.API/Dockerfile
+    ports: ["5001:8080"]
+    depends_on: [postgres, redis, rabbitmq]
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - Jwt__Issuer=OzelDers
+      - Jwt__Audience=OzelDersClients
+      - Jwt__Key=SuperSecretKeyForJwtTokenGeneration2026!
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/OzelDers.Worker/Dockerfile
+    depends_on: [postgres, elasticsearch, redis, rabbitmq]
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes: 
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - uploads_data:/var/www/uploads
+    depends_on: [web, api]
+
+  postgres:
+    image: postgres:16
+    volumes: [pgdata:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: ozelders
+      POSTGRES_USER: ozelders_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports: ["9200:9200"]
+    volumes: [esdata:/usr/share/elasticsearch/data]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["5672:5672", "15672:15672"]
+
+volumes:
+  pgdata:
+  esdata:
+  uploads_data:

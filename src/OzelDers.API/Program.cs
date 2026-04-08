@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using OzelDers.API.Middleware;
 using OzelDers.Business;
+using Microsoft.AspNetCore.RateLimiting;
 using OzelDers.Data;
 using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
@@ -45,6 +46,30 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "OzelDers API", Version = "v1" });
 });
 
+// === 4.1 RATE LIMITING (Güvenlik) ===
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("LoginPolicy", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    options.AddFixedWindowLimiter("SearchPolicy", opt =>
+    {
+        opt.PermitLimit = 30;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+
+    options.AddFixedWindowLimiter("RegisterPolicy", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromHours(1);
+    });
+});
+
 // === 5. CORS ===
 builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", b => b
@@ -76,6 +101,7 @@ app.UseCors("AllowAll");
 app.UseStaticFiles(); // uploads klasörü için
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter(); // Middleware kuyruğunda Auth'dan sonra gelmesi uygun
 app.MapControllers();
 
 // === VERİTABANI SEED ===

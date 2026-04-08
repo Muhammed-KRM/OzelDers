@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Interfaces;
 
@@ -18,6 +19,7 @@ public class ListingsController : ControllerBase
     }
 
     [HttpGet("search")]
+    [EnableRateLimiting("SearchPolicy")]
     public async Task<ActionResult<SearchResultDto>> Search([FromQuery] SearchFilterDto filters)
         => Ok(await _listingService.SearchAsync(filters));
 

@@ -1,0 +1,42 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+@if (!isAccepted)
+{
+    <div class="cookie-consent-bar slide-up">
+        <div class="cookie-content">
+            <span class="cookie-icon">🍪</span>
+            <div class="cookie-text">
+                <strong>Çerez Poli̇ti̇kası</strong>
+                <p>Sizlere daha iyi bir deneyim sunabilmek için KVKK Aydınlatma Metni kapsamında çerezler kullanıyoruz. Sitemizi kullanarak çerez kullanımını kabul etmiş olursunuz.</p>
+            </div>
+        </div>
+        <div class="cookie-actions">
+            <a href="/kvkk" class="btn btn-text">Detaylı Bilgi</a>
+            <button class="btn btn-primary btn-sm cookie-accept" @onclick="AcceptCookies">Kabul Et ve Kapat</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isAccepted = true; // Ön tanımlı gizli, JavaScript yükleyince göstereceğiz
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var consent = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "cookieConsent");
+            if (string.IsNullOrEmpty(consent))
+            {
+                isAccepted = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task AcceptCookies()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "cookieConsent", "true");
+        isAccepted = true;
+    }
+}

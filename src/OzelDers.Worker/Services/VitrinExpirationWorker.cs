@@ -1,7 +1,10 @@
-using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using OzelDers.Business.Events;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using OzelDers.Data.Context;
+using OzelDers.Data.Enums;
+using Microsoft.EntityFrameworkCore;
+using OzelDers.Business.Interfaces;
 
 namespace OzelDers.Worker.Services;
 
@@ -18,7 +21,7 @@ public class VitrinExpirationWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Vitrin Expiration Worker started.");
+        _logger.LogInformation("VitrinExpirationWorker started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -26,32 +29,30 @@ public class VitrinExpirationWorker : BackgroundService
             {
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
-
-                var now = DateTime.UtcNow;
+                var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
                 var expiredListings = await dbContext.Listings
-                    .Where(l => l.IsVitrin && l.VitrinExpiresAt.HasValue && l.VitrinExpiresAt.Value <= now)
+                    .Where(l => l.IsVitrin && l.VitrinExpiresAt <= DateTime.UtcNow)
                     .ToListAsync(stoppingToken);
 
                 if (expiredListings.Any())
                 {
+                    _logger.LogInformation("{Count} vitrin properties expired, updating...", expiredListings.Count);
+
                     foreach (var listing in expiredListings)
                     {
                         listing.IsVitrin = false;
-                        _logger.LogInformation("Listing {ListingId} vitrin expired.", listing.Id);
+                        listing.VitrinExpiresAt = null;
+                        
+                        // İsteğe bağlı olarak kullanıcıya "Süreniz Bitti" maili atmak için Event fırlatılabilir.
                     }
 
-                    dbContext.Listings.UpdateRange(expiredListings);
                     await dbContext.SaveChangesAsync(stoppingToken);
-
-                    // ES index'ini güncelle — her biri için ListingUpdatedEvent fırlat
-                    foreach (var listing in expiredListings)
-                    {
-                        await publishEndpoint.Publish(new ListingUpdatedEvent { ListingId = listing.Id }, stoppingToken);
-                    }
-
-                    _logger.LogInformation("{Count} vitrin listing(s) expired and ES updated.", expiredListings.Count);
+                    
+                    // Vitrin ilan listesinin önbelleğini temizle (Yeniden çekilsin)
+                    await cacheService.RemoveByPatternAsync("vitrin:*");
+                    
+                    _logger.LogInformation("Successfully updated {Count} expired listings.", expiredListings.Count);
                 }
             }
             catch (Exception ex)
@@ -59,6 +60,7 @@ public class VitrinExpirationWorker : BackgroundService
                 _logger.LogError(ex, "Error occurred executing VitrinExpirationWorker.");
             }
 
+            // Her 1 saatte bir kontrol et
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }

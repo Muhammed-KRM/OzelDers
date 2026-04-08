@@ -11,6 +11,7 @@
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.3.4" />
     <PackageReference Include="MassTransit.RabbitMQ" Version="9.1.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Quartz" Version="3.17.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.12.14" />
   </ItemGroup>
 

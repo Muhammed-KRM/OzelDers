@@ -16,11 +16,11 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
         
-        // Dökümandaki gibi "şimdilik direkt Business'ı bağla hız için" seçeneğini kullanıyoruz.
-        // İleride HttpClient ile OzelDers.API üzerinden geçilecek.
-        var connectionString = "Host=localhost;Port=5432;Database=ozelders;Username=ozelders_user;Password=dev_password";
-        OzelDers.Data.ServiceRegistration.AddDataLayer(builder.Services, connectionString);
-        OzelDers.Business.DependencyInjection.AddBusinessServices(builder.Services);
+        // MAUI Uygulaması: Güvenlik (N-Tier kuralları) gereği DB'yi bilemez. Sadece HttpClient ile API'ye gidecek.
+        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:5001/") }); // API Adresi
+        
+        // MAUI için API Wrapper servislerini bağla
+        OzelDers.SharedUI.DependencyInjection.AddSharedApiServices(builder.Services);
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

@@ -1,4 +1,5 @@
 using FluentValidation;
+using Ganss.Xss;
 using MassTransit;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Events;
@@ -43,14 +44,16 @@ public class ListingManager : IListingService
         // 2. Slug oluştur
         var slug = SlugHelper.GenerateSlug(dto.Title);
 
-        // 3. Entity'ye map et
+        // 3. XSS Koruması ve Entity'ye map et
+        var sanitizer = new HtmlSanitizer();
+
         var listing = new Listing
         {
             OwnerId = userId,
             Type = dto.Type,
             Title = dto.Title,
             Slug = slug,
-            Description = dto.Description,
+            Description = sanitizer.Sanitize(dto.Description),
             HourlyPrice = dto.HourlyPrice,
             LessonType = dto.LessonType,
             BranchId = dto.BranchId,
@@ -104,9 +107,11 @@ public class ListingManager : IListingService
         if (listing.OwnerId != userId)
             throw new UnauthorizedException("Bu ilanı düzenleme yetkiniz yok.");
 
+        var sanitizer = new HtmlSanitizer();
+
         listing.Title = dto.Title;
         listing.Slug = SlugHelper.GenerateSlug(dto.Title);
-        listing.Description = dto.Description;
+        listing.Description = sanitizer.Sanitize(dto.Description);
         listing.HourlyPrice = dto.HourlyPrice;
         listing.LessonType = dto.LessonType;
         listing.BranchId = dto.BranchId;

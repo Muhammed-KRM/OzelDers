@@ -1,4 +1,8 @@
 using OzelDers.Business.Interfaces;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace OzelDers.Business.Infrastructure.Storage;
 
@@ -19,8 +23,25 @@ public class LocalFileStorageService : IFileStorageService
         var uniqueName = $"{Guid.NewGuid():N}_{fileName}";
         var filePath = Path.Combine(_basePath, uniqueName);
 
-        using var outputStream = new FileStream(filePath, FileMode.Create);
-        await fileStream.CopyToAsync(outputStream);
+        // Resmi ImageSharp ile Yükle ve İşle
+        using var image = await Image.LoadAsync(fileStream);
+
+        // Max 500x500 px (En-boy oranını koruyarak)
+        image.Mutate(x => x.Resize(new ResizeOptions
+        {
+            Mode = ResizeMode.Max,
+            Size = new Size(500, 500)
+        }));
+
+        // Kayıt formatı belirleme (Önerilen format WebP)
+        if (contentType == "image/png" || contentType == "image/webp")
+        {
+            await image.SaveAsWebpAsync(filePath, new WebpEncoder { Quality = 80 });
+        }
+        else
+        {
+            await image.SaveAsJpegAsync(filePath, new JpegEncoder { Quality = 80 });
+        }
 
         // Relative URL döndür (frontend tarafından erişilebilir)
         return $"/uploads/{uniqueName}";

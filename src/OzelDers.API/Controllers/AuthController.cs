@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OzelDers.API.Helpers;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Interfaces;
@@ -21,6 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("RegisterPolicy")]
     public async Task<ActionResult<AuthResultDto>> Register(UserRegisterDto dto)
     {
         var result = await _authService.RegisterAsync(dto);
@@ -37,6 +39,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("LoginPolicy")]
     public async Task<ActionResult<AuthResultDto>> Login(UserLoginDto dto)
     {
         var result = await _authService.LoginAsync(dto);
