@@ -85,10 +85,6 @@
 
                         <div class="listing-stats">
                             <div class="stat-item">
-                                <span class="stat-value">@listing.ViewCount</span>
-                                <span class="stat-label">Görüntülenme</span>
-                            </div>
-                            <div class="stat-item">
                                 <span class="stat-value">@listing.ReviewCount</span>
                                 <span class="stat-label">Yorum</span>
                             </div>
@@ -199,10 +195,10 @@
     {
         return status switch
         {
-            ListingStatus.Active => "Aktif",
-            ListingStatus.Inactive => "Pasif",
+            ListingStatus.Active => "Yayında",
             ListingStatus.Pending => "Onay Bekliyor",
-            ListingStatus.Rejected => "Reddedildi",
+            ListingStatus.Suspended => "Askıya Alındı",
+            ListingStatus.Closed => "Kapatıldı",
             _ => "Bilinmiyor"
         };
     }
@@ -231,30 +227,5 @@
                 await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlan silinemedi.", ex.Message);
             }
         }
-    }
-
-    // Geçici DTO extension
-    private class ListingDto
-    {
-        public Guid Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Slug { get; set; } = string.Empty;
-        public string BranchName { get; set; } = string.Empty;
-        public string CityName { get; set; } = string.Empty;
-        public int HourlyPrice { get; set; }
-        public bool IsVitrin { get; set; }
-        public ListingStatus Status { get; set; }
-        public int ViewCount { get; set; }
-        public int ReviewCount { get; set; }
-        public double AverageRating { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
-
-    private enum ListingStatus
-    {
-        Active,
-        Inactive,
-        Pending,
-        Rejected
     }
 }

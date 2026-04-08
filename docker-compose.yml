@@ -18,6 +18,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - Redis__ConnectionString=redis:6379
       - Jwt__Issuer=OzelDers
       - Jwt__Audience=OzelDersClients
       - Jwt__Key=SuperSecretKeyForJwtTokenGeneration2026!
@@ -30,6 +31,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - Redis__ConnectionString=redis:6379
 
   nginx:
     image: nginx:alpine

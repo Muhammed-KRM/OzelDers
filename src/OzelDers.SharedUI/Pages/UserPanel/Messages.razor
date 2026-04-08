@@ -47,7 +47,7 @@
                                 <div class="avatar">@msg.SenderName[0]</div>
                                 <div class="sender-details">
                                     <strong class="sender-name">@msg.SenderName</strong>
-                                    <span class="message-date">@msg.SentAt.ToString("dd MMM yyyy, HH:mm")</span>
+                                    <span class="message-date">@msg.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
                                 </div>
                             </div>
                             @if (msg.IsInitiatedWithToken)
@@ -71,17 +71,6 @@
                             @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
                             {
                                 <p class="content-text">@msg.Content</p>
-                                
-                                @if (!string.IsNullOrEmpty(msg.ReplyContent))
-                                {
-                                    <div class="reply-box">
-                                        <div class="reply-header">
-                                            <span class="reply-icon">↩️</span>
-                                            <span class="reply-label">Yanıtınız:</span>
-                                        </div>
-                                        <p class="reply-text">@msg.ReplyContent</p>
-                                    </div>
-                                }
                             }
                             else
                             {
@@ -101,16 +90,9 @@
                         <div class="message-actions">
                             @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
                             {
-                                @if (string.IsNullOrEmpty(msg.ReplyContent))
-                                {
-                                    <button class="btn btn-primary" @onclick="() => ShowReplyForm(msg.Id)">
-                                        ✉️ Ücretsiz Yanıtla
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="replied-badge">✓ Yanıtlandı</span>
-                                }
+                                <button class="btn btn-primary" @onclick="() => ShowReplyForm(msg.Id)">
+                                    ✉️ Yanıtla
+                                </button>
                             }
                             else
                             {
@@ -246,20 +228,23 @@
         {
             await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Mesaja yanıt gönderiliyor... Mesaj ID: {replyingToMessageId}");
             
-            var dto = new MessageSendDto { ReceiverId = Guid.Empty, ListingId = Guid.Empty, Content = replyText };
-            // Gerçek API dto'suna göre uyarlandı
+            // Gerçek API'de alıcı ID'sini orijinal mesajdan çekmeliyiz
+            var originalMsg = messages.FirstOrDefault(m => m.Id == replyingToMessageId);
+            if (originalMsg == null) return;
+
+            var dto = new MessageSendDto { 
+                ReceiverId = originalMsg.SenderId, 
+                ListingId = originalMsg.ListingId, 
+                Content = replyText 
+            };
+            
             await MessageService.SendMessageAsync(dto, Guid.Empty);
             
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: Yanıt gönderildi.");
 
-            var msg = messages.FirstOrDefault(m => m.Id == replyingToMessageId);
-            if (msg != null)
-            {
-                msg.ReplyContent = replyText;
-            }
-
             replyingToMessageId = null;
             replyText = string.Empty;
+            await LoadMessages(); // Listeyi yenile
         }
         catch (Exception ex)
         {
@@ -269,18 +254,5 @@
         {
             isSendingReply = false;
         }
-    }
-
-    // Geçici DTO
-    private class MessageDto
-    {
-        public Guid Id { get; set; }
-        public string SenderName { get; set; } = string.Empty;
-        public string ListingTitle { get; set; } = string.Empty;
-        public string Content { get; set; } = string.Empty;
-        public DateTime SentAt { get; set; }
-        public bool IsUnlocked { get; set; }
-        public bool IsInitiatedWithToken { get; set; }
-        public string? ReplyContent { get; set; }
     }
 }
