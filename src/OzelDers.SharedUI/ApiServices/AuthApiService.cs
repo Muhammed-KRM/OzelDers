@@ -13,28 +13,71 @@ public class AuthApiService : IAuthService
         _http = http;
     }
 
+    private async Task<string> ExtractErrorMessageAsync(HttpResponseMessage response)
+    {
+        var errorString = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(errorString)) return "Beklenmeyen API hatası.";
+        
+        try
+        {
+            var document = System.Text.Json.JsonDocument.Parse(errorString);
+            var root = document.RootElement;
+            if (root.TryGetProperty("errorMessage", out var errMsg) && errMsg.ValueKind == System.Text.Json.JsonValueKind.String)
+                return errMsg.GetString()!;
+            
+            if (root.TryGetProperty("errors", out var errorsProp))
+            {
+                var validationErrors = new List<string>();
+                foreach (var err in errorsProp.EnumerateObject())
+                {
+                    if (err.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var msg in err.Value.EnumerateArray())
+                            validationErrors.Add(msg.GetString()!);
+                    }
+                }
+                if (validationErrors.Any()) return string.Join("<br/>", validationErrors);
+            }
+        }
+        catch { /* JSON değilse düz string dön */ }
+
+        return "Bağlantı hatası. (" + response.StatusCode + ")";
+    }
+
     public async Task<AuthResultDto> RegisterAsync(UserRegisterDto dto)
     {
-        var response = await _http.PostAsJsonAsync("api/auth/register", dto);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            return await response.Content.ReadFromJsonAsync<AuthResultDto>() ?? new AuthResultDto();
+            var response = await _http.PostAsJsonAsync("api/auth/register", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResultDto>();
+                return result ?? new AuthResultDto { Success = false, ErrorMessage = "Bağlantı hatası." };
+            }
+            return new AuthResultDto { Success = false, ErrorMessage = await ExtractErrorMessageAsync(response) };
         }
-        
-        var error = await response.Content.ReadAsStringAsync();
-        return new AuthResultDto { Success = false, ErrorMessage = error };
+        catch (Exception ex)
+        {
+            return new AuthResultDto { Success = false, ErrorMessage = $"Ağ Hatası: {ex.Message}" };
+        }
     }
 
     public async Task<AuthResultDto> LoginAsync(UserLoginDto dto)
     {
-        var response = await _http.PostAsJsonAsync("api/auth/login", dto);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            return await response.Content.ReadFromJsonAsync<AuthResultDto>() ?? new AuthResultDto();
+            var response = await _http.PostAsJsonAsync("api/auth/login", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<AuthResultDto>();
+                return result ?? new AuthResultDto { Success = false, ErrorMessage = "Bağlantı hatası." };
+            }
+            return new AuthResultDto { Success = false, ErrorMessage = await ExtractErrorMessageAsync(response) };
         }
-        
-        var error = await response.Content.ReadAsStringAsync();
-        return new AuthResultDto { Success = false, ErrorMessage = error };
+        catch (Exception ex)
+        {
+            return new AuthResultDto { Success = false, ErrorMessage = $"Ağ Hatası: {ex.Message}" };
+        }
     }
 
     public async Task<UserDto?> GetCurrentUserAsync(Guid userId)

@@ -2,24 +2,26 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
+using OzelDers.Business.Interfaces;
+
 namespace OzelDers.Web.States;
 
-public class CustomAuthenticationStateProvider : AuthenticationStateProvider
+public class CustomAuthenticationStateProvider : AuthenticationStateProvider, ICustomAuthStateProvider
 {
-    private readonly ProtectedSessionStorage _sessionStorage;
+    private readonly ProtectedLocalStorage _localStorage;
     private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
-    public CustomAuthenticationStateProvider(ProtectedSessionStorage sessionStorage)
+    public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage)
     {
-        _sessionStorage = sessionStorage;
+        _localStorage = localStorage;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         try
         {
-            var userSessionStorageResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
-            var userSession = userSessionStorageResult.Success ? userSessionStorageResult.Value : null;
+            var result = await _localStorage.GetAsync<UserSession>("UserSession");
+            var userSession = result.Success ? result.Value : null;
 
             if (userSession == null)
                 return await Task.FromResult(new AuthenticationState(_anonymous));
@@ -46,7 +48,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
         if (userSession != null)
         {
-            await _sessionStorage.SetAsync("UserSession", userSession);
+            await _localStorage.SetAsync("UserSession", userSession);
             claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
             {
                 new Claim(ClaimTypes.Name, userSession.FullName),
@@ -57,11 +59,39 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
         else
         {
-            await _sessionStorage.DeleteAsync("UserSession");
+            await _localStorage.DeleteAsync("UserSession");
             claimsPrincipal = _anonymous;
         }
 
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
+    }
+
+    public async Task<string?> GetTokenAsync()
+    {
+        try
+        {
+            var result = await _localStorage.GetAsync<UserSession>("UserSession");
+            return result.Success ? result.Value?.Token : null;
+        }
+        catch { return null; }
+    }
+
+    public async Task LogInAsync(Guid id, string fullName, string email, string role, string token = "")
+    {
+        var session = new UserSession
+        {
+            Id = id,
+            FullName = fullName,
+            Email = email,
+            Role = role,
+            Token = token
+        };
+        await UpdateAuthenticationState(session);
+    }
+
+    public async Task LogOutAsync()
+    {
+        await UpdateAuthenticationState(null);
     }
 }
 
@@ -71,4 +101,5 @@ public class UserSession
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
 }

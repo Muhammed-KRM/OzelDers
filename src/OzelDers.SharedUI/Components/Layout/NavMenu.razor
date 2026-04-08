@@ -1,3 +1,7 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
 <nav class="navbar navbar-glass">
     <div class="container flex-between">
         <a href="/" class="navbar-brand">
@@ -7,15 +11,39 @@
 
         <div class="navbar-links">
             <a href="/arama" class="nav-link">Öğretmen Bul</a>
+            <a href="/nasil-calisir" class="nav-link">Nasıl Çalışır?</a>
             
             <AuthorizeView>
                 <Authorized>
-                    <a href="/panel/mesajlarim" class="nav-link">Mesajlar</a>
-                    <a href="/panel/ilanlarim" class="nav-link">İlanlarım</a>
-                    <div class="user-menu-wrapper">
-                        <a href="/panel/dashboard" class="btn btn-secondary btn-sm">
-                            Profilim
-                        </a>
+                    <a href="/panel/ilan-olustur" class="btn btn-accent btn-sm" style="border-radius: 50px; padding: 0.6rem 1.4rem;">
+                        ➕ İlan Ver
+                    </a>
+                    <a href="/panel/mesajlarim" class="nav-link nav-icon-link" title="Mesajlarım">
+                        💬
+                    </a>
+
+                    <div class="profile-dropdown-wrapper">
+                        <button class="profile-avatar-btn" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+                            @(context.User.Identity?.Name?[..1].ToUpper() ?? "U")
+                        </button>
+
+                        @if (isDropdownOpen)
+                        {
+                            <div class="profile-dropdown" @onclick="CloseDropdown">
+                                <div class="dropdown-header">
+                                    <span class="dropdown-name">@context.User.Identity?.Name</span>
+                                    <span class="dropdown-email">@GetEmail(context)</span>
+                                </div>
+                                <hr class="dropdown-divider" />
+                                <a href="/panel/dashboard" class="dropdown-item">📊 Kontrol Paneli</a>
+                                <a href="/panel/ilanlarim" class="dropdown-item">📋 İlanlarım</a>
+                                <a href="/panel/mesajlarim" class="dropdown-item">💬 Mesajlarım</a>
+                                <a href="/panel/jetonlarim" class="dropdown-item">💰 Cüzdan & Jetonlar</a>
+                                <a href="/panel/profil-ayarlari" class="dropdown-item">⚙️ Profil Ayarları</a>
+                                <hr class="dropdown-divider" />
+                                <button class="dropdown-item dropdown-logout" @onclick="HandleLogout">🚪 Çıkış Yap</button>
+                            </div>
+                        }
                     </div>
                 </Authorized>
                 <NotAuthorized>
@@ -26,3 +54,25 @@
         </div>
     </div>
 </nav>
+
+@code {
+    private bool isDropdownOpen = false;
+
+    private void ToggleDropdown() => isDropdownOpen = !isDropdownOpen;
+    private void CloseDropdown() => isDropdownOpen = false;
+
+    private string GetEmail(AuthenticationState context)
+    {
+        return context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+    }
+
+    private async Task HandleLogout()
+    {
+        isDropdownOpen = false;
+        if (AuthStateProvider is OzelDers.Business.Interfaces.ICustomAuthStateProvider stateProvider)
+        {
+            await stateProvider.LogOutAsync();
+        }
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

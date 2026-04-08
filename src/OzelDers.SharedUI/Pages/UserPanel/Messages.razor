@@ -1,6 +1,8 @@
 @page "/panel/mesajlarim"
-@* @inject IMessageService MessageService *@
-@* @inject ITokenService TokenService *@
+@attribute [Authorize]
+@inject IMessageService MessageService
+@inject ITokenService TokenService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>Mesajlarım | OzelDers.com</PageTitle>
@@ -163,6 +165,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Mesajlarım sayfası yüklendi. Gelen kutusu çekiliyor...");
         await LoadMessages();
         await LoadTokenBalance();
     }
@@ -171,38 +174,13 @@
     {
         try
         {
-            // API'den mesajlar çekilecek
-            // messages = await MessageService.GetInboxAsync();
-
-            // Geçici mock data
-            messages = new List<MessageDto>
-            {
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    SenderName = "Ahmet Yılmaz",
-                    ListingTitle = "Deneyimli Matematik Öğretmeni",
-                    Content = "Merhaba, lise matematik dersi için müsait misiniz?",
-                    SentAt = DateTime.Now.AddHours(-2),
-                    IsUnlocked = false,
-                    IsInitiatedWithToken = false
-                },
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    SenderName = "Ayşe Demir",
-                    ListingTitle = "İngilizce Konuşma Pratiği",
-                    Content = "Ben de İngilizce öğretmeniyim. Belki işbirliği yapabiliriz?",
-                    SentAt = DateTime.Now.AddDays(-1),
-                    IsUnlocked = true,
-                    IsInitiatedWithToken = true,
-                    ReplyContent = "Merhaba, fikir çok güzel. Detayları konuşalım."
-                }
-            };
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/messages/inbox");
+            messages = await MessageService.GetInboxAsync(Guid.Empty);
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] BAŞARILI: {messages?.Count ?? 0} adet mesaj çekildi.");
         }
-        catch
+        catch (Exception ex)
         {
-            // Hata durumu
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Mesajlar çekilemedi.", ex.Message);
         }
         finally
         {
@@ -214,12 +192,12 @@
     {
         try
         {
-            // API'den bakiye çekilecek
-            // tokenBalance = await TokenService.GetBalanceAsync();
-            tokenBalance = 5; // Mock
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/tokens/balance");
+            tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
         }
-        catch
+        catch (Exception ex)
         {
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Bakiye alınamadı.", ex.Message);
             tokenBalance = 0;
         }
     }
@@ -228,8 +206,9 @@
     {
         try
         {
-            // await MessageService.UnlockAsync(messageId);
-            // await TokenService.SpendAsync(1, "Mesaj kilidi açma");
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Mesaj kilidi açılıyor: {messageId}");
+            await MessageService.UnlockMessageAsync(messageId, Guid.Empty);
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: Mesaj kilidi açıldı.");
             
             var msg = messages.FirstOrDefault(m => m.Id == messageId);
             if (msg != null)
@@ -240,7 +219,7 @@
         }
         catch (Exception ex)
         {
-            // Hata göster
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Mesaj kilidi açılamadı.", ex.Message);
         }
     }
 
@@ -265,8 +244,14 @@
 
         try
         {
-            // await MessageService.ReplyAsync(replyingToMessageId.Value, replyText);
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Mesaja yanıt gönderiliyor... Mesaj ID: {replyingToMessageId}");
             
+            var dto = new MessageSendDto { ReceiverId = Guid.Empty, ListingId = Guid.Empty, Content = replyText };
+            // Gerçek API dto'suna göre uyarlandı
+            await MessageService.SendMessageAsync(dto, Guid.Empty);
+            
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: Yanıt gönderildi.");
+
             var msg = messages.FirstOrDefault(m => m.Id == replyingToMessageId);
             if (msg != null)
             {
@@ -278,7 +263,7 @@
         }
         catch (Exception ex)
         {
-            // Hata göster
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Yanıt gönderilemedi.", ex.Message);
         }
         finally
         {

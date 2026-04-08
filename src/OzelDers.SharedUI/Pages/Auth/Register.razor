@@ -1,47 +1,98 @@
 @page "/kayit"
+@inject OzelDers.Business.Interfaces.IAuthService AuthService
+@inject NavigationManager NavigationManager
 
 <PageTitle>Ücretsiz Kayıt | OzelDers.com</PageTitle>
 
-<section class="section">
-    <div class="container">
-        <div class="auth-card card">
-            <h2 class="text-center">Ücretsiz Kayıt Ol</h2>
-            <p class="text-center text-muted">Kayıt olanlara 3 jeton hediye! 🎁</p>
+<section class="section py-20 flex-center">
+    <div class="container" style="max-width: 450px;">
+        <div class="card glass animate-slide-up" style="border-radius: var(--radius-xl); padding: 3rem 2rem;">
+            <div class="text-center mb-12">
+                <h2 style="margin-bottom: 0.5rem; font-size: 2.5rem;">Ücretsiz Kayıt Ol</h2>
+                <p class="text-muted">Kayıt olanlara <span class="text-primary font-bold">3 jeton hediye!</span> 🎁</p>
+            </div>
 
             @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <div class="alert alert-danger">@errorMessage</div>
+                <div class="alert alert-danger" style="margin-bottom: 2rem;">@errorMessage</div>
+            }
+            @if (isSuccess)
+            {
+                <div class="alert alert-success" style="margin-bottom: 2rem;">Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...</div>
             }
 
             <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
-                <div class="form-group">
-                    <label>Ad Soyad</label>
-                    <input type="text" @bind="registerModel.FullName" class="form-input" placeholder="Ad Soyad" />
+                <div class="flex-col gap-4 mb-4">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="font-bold text-sm">Ad Soyad</label>
+                        <input type="text" @bind="registerModel.FullName" class="search-input" style="border: 1px solid var(--color-border);" placeholder="Ad Soyad" required />
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="font-bold text-sm">E-posta</label>
+                        <input type="email" @bind="registerModel.Email" class="search-input" style="border: 1px solid var(--color-border);" placeholder="ornek@email.com" required />
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="font-bold text-sm">Şifre</label>
+                        <input type="password" @bind="registerModel.Password" class="search-input" style="border: 1px solid var(--color-border);" placeholder="En az 8 karakter" required />
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>E-posta</label>
-                    <input type="email" @bind="registerModel.Email" class="form-input" placeholder="ornek@email.com" />
-                </div>
-                <div class="form-group">
-                    <label>Şifre</label>
-                    <input type="password" @bind="registerModel.Password" class="form-input" placeholder="En az 8 karakter" />
-                </div>
-                <button type="submit" class="btn btn-primary btn-full">Kayıt Ol</button>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem;" disabled="@isLoading">
+                    @if (isLoading) { <span>Kayıt Yapılıyor...</span> } else { <span>Hesap Oluştur</span> }
+                </button>
             </EditForm>
 
-            <p class="text-center text-muted" style="margin-top: 1rem;">
-                Zaten hesabınız var mı? <a href="/giris">Giriş Yap</a>
+            <p class="text-center text-muted" style="margin-top: 2rem;">
+                Zaten hesabınız var mı? <a href="/giris" class="text-primary font-bold" style="text-decoration: none;">Giriş Yap</a>
             </p>
         </div>
     </div>
 </section>
 
+@using Microsoft.JSInterop
 @code {
-    private UserRegisterDto registerModel = new();
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private OzelDers.Business.DTOs.UserRegisterDto registerModel = new();
     private string? errorMessage;
+    private bool isLoading;
+    private bool isSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kayıt sayfası yüklendi.");
+    }
 
     private async Task HandleRegister()
     {
-        // API entegrasyonunda implement edilecek
+        isLoading = true;
+        errorMessage = null;
+
+        await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Kayıt denemesi başlatıldı: {registerModel.Email}");
+
+        try
+        {
+            var result = await AuthService.RegisterAsync(registerModel);
+            if (result.Success)
+            {
+                isSuccess = true;
+                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API kaydı BAŞARILI. Giriş sayfasına yönlendiriliyor...");
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/giris");
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Kayıt işlemi başarısız.";
+                await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] HATA: API kaydı reddetti. Sebep: {errorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Beklenmeyen sunucu hatası. API'nin çalıştığından emin olun.";
+            await JS.InvokeVoidAsync("console.error", $"[OzelDers Tracker] KRİTİK HATA: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

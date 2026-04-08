@@ -12,13 +12,13 @@
 
     <!-- OzelDers SharedUI Tasarım Sistemi -->
     <link rel="stylesheet" href="_content/OzelDers.SharedUI/css/app.css" />
+    <link rel="stylesheet" href="OzelDers.Web.styles.css" />
     
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>
-    <OzelDers.SharedUI.Routes />
+    <OzelDers.SharedUI.Routes @rendermode="InteractiveServer" />
     
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/OzelDers.SharedUI/js/interop.js"></script>
-</body>
+    <script src="_content/OzelDers.SharedUI/js/interop.js"></script></body>
 </html>

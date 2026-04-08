@@ -3,6 +3,7 @@
 @import 'typography.css';
 @import 'animations.css';
 @import 'utilities.css';
+@import 'LegalPages.css';
 
 body {
     background-color: var(--color-background);

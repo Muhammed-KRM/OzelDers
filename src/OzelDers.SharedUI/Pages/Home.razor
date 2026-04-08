@@ -8,9 +8,12 @@
     <div class="container">
         <h1 class="hero-title animate-slide-up">Aradığın <span>Öğretmeni</span> Bul</h1>
         <p class="hero-subtitle animate-fade-in">Türkiye'nin en güvenilir özel ders platformunda binlerce uzman öğretmen seni bekliyor.</p>
-        <div class="search-container animate-fade-in">
-            <input type="text" class="search-input" placeholder="Ne öğrenmek istersin? (Matematik, İngilizce...)" />
-            <button class="btn btn-primary">Hemen Bul</button>
+        <div class="search-container animate-fade-in" style="background: white; padding: 0.75rem; border-radius: 50px; display: inline-flex; align-items: center; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto;">
+            <span style="padding-left: 1rem; font-size: 1.5rem;">🔍</span>
+            <input type="text" @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleKeyDown"
+                   style="border: none; outline: none; padding: 1rem; flex-grow: 1; font-size: 1.1rem; border-radius: 50px;" 
+                   placeholder="Ne öğrenmek istersin? (Matematik, İngilizce...)" />
+            <button class="btn btn-primary" @onclick="ExecuteSearch" style="border-radius: 40px; padding: 1rem 2rem; font-weight: bold;">Hemen Bul</button>
         </div>
     </div>
 </section>
@@ -86,7 +89,31 @@
     </div>
 </section>
 
-<!-- 5. CTA -->
+<!-- 5. İstatistikler -->
+<section class="section" style="background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); color: white; padding: 4rem 0;">
+    <div class="container">
+        <div class="grid grid-4 gap-8 text-center">
+            <div class="stat-box">
+                <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.25rem;">1,200+</div>
+                <div style="opacity: 0.85; font-weight: 500;">Eğitmen</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.25rem;">3,500+</div>
+                <div style="opacity: 0.85; font-weight: 500;">Aktif İlan</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.25rem;">50+</div>
+                <div style="opacity: 0.85; font-weight: 500;">Branş</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.25rem;">8,000+</div>
+                <div style="opacity: 0.85; font-weight: 500;">Mutlu Öğrenci</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 6. CTA -->
 <div class="container mb-12">
     <section class="cta-section glass-dark animate-slide-up">
         <h2>Öğretmen misiniz?</h2>
@@ -98,17 +125,37 @@
     </section>
 </div>
 
+@using Microsoft.JSInterop
 @code {
+    [Inject] private NavigationManager NavManager { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    
     private List<ListingDto> vitrinListings = new();
+    private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Ana sayfa yüklendi.");
         try { vitrinListings = await ListingService.GetVitrinListingsAsync(); }
         catch { /* API henüz çalışmıyorsa sessizce geç */ }
     }
 
-    private void NavigateToSearch(string query)
+    private async Task ExecuteSearch()
     {
-        // NavigationManager ile yönlendirme yapılacak
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Arama yapılıyor: {searchQuery}");
+            NavManager.NavigateTo($"/arama?q={Uri.EscapeDataString(searchQuery)}");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Boş arama yapıldı, tüm listeye yönlendiriliyor.");
+            NavManager.NavigateTo("/arama");
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ExecuteSearch();
     }
 }

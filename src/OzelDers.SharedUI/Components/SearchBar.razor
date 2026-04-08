@@ -1,15 +1,17 @@
-@* SearchBar Component — Döküman satır 342 *@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 
-<div class="search-bar">
-    <div class="search-input-wrapper">
-        <span class="search-icon">🔍</span>
+<div class="search-bar glass" style="padding: 0.5rem; border-radius: 50px; display: flex; align-items: center; max-width: 700px; margin: 0 auto 2rem auto; box-shadow: var(--shadow-md);">
+    <div style="flex: 1; display: flex; align-items: center; padding-left: 1rem;">
+        <span style="font-size: 1.5rem; margin-right: 0.5rem;">🔍</span>
         <input type="text"
                placeholder="Ne öğrenmek istiyorsun? (Matematik, Piyano, İngilizce...)"
                @bind="Query"
                @bind:event="oninput"
-               @onkeydown="HandleKeyDown" />
+               @onkeypress="HandleKeyPress"
+               style="border: none; outline: none; background: transparent; width: 100%; font-size: 1.1rem; padding: 0.5rem;" />
     </div>
-    <button class="btn btn-primary search-btn" @onclick="OnSearch">Ara</button>
+    <button class="btn btn-primary" @onclick="OnSearch" style="border-radius: 40px; padding: 0.75rem 2rem; font-weight: bold; white-space: nowrap;">Ara</button>
 </div>
 
 @code {
@@ -18,11 +20,12 @@
 
     private async Task OnSearch()
     {
+        await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] SearchBar tetiklendi: {Query}");
         if (!string.IsNullOrWhiteSpace(Query))
             await OnSearchSubmit.InvokeAsync(Query);
     }
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
+    private async Task HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await OnSearch();
     }

@@ -1,8 +1,10 @@
 @page "/panel/dashboard"
-@* @attribute [Authorize] *@
-@* @inject IUserService UserService *@
+@attribute [Authorize]
 @inject IListingService ListingService
 @inject ITokenService TokenService
+@inject IMessageService MessageService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 
 <PageTitle>Kontrol Paneli | OzelDers.com</PageTitle>
 
@@ -156,6 +158,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kontrol Paneli yükleniyor. Veriler çekiliyor...");
         await LoadDashboardData();
     }
 
@@ -164,30 +167,44 @@
         isLoading = true;
         try
         {
-            // API'den veri çekilecek
-            userName = "Ahmet Yılmaz"; // Geçici
-            tokenBalance = 5;
-            activeListingsCount = 3;
-            unreadMessagesCount = 2;
-            averageRating = 4.8;
-            totalReviews = 12;
+            // Kullanıcı adı
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            userName = authState.User.Identity?.Name ?? "Kullanıcı";
 
-            // Son ilanlar
-            recentListings = new List<ListingDto>();
+            // Bakiye
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/tokens/balance");
+            tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
 
-            // Son aktiviteler
+            // İlanlar
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/listings/my");
+            var mylistings = await ListingService.GetMyListingsAsync(Guid.Empty);
+            recentListings = mylistings?.Take(3).ToList() ?? new List<ListingDto>();
+            activeListingsCount = mylistings?.Count(l => l.Status.ToString().ToLower() == "active") ?? 0;
+            
+            // Mesajlar
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/messages/inbox");
+            var inbox = await MessageService.GetInboxAsync(Guid.Empty);
+            unreadMessagesCount = inbox?.Count(m => !m.IsUnlocked) ?? 0;
+
+            averageRating = mylistings?.Select(l => l.AverageRating).DefaultIfEmpty(0).Average() ?? 0;
+            totalReviews = mylistings?.Sum(l => l.ReviewCount) ?? 0;
+            
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kontrol Paneli verileri BAŞARIYLA yüklendi.");
+
+            // Son aktiviteler - mock
             recentActivities = new List<ActivityDto>
             {
-                new() { Icon = "💬", Description = "Yeni mesaj aldınız", CreatedAt = DateTime.Now.AddHours(-2) },
-                new() { Icon = "⭐", Description = "Yeni bir yorum aldınız", CreatedAt = DateTime.Now.AddHours(-5) },
-                new() { Icon = "📋", Description = "İlanınız görüntülendi", CreatedAt = DateTime.Now.AddDays(-1) }
+                new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
             };
         }
-        catch
+        catch (Exception ex)
         {
-            // API henüz çalışmıyorsa
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Kontrol Paneli verileri alınamadı.", ex.Message);
         }
-        isLoading = false;
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private class ActivityDto

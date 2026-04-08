@@ -34,11 +34,14 @@
 .footer-section p,
 .footer-section a {
     color: var(--color-text-muted);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: color var(--transition-fast);
 }
 
 .footer-section a:hover {
     color: var(--color-text-inverse);
+    text-shadow: 0 0 8px rgba(255,255,255,0.3);
 }
 
 .footer-section li {

@@ -1,12 +1,22 @@
 using OzelDers.Business;
 using OzelDers.Data;
 using OzelDers.Web.Components;
+using OzelDers.Web.States;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // === 1. API SERVİSLERİ VE BAĞIMLILIKLAR ===
-// Web uygulaması veritabanına doğrudan gitmeyip API'ye (HttpClient) yönlendirildi.
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:5001/") });
+var apiBaseAddress = builder.Environment.IsDevelopment() ? "https://localhost:5001/" : "http://api:8080/";
+
+// AuthTokenHandler → HttpClient pipeline'ına enjekte
+builder.Services.AddScoped<AuthTokenHandler>();
+builder.Services.AddScoped(sp =>
+{
+    var handler = sp.GetRequiredService<AuthTokenHandler>();
+    handler.InnerHandler = new HttpClientHandler();
+    return new HttpClient(handler) { BaseAddress = new Uri(apiBaseAddress) };
+});
+
 OzelDers.SharedUI.DependencyInjection.AddSharedApiServices(builder.Services);
 
 // === 2. BLAZOR SERVİSLERİ VE KİMLİK DOĞRULAMA ===
@@ -21,7 +31,7 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.C
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, OzelDers.Web.States.CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -46,10 +56,9 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddAdditionalAssemblies(typeof(OzelDers.SharedUI.Routes).Assembly);
 
-// Dinamik Sitemap.xml Proxy Endpoint'i (Blazor üzerinden erişim)
+// Dinamik Sitemap.xml Proxy Endpoint'i
 app.MapGet("/sitemap.xml", async (HttpContext context) => 
 {
-    // Uyarı: Localhost için HttpClient'ın SSL bypass edilmesi eklendi
     var handler = new HttpClientHandler
     {
         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
@@ -58,8 +67,6 @@ app.MapGet("/sitemap.xml", async (HttpContext context) =>
     
     try
     {
-        // Geliştirme ortamında API 5001'de çalıştığı varsayılmıştır
-        // Canlıda Nginx ile proxy atılması tavsiye edilir
         var response = await client.GetAsync("https://localhost:5001/api/sitemap");
         if (response.IsSuccessStatusCode)
         {

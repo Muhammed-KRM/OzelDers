@@ -1,6 +1,7 @@
 @page "/panel/ilanlarim"
-@* @attribute [Authorize] *@
+@attribute [Authorize]
 @inject IListingService ListingService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>İlanlarım | OzelDers.com</PageTitle>
@@ -141,6 +142,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] İlanlarım sayfası yüklendi, ilanlar getiriliyor...");
         await LoadListings();
     }
 
@@ -149,15 +151,19 @@
         isLoading = true;
         try
         {
-            // API'den kullanıcının ilanları çekilecek
-            listings = new List<ListingDto>();
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği atılıyor: /api/listings/my");
+            listings = await ListingService.GetMyListingsAsync(Guid.Empty);
+            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] BAŞARILI: {listings?.Count ?? 0} adet ilan çekildi.");
             FilterListings();
         }
-        catch
+        catch (Exception ex)
         {
-            // API henüz çalışmıyorsa
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlanlar çekilemedi.", ex.Message);
         }
-        isLoading = false;
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void FilterListings()
@@ -210,7 +216,21 @@
     private async Task DeleteListing(Guid listingId)
     {
         // Onay dialogu göster ve sil
-        // TODO: Implement
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Bu ilanı silmek istediğinize emin misiniz?");
+        if (confirmed)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] İlan siliniyor: {listingId}");
+                await ListingService.DeleteAsync(listingId, Guid.Empty);
+                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: İlan silindi.");
+                await LoadListings(); // Yeniden yükle
+            }
+            catch (Exception ex)
+            {
+                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlan silinemedi.", ex.Message);
+            }
+        }
     }
 
     // Geçici DTO extension
