@@ -87,15 +87,13 @@ var app = builder.Build();
 // === MİDDLEWARE PİPELINE ===
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// Swagger her ortamda açık (Test/Demo süreci için)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
-        c.RoutePrefix = string.Empty; // Swagger'ı ana dizinde (/) göster
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
+    c.RoutePrefix = "swagger"; // Artık http://localhost:5001/swagger adresinde
+});
 
 app.UseCors("AllowAll");
 app.UseStaticFiles(); // uploads klasörü için

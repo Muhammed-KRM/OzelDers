@@ -10,23 +10,26 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     line-height: 1.2;
     color: var(--color-text-primary);
+    letter-spacing: -0.02em;
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
+body, p, span, a, input, button {
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+h1 { font-size: 3.5rem; font-weight: 800; }
+h2 { font-size: 2.25rem; font-weight: 700; margin-bottom: var(--space-8); }
 h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
 
-p {
-    color: var(--color-text-secondary);
-    line-height: 1.7;
-}
-
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-lg { font-size: 1.25rem; }
 .text-sm { font-size: 0.875rem; }
-.text-lg { font-size: 1.125rem; }
+.font-bold { font-weight: 700; }
 .text-xl { font-size: 1.25rem; }
 .text-2xl { font-size: 1.5rem; }
 
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }

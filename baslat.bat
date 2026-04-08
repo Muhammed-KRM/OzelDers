@@ -12,11 +12,11 @@ docker-compose up --build -d
 echo.
 echo ========================================================
 echo Sistemin tam olarak hazir olmasi (Veritabaninin acilmasi) icin 10 saniye bekleniyor...
-timeout /t 10 /nobreak > NUL
+ping -n 11 127.0.0.1 > nul
 
 echo Tarayicilarda Web Sitesi ve Swagger API Ekrani aciliyor...
 start http://localhost
-start http://localhost:5001/index.html
+start http://localhost:5001/swagger/index.html
 
 echo.
 echo Basariyla tamamlandi! Tarayicilarinizi kontrol edebilirsiniz.

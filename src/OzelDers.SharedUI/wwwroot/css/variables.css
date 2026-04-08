@@ -1,13 +1,11 @@
-/* ===========================
-   OzelDers — CSS Variables (Design Tokens)
-   Döküman Adım 2.3'e göre
-   =========================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
 :root {
-    /* Primary Colors (10% Vurgu Rengi - Aksiyon ve Heyecan) */
-    --color-primary: #FA626B;       /* Canlı Mercan / Şeftali - CTA butonları */
-    --color-primary-hover: #E94E58;
-    --color-primary-light: #FFF0F1; /* Arka plan vurgusu (Örn: hover menüleri) */
+    /* Primary Colors (Daha canlı ve premium ton) */
+    --color-primary: #FF385C;       /* Modern Karmin / Airbnb tarzı premium kırmızı */
+    --color-primary-hover: #E31C5F;
+    --color-primary-light: #FFF0F4;
+    --color-primary-glow: rgba(255, 56, 92, 0.4);
 
     /* Secondary (30% Ana Renk - Disiplin ve Güven) */
     --color-secondary: #1E293B;     /* Gece Mavisi / Koyu Indigo - Başlıklar, Kart gölgeleri */

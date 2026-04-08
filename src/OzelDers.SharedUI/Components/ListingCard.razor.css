@@ -1,31 +1,51 @@
 .listing-card {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-normal);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     position: relative;
+    overflow: hidden;
+}
+
+.listing-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary-light);
+}
+
+.card-vitrin {
+    border: 2px solid var(--color-primary);
+    background: linear-gradient(to bottom, #fff, var(--color-primary-light));
 }
 
 .card-header {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 1rem;
 }
 
 .owner-avatar img, .avatar-placeholder {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-full);
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
     object-fit: cover;
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
 }
 
 .avatar-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-primary-light);
-    color: var(--color-primary);
-    font-weight: 700;
-    font-size: 1.25rem;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 800;
+    font-size: 1.5rem;
 }
 
 .owner-info {
@@ -33,10 +53,17 @@
     flex-direction: column;
 }
 
+.owner-info strong {
+    font-size: 1.1rem;
+    color: var(--color-secondary);
+}
+
 .card-title a {
     color: var(--color-text-primary);
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+    line-height: 1.4;
     transition: color var(--transition-fast);
 }
 
@@ -48,23 +75,36 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-top: auto;
 }
 
 .price {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--color-primary);
-    font-size: 1.15rem;
+    font-size: 1.25rem;
 }
 
 .card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: var(--space-3);
-    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 .rating {
     color: var(--color-text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.badge-vitrin {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--color-secondary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius-full);
 }
