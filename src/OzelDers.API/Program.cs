@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -106,7 +107,27 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await context.Database.EnsureCreatedAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    // PostgreSQL'in hazır olmasını bekle (Docker race condition)
+    var retries = 10;
+    while (retries > 0)
+    {
+        try
+        {
+            await context.Database.MigrateAsync();
+            logger.LogInformation("Veritabanı migration başarılı.");
+            break;
+        }
+        catch (Exception ex)
+        {
+            retries--;
+            if (retries == 0) throw;
+            logger.LogWarning("Veritabanına bağlanılamadı, {Retries} deneme kaldı. Hata: {Error}", retries, ex.Message);
+            await Task.Delay(3000);
+        }
+    }
+    
     await DatabaseSeeder.SeedAsync(context);
 }
 
