@@ -169,7 +169,7 @@
     [Parameter]
     public Guid ListingId { get; set; }
 
-    private ListingEditDto? model;
+    private ListingUpdateDto? model;
     private List<BranchDto> branches = new();
     private List<CityDto> cities = new();
     private List<DistrictDto> districts = new();
@@ -193,23 +193,22 @@
             
             if (listing != null)
             {
-                model = new ListingEditDto
+                model = new ListingUpdateDto
                 {
-                    Id = listing.Id,
                     Type = listing.Type,
                     Title = listing.Title,
                     Description = listing.Description,
                     BranchId = branches.FirstOrDefault(b => b.Name == listing.BranchName)?.Id ?? 0,
                     LessonType = listing.LessonType,
                     HourlyPrice = listing.HourlyPrice,
-                    DistrictId = 0, // Bu kısmı şehir/ilçe listesi gelince eşleştireceğiz
+                    DistrictId = 0,
                     IsActive = listing.Status == ListingStatus.Active
                 };
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: İlan yüklenemedi.", ex.Message);
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: İlan yüklenenemedi.", ex.Message);
             model = null;
         }
         finally
@@ -284,17 +283,7 @@
 
             await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] İlan güncelleniyor: {ListingId}");
             
-            var updateDto = new ListingUpdateDto
-            {
-                Title = model.Title,
-                Description = model.Description,
-                HourlyPrice = model.HourlyPrice,
-                LessonType = model.LessonType,
-                BranchId = model.BranchId,
-                DistrictId = model.DistrictId
-            };
-            
-            await ListingService.UpdateAsync(ListingId, updateDto, Guid.Empty);
+            await ListingService.UpdateAsync(ListingId, model, Guid.Empty);
             
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: İlan güncellendi.");
             Navigation.NavigateTo("/panel/ilanlarim");
@@ -314,21 +303,4 @@
     {
         Navigation.NavigateTo("/panel/ilanlarim");
     }
-
-    private class ListingEditDto
-    {
-        public Guid Id { get; set; }
-        public ListingType Type { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public int BranchId { get; set; }
-        public LessonType LessonType { get; set; }
-        public int HourlyPrice { get; set; }
-        public int DistrictId { get; set; }
-        public bool IsActive { get; set; }
-    }
-
-    private class BranchDto { public int Id { get; set; } public string Name { get; set; } = ""; }
-    private class CityDto { public int Id { get; set; } public string Name { get; set; } = ""; public List<DistrictDto> Districts { get; set; } = new(); }
-    private class DistrictDto { public int Id { get; set; } public string Name { get; set; } = ""; }
 }

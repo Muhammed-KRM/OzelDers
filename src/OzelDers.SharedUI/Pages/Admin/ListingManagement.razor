@@ -1,5 +1,6 @@
 @page "/admin/listings"
-@* @attribute [Authorize(Roles = "Admin")] *@
+@* @attribute [Authorize(Roles = "Admin")]
+@using OzelDers.Business.DTOs *@
 @inject NavigationManager Navigation
 
 <PageTitle>İlan Yönetimi | Admin Panel</PageTitle>
@@ -155,8 +156,8 @@
 </section>
 
 @code {
-    private List<ListingDto> listings = new();
-    private List<ListingDto> filteredListings = new();
+    private List<AdminListingDto> listings = new();
+    private List<AdminListingDto> filteredListings = new();
     private string searchQuery = string.Empty;
     private string filterStatus = string.Empty;
     private string filterType = string.Empty;
@@ -173,7 +174,7 @@
     private void LoadListings()
     {
         // Mock data
-        listings = new List<ListingDto>
+        listings = new List<AdminListingDto>
         {
             new() { Id = Guid.NewGuid(), Title = "Deneyimli Matematik Öğretmeni", TeacherName = "Ahmet Yılmaz", Branch = "Matematik", City = "İstanbul", HourlyPrice = 250, Type = "Teacher", Status = "Active", IsVitrin = true, ViewCount = 145, MessageCount = 12, CreatedAt = DateTime.Now.AddDays(-30) },
             new() { Id = Guid.NewGuid(), Title = "İngilizce Konuşma Pratiği", TeacherName = "Ayşe Demir", Branch = "İngilizce", City = "Ankara", HourlyPrice = 180, Type = "Teacher", Status = "Active", IsVitrin = false, ViewCount = 89, MessageCount = 7, CreatedAt = DateTime.Now.AddDays(-15) },
@@ -242,21 +243,5 @@
     {
         listings.RemoveAll(l => l.Id == listingId);
         ApplyFilters();
-    }
-
-    private class ListingDto
-    {
-        public Guid Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string TeacherName { get; set; } = string.Empty;
-        public string Branch { get; set; } = string.Empty;
-        public string City { get; set; } = string.Empty;
-        public int HourlyPrice { get; set; }
-        public string Type { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public bool IsVitrin { get; set; }
-        public int ViewCount { get; set; }
-        public int MessageCount { get; set; }
-        public DateTime CreatedAt { get; set; }
     }
 }

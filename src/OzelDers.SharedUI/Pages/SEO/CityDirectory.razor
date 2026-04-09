@@ -1,6 +1,5 @@
 @page "/{City}/ozel-ders-verenler"
-@* @inject IListingService ListingService *@
-@* @inject ISearchService SearchService *@
+@inject OzelDers.Business.Interfaces.IListingService ListingService
 
 <PageTitle>@FormattedCity Özel Ders Verenler | OzelDers.com</PageTitle>
 <HeadContent>
@@ -56,17 +55,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Gerçek entegrasyonda SearchService üzerinden filtrelenecek
-        // listings = await SearchService.SearchAsync(new SearchFilterDto { City = City });
-        
-        // Şimdilik mock data
-        listings = new List<OzelDers.Business.DTOs.ListingDto>
-        {
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "İleri Düzey İngilizce Konuşma Pratiği", Slug = "ileri-duzey-ingilizce", OwnerName = "Ahmet Y.", DistrictName = "Kadıköy", CityName = FormattedCity, HourlyPrice = 300, BranchName = "İngilizce", AverageRating = 4.8, ReviewCount = 12, OwnerImageUrl = "", IsVitrin = true },
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "LGS ve YKS Matematik Uzmanı Eğitmen", Slug = "lgs-yks-matematik", OwnerName = "Zeynep K.", DistrictName = "Beşiktaş", CityName = FormattedCity, HourlyPrice = 450, BranchName = "Matematik", AverageRating = 5.0, ReviewCount = 34, OwnerImageUrl = "", IsVitrin = false },
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "C# ve .NET Core ile Yazılım Dersleri", Slug = "csharp-dotnet-core", OwnerName = "Burak M.", DistrictName = "Şişli", CityName = FormattedCity, HourlyPrice = 500, BranchName = "Yazılım", AverageRating = 4.9, ReviewCount = 8, OwnerImageUrl = "", IsVitrin = false }
-        };
-        
-        await Task.CompletedTask;
+        var searchResult = await ListingService.SearchAsync(new OzelDers.Business.DTOs.SearchFilterDto { City = City });
+        listings = searchResult.Items.ToList();
     }
 }

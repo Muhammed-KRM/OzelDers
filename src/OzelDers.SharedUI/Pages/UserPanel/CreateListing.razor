@@ -1,5 +1,6 @@
 @page "/panel/ilan-olustur"
 @attribute [Authorize]
+@using OzelDers.Business.DTOs
 @inject IListingService ListingService
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -299,8 +300,4 @@
     {
         Navigation.NavigateTo("/panel/ilanlarim");
     }
-
-    private class BranchDto { public int Id { get; set; } public string Name { get; set; } = ""; }
-    private class CityDto { public int Id { get; set; } public string Name { get; set; } = ""; public List<DistrictDto> Districts { get; set; } = new(); }
-    private class DistrictDto { public int Id { get; set; } public string Name { get; set; } = ""; }
 }

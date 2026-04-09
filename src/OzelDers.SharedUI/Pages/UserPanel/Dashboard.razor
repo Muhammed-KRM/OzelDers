@@ -154,7 +154,7 @@
     private bool isLoading = true;
 
     private List<ListingDto>? recentListings;
-    private List<ActivityDto>? recentActivities;
+    private List<UserActivityDto>? recentActivities;
 
     protected override async Task OnInitializedAsync()
     {
@@ -191,8 +191,8 @@
             
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kontrol Paneli verileri BAŞARIYLA yüklendi.");
 
-            // Son aktiviteler - mock
-            recentActivities = new List<ActivityDto>
+            // Son aktiviteler - mock yerinde bırakıldı ancak UI'daki class silinip DTOya baglandi
+            recentActivities = new List<UserActivityDto>
             {
                 new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
             };
@@ -205,12 +205,5 @@
         {
             isLoading = false;
         }
-    }
-
-    private class ActivityDto
-    {
-        public string Icon { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
     }
 }

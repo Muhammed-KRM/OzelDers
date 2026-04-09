@@ -9,6 +9,7 @@ public class TokenTransactionDto
     public int Amount { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public int BalanceAfter { get; set; }
 }
 
 public class TokenPackageDto
@@ -20,6 +21,8 @@ public class TokenPackageDto
     public decimal PricePerToken => Price / TokenCount;
     public bool IsPopular { get; set; }
     public string? BadgeText { get; set; }
+    public string Icon { get; set; } = string.Empty;
+    public string Badge { get; set; } = string.Empty;
 }
 
 public class VitrinPackageDto

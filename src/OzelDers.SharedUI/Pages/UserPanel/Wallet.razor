@@ -1,6 +1,8 @@
 @page "/panel/jetonlarim"
 @attribute [Authorize]
-@* @inject ITokenService TokenService *@
+@using OzelDers.Business.DTOs
+@using OzelDers.Business.Interfaces
+@inject ITokenService TokenService
 @* @inject IPaymentService PaymentService *@
 @inject NavigationManager Navigation
 
@@ -134,7 +136,7 @@
 @code {
     private int currentBalance = 0;
     private List<TokenPackageDto> packages = new();
-    private List<TransactionDto> transactions = new();
+    private List<TokenTransactionDto> transactions = new();
     private bool isPurchasing = false;
     private int? selectedPackageId = null;
 
@@ -149,9 +151,7 @@
     {
         try
         {
-            // API'den bakiye çekilecek
-            // currentBalance = await TokenService.GetBalanceAsync();
-            currentBalance = 5; // Mock
+            currentBalance = await TokenService.GetBalanceAsync(Guid.Empty);
         }
         catch
         {
@@ -161,88 +161,25 @@
 
     private async Task LoadPackages()
     {
-        // Implementation plan'daki paketler
-        packages = new List<TokenPackageDto>
+        try 
         {
-            new()
-            {
-                Id = 1,
-                Name = "Başlangıç",
-                TokenCount = 5,
-                Price = 99,
-                Icon = "🌱",
-                IsPopular = false,
-                Badge = ""
-            },
-            new()
-            {
-                Id = 2,
-                Name = "Popüler",
-                TokenCount = 10,
-                Price = 149,
-                Icon = "⭐",
-                IsPopular = true,
-                Badge = "En Avantajlı"
-            },
-            new()
-            {
-                Id = 3,
-                Name = "Profesyonel",
-                TokenCount = 25,
-                Price = 299,
-                Icon = "💎",
-                IsPopular = false,
-                Badge = "Maksimum Tasarruf"
-            },
-            new()
-            {
-                Id = 4,
-                Name = "Kurumsal",
-                TokenCount = 50,
-                Price = 499,
-                Icon = "👑",
-                IsPopular = false,
-                Badge = "En Ekonomik"
-            }
-        };
+            packages = await TokenService.GetPackagesAsync();
+        }
+        catch 
+        {
+            packages = new List<TokenPackageDto>();
+        }
     }
 
     private async Task LoadTransactions()
     {
         try
         {
-            // API'den işlem geçmişi çekilecek
-            // transactions = await TokenService.GetTransactionsAsync();
-
-            // Mock data
-            transactions = new List<TransactionDto>
-            {
-                new()
-                {
-                    CreatedAt = DateTime.Now.AddDays(-1),
-                    Description = "10 Jeton Paketi Satın Alımı",
-                    Amount = 10,
-                    BalanceAfter = 13
-                },
-                new()
-                {
-                    CreatedAt = DateTime.Now.AddDays(-2),
-                    Description = "Mesaj kilidi açma",
-                    Amount = -1,
-                    BalanceAfter = 3
-                },
-                new()
-                {
-                    CreatedAt = DateTime.Now.AddDays(-5),
-                    Description = "Hoş geldin bonusu",
-                    Amount = 3,
-                    BalanceAfter = 4
-                }
-            };
+            transactions = await TokenService.GetTransactionHistoryAsync(Guid.Empty);
         }
         catch
         {
-            transactions = new List<TransactionDto>();
+            transactions = new List<TokenTransactionDto>();
         }
     }
 
@@ -263,15 +200,8 @@
             var package = packages.FirstOrDefault(p => p.Id == packageId);
             if (package != null)
             {
+                // UI Refresh for simulation purpose (since payment API is omitted for now)
                 currentBalance += package.TokenCount;
-                
-                transactions.Insert(0, new TransactionDto
-                {
-                    CreatedAt = DateTime.Now,
-                    Description = $"{package.Name} Paketi Satın Alımı",
-                    Amount = package.TokenCount,
-                    BalanceAfter = currentBalance
-                });
             }
         }
         catch (Exception ex)
@@ -285,23 +215,4 @@
         }
     }
 
-    // Geçici DTO'lar
-    private class TokenPackageDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public int TokenCount { get; set; }
-        public decimal Price { get; set; }
-        public string Icon { get; set; } = string.Empty;
-        public bool IsPopular { get; set; }
-        public string Badge { get; set; } = string.Empty;
-    }
-
-    private class TransactionDto
-    {
-        public DateTime CreatedAt { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public int Amount { get; set; }
-        public int BalanceAfter { get; set; }
-    }
 }

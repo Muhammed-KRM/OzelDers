@@ -30,4 +30,14 @@ public class ListingRepository : GenericRepository<Listing>, IListingRepository
             .OrderByDescending(l => l.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<List<Listing>> GetAllListingsByOwnerAsync(Guid ownerId)
+    {
+        // Yalnızca kalıcı olarak silinen (Closed) hariç tüm ilanları getir
+        return await _dbSet
+            .Include(l => l.Branch)
+            .Where(l => l.OwnerId == ownerId && l.Status != ListingStatus.Closed)
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync();
+    }
 }

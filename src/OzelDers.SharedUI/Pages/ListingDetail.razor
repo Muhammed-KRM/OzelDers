@@ -93,9 +93,9 @@ else
                             <div class="gallery">
                                 <h3>Fotoğraflar</h3>
                                 <div class="gallery-grid">
-                                    @foreach (var image in images)
+                                    @foreach (var imageUrl in images)
                                     {
-                                        <img src="@image.Url" alt="Ders fotoğrafı" class="gallery-image" />
+                                        <img src="@imageUrl" alt="Ders fotoğrafı" class="gallery-image" />
                                     }
                                 </div>
                             </div>
@@ -162,7 +162,7 @@ else
     private ListingDto? listing;
     private bool isLoading = true;
     private string? experience;
-    private List<ImageDto>? images;
+    private List<string>? images;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,7 +179,7 @@ else
             {
                 // Deneyim ve resimler için geçici çözüm
                 experience = "5+ yıl deneyim"; // API'den gelecek
-                images = listing.ImageUrls?.Select(url => new ImageDto { Url = url }).ToList();
+                images = listing.ImageUrls?.ToList();
             }
         }
         catch
@@ -195,8 +195,4 @@ else
         Navigation.NavigateTo($"/panel/mesajlarim?newMessage={listing?.OwnerId}");
     }
 
-    private class ImageDto
-    {
-        public string Url { get; set; } = string.Empty;
-    }
 }

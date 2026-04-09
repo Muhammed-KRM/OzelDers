@@ -1,6 +1,7 @@
 @page "/admin"
 @page "/admin/dashboard"
-@* @attribute [Authorize(Roles = "Admin")] *@
+@attribute [Authorize(Roles = "Admin")]
+@using OzelDers.Business.DTOs
 @inject NavigationManager Navigation
 
 <PageTitle>Admin Paneli | OzelDers.com</PageTitle>
@@ -82,10 +83,10 @@
                 @foreach (var activity in recentActivities)
                 {
                     <div class="activity-item">
-                        <div class="activity-icon @activity.Type">@activity.Icon</div>
+                        <div class="activity-icon">@activity.Icon</div>
                         <div class="activity-content">
                             <p class="activity-text">@activity.Description</p>
-                            <span class="activity-time">@activity.Time</span>
+                            <span class="activity-time">@activity.CreatedAt.ToString("g")</span>
                         </div>
                     </div>
                 }
@@ -135,7 +136,7 @@
     private decimal totalRevenue = 45680;
     private decimal revenueToday = 1250;
 
-    private List<ActivityDto> recentActivities = new();
+    private List<AdminActivityDto> recentActivities = new();
 
     protected override void OnInitialized()
     {
@@ -145,13 +146,12 @@
     private void LoadRecentActivities()
     {
         // Mock data
-        recentActivities = new List<ActivityDto>
+        recentActivities = new List<AdminActivityDto>
         {
-            new() { Icon = "👤", Type = "user", Description = "Yeni kullanıcı kaydı: Ahmet Yılmaz", Time = "5 dakika önce" },
-            new() { Icon = "📋", Type = "listing", Description = "Yeni ilan oluşturuldu: Matematik Öğretmeni", Time = "12 dakika önce" },
-            new() { Icon = "💰", Type = "payment", Description = "Jeton satın alımı: 10 jeton - 149 TL", Time = "25 dakika önce" },
-            new() { Icon = "⭐", Type = "vitrin", Description = "Vitrin paketi satın alındı: Aylık paket", Time = "1 saat önce" },
-            new() { Icon = "💬", Type = "message", Description = "Yeni mesaj gönderildi", Time = "2 saat önce" }
+            new() { Icon = "👤", Description = "Yeni öğretmen kaydı onaylandı", CreatedAt = DateTime.Now.AddMinutes(-5) },
+            new() { Icon = "💰", Description = "Premium paket satışı gerçekleşti", CreatedAt = DateTime.Now.AddHours(-1) },
+            new() { Icon = "⚠️", Description = "Şüpheli içerik sistem tarafından engellendi", CreatedAt = DateTime.Now.AddHours(-2) },
+            new() { Icon = "🎟️", Description = "Jeton paketi kampanya dönemi başladı", CreatedAt = DateTime.Now.AddDays(-1) }
         };
     }
 
@@ -159,13 +159,5 @@
     {
         // Cache temizleme işlemi
         // await CacheService.ClearAllAsync();
-    }
-
-    private class ActivityDto
-    {
-        public string Icon { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string Time { get; set; } = string.Empty;
     }
 }

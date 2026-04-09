@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<IMessageService, MessageApiService>();
         services.AddScoped<IReviewService, ReviewApiService>();
         services.AddScoped<IVitrinService, VitrinApiService>();
+        services.AddScoped<IUserService, UserApiService>();
         
         return services;
     }

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using Ganss.Xss;
 using MassTransit;
@@ -46,6 +47,7 @@ public class ListingManager : IListingService
 
         // 3. XSS Koruması ve Entity'ye map et
         var sanitizer = new HtmlSanitizer();
+        string sanitizedDescription = sanitizer.Sanitize(dto.Description);
 
         var listing = new Listing
         {
@@ -53,12 +55,12 @@ public class ListingManager : IListingService
             Type = dto.Type,
             Title = dto.Title,
             Slug = slug,
-            Description = sanitizer.Sanitize(dto.Description),
+            Description = sanitizedDescription,
             HourlyPrice = dto.HourlyPrice,
             LessonType = dto.LessonType,
             BranchId = dto.BranchId,
             DistrictId = dto.DistrictId,
-            Status = ListingStatus.Pending
+            Status = PerformAutoModeration(dto.Title, sanitizedDescription)
         };
 
         // 4. Repository ile kaydet
@@ -95,7 +97,7 @@ public class ListingManager : IListingService
 
     public async Task<List<ListingDto>> GetMyListingsAsync(Guid userId)
     {
-        var listings = await _listingRepo.GetActiveListingsByOwnerAsync(userId);
+        var listings = await _listingRepo.GetAllListingsByOwnerAsync(userId);
         return listings.Select(MapToDto).ToList();
     }
 
@@ -108,14 +110,30 @@ public class ListingManager : IListingService
             throw new UnauthorizedException("Bu ilanı düzenleme yetkiniz yok.");
 
         var sanitizer = new HtmlSanitizer();
+        string sanitizedDescription = sanitizer.Sanitize(dto.Description);
 
+        listing.Type = dto.Type;
         listing.Title = dto.Title;
         listing.Slug = SlugHelper.GenerateSlug(dto.Title);
-        listing.Description = sanitizer.Sanitize(dto.Description);
+        listing.Description = sanitizedDescription;
         listing.HourlyPrice = dto.HourlyPrice;
         listing.LessonType = dto.LessonType;
         listing.BranchId = dto.BranchId;
         listing.DistrictId = dto.DistrictId;
+        
+        // Check auto-moderation for content violation
+        var modStatus = PerformAutoModeration(dto.Title, sanitizedDescription);
+        
+        // If it passed moderation, honor the user's toggle (IsActive)
+        if (modStatus == ListingStatus.Active)
+        {
+            listing.Status = dto.IsActive ? ListingStatus.Active : ListingStatus.Suspended;
+        }
+        else
+        {
+            // If violation found, force pending
+            listing.Status = ListingStatus.Pending;
+        }
 
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
@@ -155,6 +173,32 @@ public class ListingManager : IListingService
             Page = filters.Page,
             PageSize = filters.PageSize
         };
+    }
+
+    /// <summary>
+    /// İçerikte telefon numarası, e-posta veya yasaklı kelimeler olup olmadığını kontrol eder.
+    /// Kurallara uyuyorsa otomatik olarak Active (Yayında) statüsü döndürür.
+    /// Uymuyorsa manuel admin kontrolü için Pending (Onay Bekliyor) döndürür.
+    /// </summary>
+    private ListingStatus PerformAutoModeration(string title, string description)
+    {
+        string fullText = $"{title} {description}";
+
+        // Basit Telefon Numarası Taraması (Örn: 0555 555 5555, 05555555555)
+        var phoneRegex = new Regex(@"0?\s*5\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d");
+        
+        // Basit E-posta Taraması
+        var emailRegex = new Regex(@"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}");
+
+        // Yasaklı kelimeler vs.
+        string[] forbiddenWords = { "escort", "kumar", "bahis" }; // vs...
+
+        if (phoneRegex.IsMatch(fullText) || emailRegex.IsMatch(fullText) || forbiddenWords.Any(w => fullText.Contains(w, StringComparison.OrdinalIgnoreCase)))
+        {
+            return ListingStatus.Pending;
+        }
+
+        return ListingStatus.Active;
     }
 
     private static ListingDto MapToDto(Listing l) => new()

@@ -1,8 +1,7 @@
-@page "/{Branch}/ozel-ders"
-@* @inject IListingService ListingService *@
-@* @inject ISearchService SearchService *@
+@page "/{Branch}/ozel-ders-verenler"
+@inject OzelDers.Business.Interfaces.IListingService ListingService
 
-<PageTitle>@FormattedBranch Özel Ders Seçenekleri | OzelDers.com</PageTitle>
+<PageTitle>@FormattedBranch Özel Ders Verenler | OzelDers.com</PageTitle>
 <HeadContent>
     <meta name="description" content="En iyi @FormattedBranch eğitmenlerinden özel ders alın. Binlerce onaylı profili inceleyin, bütçenize uygun uzman öğretmeni hemen bulun." />
     <meta property="og:title" content="@FormattedBranch Özel Ders" />
@@ -51,15 +50,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // listings = await SearchService.SearchAsync(new SearchFilterDto { Branch = Branch });
-        
-        listings = new List<OzelDers.Business.DTOs.ListingDto>
-        {
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "Eksiklerimi Kapatmak İstiyorum", Slug = "eksikler-matematik", OwnerName = "Oğuz Ç.", DistrictName = "Beşiktaş", CityName = "İstanbul", HourlyPrice = 300, BranchName = FormattedBranch, AverageRating = 4.7, ReviewCount = 5, OwnerImageUrl = "", IsVitrin = true },
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "Pratikle Yeni Diller", Slug = "pratik-diller", OwnerName = "Merve E.", DistrictName = "Nilüfer", CityName = "Bursa", HourlyPrice = 250, BranchName = FormattedBranch, AverageRating = 4.8, ReviewCount = 14, OwnerImageUrl = "", IsVitrin = false },
-            new OzelDers.Business.DTOs.ListingDto { Id = Guid.NewGuid(), Title = "0'dan İleri Düzey", Slug = "sifirdan-ileri", OwnerName = "Eren T.", DistrictName = "Çankaya", CityName = "Ankara", HourlyPrice = 400, BranchName = FormattedBranch, AverageRating = 5.0, ReviewCount = 50, OwnerImageUrl = "", IsVitrin = false }
-        };
-        
-        await Task.CompletedTask;
+        var searchResult = await ListingService.SearchAsync(new OzelDers.Business.DTOs.SearchFilterDto { Branch = Branch });
+        listings = searchResult.Items.ToList();
     }
 }

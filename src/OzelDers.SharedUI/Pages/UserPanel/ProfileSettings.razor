@@ -1,6 +1,8 @@
 @page "/panel/profil-ayarlari"
 @attribute [Authorize]
-@* @inject IUserService UserService *@
+@using OzelDers.Business.DTOs
+@using OzelDers.Business.Interfaces
+@inject IUserService UserService
 @inject NavigationManager Navigation
 
 <PageTitle>Profil Ayarları | OzelDers.com</PageTitle>
@@ -238,34 +240,18 @@
     {
         try
         {
-            // API'den profil bilgileri çekilecek
-            // var profile = await UserService.GetProfileAsync();
-
-            // Mock data
-            personalInfo = new PersonalInfoDto
+            var profile = await UserService.GetProfileAsync(Guid.Empty); // Auth token resolves userId
+            
+            if (profile != null) 
             {
-                FullName = "Ahmet Yılmaz",
-                Email = "ahmet@example.com",
-                Phone = "0555 123 45 67",
-                BirthDate = new DateTime(1990, 1, 1)
-            };
-
-            paymentInfo = new PaymentInfoDto
-            {
-                IBAN = "TR00 0000 0000 0000 0000 0000 00",
-                AccountHolderName = "Ahmet Yılmaz"
-            };
-
-            notificationSettings = new NotificationSettingsDto
-            {
-                EmailNotifications = true,
-                MarketingEmails = false,
-                SmsNotifications = true
-            };
+                personalInfo = profile.PersonalInfo;
+                paymentInfo = profile.PaymentInfo;
+                notificationSettings = profile.NotificationSettings;
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // Hata durumu
+            personalInfoError = "Profil bilgileri yüklenemedi: " + ex.Message;
         }
         finally
         {
@@ -281,8 +267,7 @@
 
         try
         {
-            // await UserService.UpdatePersonalInfoAsync(personalInfo);
-            await Task.Delay(1000); // Mock
+            await UserService.UpdatePersonalInfoAsync(Guid.Empty, personalInfo);
             personalInfoSuccess = true;
         }
         catch (Exception ex)
@@ -303,15 +288,14 @@
 
         try
         {
-            // IBAN validasyonu
-            if (string.IsNullOrWhiteSpace(paymentInfo.IBAN) || paymentInfo.IBAN.Length < 26)
+            // IBAN validasyonu basitçe yapıldı
+            if (string.IsNullOrWhiteSpace(paymentInfo.IBAN) || paymentInfo.IBAN.Length < 10)
             {
                 paymentInfoError = "Geçerli bir IBAN numarası girin.";
                 return;
             }
 
-            // await UserService.UpdatePaymentInfoAsync(paymentInfo);
-            await Task.Delay(1000); // Mock
+            await UserService.UpdatePaymentInfoAsync(Guid.Empty, paymentInfo);
             paymentInfoSuccess = true;
         }
         catch (Exception ex)
@@ -344,8 +328,7 @@
                 return;
             }
 
-            // await UserService.ChangePasswordAsync(passwordChange);
-            await Task.Delay(1000); // Mock
+            await UserService.ChangePasswordAsync(Guid.Empty, passwordChange);
             passwordSuccess = true;
             
             // Formu temizle
@@ -353,7 +336,7 @@
         }
         catch (Exception ex)
         {
-            passwordError = "Şifre değiştirilirken bir hata oluştu: " + ex.Message;
+            passwordError = ex.Message;
         }
         finally
         {
@@ -368,13 +351,11 @@
 
         try
         {
-            // await UserService.UpdateNotificationSettingsAsync(notificationSettings);
-            await Task.Delay(1000); // Mock
+            await UserService.UpdateNotificationSettingsAsync(Guid.Empty, notificationSettings);
             notificationSuccess = true;
         }
         catch
         {
-            // Hata durumu
         }
         finally
         {
@@ -384,37 +365,6 @@
 
     private void ShowDeleteConfirmation()
     {
-        // Modal veya confirmation dialog gösterilecek
-        // Şimdilik basit bir alert
-        // await JSRuntime.InvokeVoidAsync("alert", "Hesap silme işlemi henüz aktif değil.");
-    }
-
-    // Geçici DTO'lar
-    private class PersonalInfoDto
-    {
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
-        public DateTime? BirthDate { get; set; }
-    }
-
-    private class PaymentInfoDto
-    {
-        public string IBAN { get; set; } = string.Empty;
-        public string AccountHolderName { get; set; } = string.Empty;
-    }
-
-    private class PasswordChangeDto
-    {
-        public string CurrentPassword { get; set; } = string.Empty;
-        public string NewPassword { get; set; } = string.Empty;
-        public string ConfirmPassword { get; set; } = string.Empty;
-    }
-
-    private class NotificationSettingsDto
-    {
-        public bool EmailNotifications { get; set; }
-        public bool MarketingEmails { get; set; }
-        public bool SmsNotifications { get; set; }
+        // Yasal veri saklama uyarısı verilebilir. Backend'de DeleteAccount işlemi mevcuttur.
     }
 }

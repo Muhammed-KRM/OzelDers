@@ -41,10 +41,13 @@ public class ListingCreateDto
 // İlan güncelleme formu
 public class ListingUpdateDto
 {
+    public ListingType Type { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int HourlyPrice { get; set; }
     public LessonType LessonType { get; set; }
     public int BranchId { get; set; }
+    public int CityId { get; set; }
     public int DistrictId { get; set; }
+    public bool IsActive { get; set; }
 }

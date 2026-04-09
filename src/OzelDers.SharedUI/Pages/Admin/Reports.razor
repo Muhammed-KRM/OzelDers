@@ -1,5 +1,6 @@
 @page "/admin/reports"
-@* @attribute [Authorize(Roles = "Admin")] *@
+@attribute [Authorize(Roles = "Admin")]
+@using OzelDers.Business.DTOs
 @inject NavigationManager Navigation
 
 <PageTitle>Raporlar | Admin Panel</PageTitle>
@@ -239,7 +240,7 @@
     private int avgVitrinDuration = 22;
 
     // Popüler Branşlar
-    private List<BranchDto> popularBranches = new();
+    private List<AdminBranchDto> popularBranches = new();
 
     protected override void OnInitialized()
     {
@@ -260,7 +261,7 @@
 
     private void LoadPopularBranches()
     {
-        popularBranches = new List<BranchDto>
+        popularBranches = new List<AdminBranchDto>
         {
             new() { Rank = 1, Name = "Matematik", ListingCount = 234 },
             new() { Rank = 2, Name = "İngilizce", ListingCount = 189 },
@@ -280,17 +281,4 @@
         // CSV rapor oluştur ve indir
     }
 
-    private class PackageSaleDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public int SalesCount { get; set; }
-        public int Percentage { get; set; }
-    }
-
-    private class BranchDto
-    {
-        public int Rank { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public int ListingCount { get; set; }
-    }
 }

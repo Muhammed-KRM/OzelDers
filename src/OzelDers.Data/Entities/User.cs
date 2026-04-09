@@ -24,7 +24,12 @@ public class User
     public int TokenBalance { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsEmailVerified { get; set; }
-    
+    // Profil Ayarları
+    public DateTime? BirthDate { get; set; }
+    public bool EmailNotifications { get; set; } = true;
+    public bool MarketingEmails { get; set; } = false;
+    public bool SmsNotifications { get; set; } = true;
+
     // Refresh Token for JWT
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiryTime { get; set; }
