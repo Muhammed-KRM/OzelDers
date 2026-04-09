@@ -11,12 +11,11 @@ namespace OzelDers.Web.States;
 public class AuthTokenHandler : DelegatingHandler
 {
     private readonly ProtectedLocalStorage _localStorage;
-    private readonly IJSRuntime _jsRuntime;
+    // JS Runtime kaldırıldı çünkü prerendering sırasında circuit çökmesine neden oluyor
 
-    public AuthTokenHandler(ProtectedLocalStorage localStorage, IJSRuntime jsRuntime)
+    public AuthTokenHandler(ProtectedLocalStorage localStorage)
     {
         _localStorage = localStorage;
-        _jsRuntime = jsRuntime;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -29,52 +28,22 @@ public class AuthTokenHandler : DelegatingHandler
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", result.Value.Token);
             }
         }
-        catch
+        catch (Exception)
         {
             // Prerender sırasında LocalStorage erişilemiyorsa sessizce geç
         }
-
-        // --- MERKEZİ LOGLAMA ---
-        string payload = "";
-        if (request.Content != null)
-        {
-            payload = await request.Content.ReadAsStringAsync();
-        }
-
-        try
-        {
-            await _jsRuntime.InvokeVoidAsync("console.log", "--------------------------------------------------");
-            await _jsRuntime.InvokeVoidAsync("console.log", $"👉 [OzelDers GIDEN ISTEK] {request.Method} {request.RequestUri}");
-            await _jsRuntime.InvokeVoidAsync("console.log", $"👉 [HEADER] Auth: {(request.Headers.Authorization != null ? "Eklendi" : "Yok")}");
-            if (!string.IsNullOrEmpty(payload))
-            {
-                await _jsRuntime.InvokeVoidAsync("console.log", $"👉 [PAYLOAD]\n{payload}");
-            }
-        }
-        catch { /* Prerendering ignored */ }
-        // -----------------------
 
         var response = await base.SendAsync(request, cancellationToken);
         
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            try 
-            {
-                await _jsRuntime.InvokeVoidAsync("console.error", $"❌ [OzelDers HATA] {response.StatusCode}\nDetay: {errorContent}");
-                await _jsRuntime.InvokeVoidAsync("console.log", "--------------------------------------------------");
-            } 
-            catch { }
+            // Prerender sırasında JS çağrılamaz
             
             throw new HttpRequestException($"API Hatası ({response.StatusCode}): {errorContent}");
         }
 
-        try
-        {
-            await _jsRuntime.InvokeVoidAsync("console.log", $"✅ [OzelDers CEVAP] İşlem başarılı ({response.StatusCode}).");
-            await _jsRuntime.InvokeVoidAsync("console.log", "--------------------------------------------------");
-        }
-        catch { }
+        // Loglama kaldırıldı
 
         return response;
     }

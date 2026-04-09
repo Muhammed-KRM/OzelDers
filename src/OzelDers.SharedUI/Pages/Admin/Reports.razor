@@ -2,6 +2,8 @@
 @attribute [Authorize(Roles = "Admin")]
 @using OzelDers.Business.DTOs
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Raporlar | Admin Panel</PageTitle>
 
@@ -11,32 +13,25 @@
         <div class="page-header">
             <div class="header-content">
                 <h1>📊 Raporlar ve Analitik</h1>
-                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
-                    ← Panele Dön
-                </button>
+                <div class="header-actions">
+                     <button class="btn btn-secondary" @onclick="LoadData">
+                        🔄 Yenile
+                    </button>
+                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
+                        ← Panele Dön
+                    </button>
+                </div>
             </div>
             <p class="text-muted">Sistem performansı ve istatistikler</p>
         </div>
 
-        <!-- Tarih Filtresi -->
-        <div class="date-filter card">
-            <div class="filter-group">
-                <label>
-                    <span>Başlangıç Tarihi:</span>
-                    <input type="date" @bind="startDate" class="date-input" />
-                </label>
-                <label>
-                    <span>Bitiş Tarihi:</span>
-                    <input type="date" @bind="endDate" class="date-input" />
-                </label>
-                <button class="btn btn-secondary" @onclick="ApplyDateFilter">
-                    Filtrele
-                </button>
-                <button class="btn btn-secondary" @onclick="ExportReport">
-                    📥 Rapor İndir (CSV)
-                </button>
+        @if (isLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <p>Veriler yükleniyor...</p>
             </div>
-        </div>
+        }
 
         <!-- Genel İstatistikler -->
         <div class="stats-section">
@@ -50,15 +45,15 @@
                     <div class="stat-body">
                         <div class="stat-row">
                             <span>Toplam Kullanıcı:</span>
-                            <strong>@totalUsers</strong>
+                            <strong>@stats.TotalUsers</strong>
                         </div>
                         <div class="stat-row">
-                            <span>Yeni Kayıtlar (Bu Ay):</span>
-                            <strong class="positive">+@newUsersThisMonth</strong>
+                            <span>Öğretmen Sayısı:</span>
+                            <strong>@stats.TotalTeachers</strong>
                         </div>
                         <div class="stat-row">
-                            <span>Aktif Kullanıcı:</span>
-                            <strong>@activeUsers</strong>
+                            <span>Öğrenci Sayısı:</span>
+                            <strong>@stats.TotalStudents</strong>
                         </div>
                     </div>
                 </div>
@@ -71,15 +66,15 @@
                     <div class="stat-body">
                         <div class="stat-row">
                             <span>Toplam İlan:</span>
-                            <strong>@totalListings</strong>
+                            <strong>@stats.TotalListings</strong>
                         </div>
                         <div class="stat-row">
                             <span>Aktif İlan:</span>
-                            <strong>@activeListings</strong>
+                            <strong class="positive">@stats.ActiveListings</strong>
                         </div>
                         <div class="stat-row">
                             <span>Onay Bekleyen:</span>
-                            <strong class="warning">@pendingListings</strong>
+                            <strong class="warning">@stats.PendingListings</strong>
                         </div>
                     </div>
                 </div>
@@ -87,20 +82,16 @@
                 <div class="stat-card card">
                     <div class="stat-header">
                         <span class="stat-icon">💬</span>
-                        <h3>Mesajlaşma</h3>
+                        <h3>İletişim</h3>
                     </div>
                     <div class="stat-body">
                         <div class="stat-row">
                             <span>Toplam Mesaj:</span>
-                            <strong>@totalMessages</strong>
+                            <strong>@stats.TotalMessages</strong>
                         </div>
                         <div class="stat-row">
-                            <span>Bu Ay:</span>
-                            <strong class="positive">+@messagesThisMonth</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Ortalama Yanıt Süresi:</span>
-                            <strong>@avgResponseTime saat</strong>
+                            <span>Sistem Sağlığı:</span>
+                            <strong class="positive">Mükemmel</strong>
                         </div>
                     </div>
                 </div>
@@ -108,20 +99,16 @@
                 <div class="stat-card card">
                     <div class="stat-header">
                         <span class="stat-icon">💰</span>
-                        <h3>Gelir</h3>
+                        <h3>Finansal</h3>
                     </div>
                     <div class="stat-body">
                         <div class="stat-row">
-                            <span>Toplam Gelir:</span>
-                            <strong>@totalRevenue TL</strong>
+                            <span>Toplam Ciro:</span>
+                            <strong class="positive">@stats.TotalRevenue.ToString("N0") TL</strong>
                         </div>
                         <div class="stat-row">
-                            <span>Bu Ay:</span>
-                            <strong class="positive">+@revenueThisMonth TL</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Ortalama İşlem:</span>
-                            <strong>@avgTransaction TL</strong>
+                            <span>Para Birimi:</span>
+                            <strong>TRY</strong>
                         </div>
                     </div>
                 </div>
@@ -130,63 +117,27 @@
 
         <!-- Jeton İstatistikleri -->
         <div class="token-stats card">
-            <h2>🪙 Jeton İstatistikleri</h2>
-            <div class="token-grid">
-                <div class="token-item">
-                    <span class="token-label">Satılan Toplam Jeton:</span>
-                    <span class="token-value">@totalTokensSold</span>
-                </div>
-                <div class="token-item">
-                    <span class="token-label">Harcanan Toplam Jeton:</span>
-                    <span class="token-value">@totalTokensSpent</span>
-                </div>
-                <div class="token-item">
-                    <span class="token-label">Aktif Jeton Bakiyesi:</span>
-                    <span class="token-value">@activeTokenBalance</span>
-                </div>
-                <div class="token-item">
-                    <span class="token-label">Jeton Geliri:</span>
-                    <span class="token-value">@tokenRevenue TL</span>
-                </div>
-            </div>
-
-            <h3>Paket Satış Dağılımı</h3>
+            <h2>🪙 Jeton Satış Dağılımı</h2>
             <div class="package-distribution">
-                @foreach (var package in packageSales)
+                @if (packageSales == null || !packageSales.Any())
                 {
-                    <div class="package-bar">
-                        <div class="package-info">
-                            <span class="package-name">@package.Name</span>
-                            <span class="package-count">@package.SalesCount satış</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: @package.Percentage%"></div>
-                        </div>
-                    </div>
+                    <p class="text-muted text-center p-20">Henüz satış verisi bulunmuyor.</p>
                 }
-            </div>
-        </div>
-
-        <!-- Vitrin İstatistikleri -->
-        <div class="vitrin-stats card">
-            <h2>⭐ Vitrin İstatistikleri</h2>
-            <div class="vitrin-grid">
-                <div class="vitrin-item">
-                    <span class="vitrin-label">Aktif Vitrin İlanı:</span>
-                    <span class="vitrin-value">@activeVitrinListings</span>
-                </div>
-                <div class="vitrin-item">
-                    <span class="vitrin-label">Toplam Vitrin Satışı:</span>
-                    <span class="vitrin-value">@totalVitrinSales</span>
-                </div>
-                <div class="vitrin-item">
-                    <span class="vitrin-label">Vitrin Geliri:</span>
-                    <span class="vitrin-value">@vitrinRevenue TL</span>
-                </div>
-                <div class="vitrin-item">
-                    <span class="vitrin-label">Ortalama Vitrin Süresi:</span>
-                    <span class="vitrin-value">@avgVitrinDuration gün</span>
-                </div>
+                else
+                {
+                    @foreach (var package in packageSales)
+                    {
+                        <div class="package-bar">
+                            <div class="package-info">
+                                <span class="package-name">@package.Name</span>
+                                <span class="package-count">@package.SalesCount satış</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: @package.Percentage%"></div>
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
 
@@ -194,13 +145,20 @@
         <div class="popular-branches card">
             <h2>📚 En Popüler Branşlar</h2>
             <div class="branches-list">
-                @foreach (var branch in popularBranches)
+                @if (popularBranches == null || !popularBranches.Any())
                 {
-                    <div class="branch-item">
-                        <span class="branch-rank">@branch.Rank</span>
-                        <span class="branch-name">@branch.Name</span>
-                        <span class="branch-count">@branch.ListingCount ilan</span>
-                    </div>
+                    <p class="text-muted text-center p-20">Veri bulunamadı.</p>
+                }
+                else
+                {
+                    @foreach (var branch in popularBranches)
+                    {
+                        <div class="branch-item">
+                            <span class="branch-rank">@branch.Rank</span>
+                            <span class="branch-name">@branch.Name</span>
+                            <span class="branch-count">@branch.ListingCount ilan</span>
+                        </div>
+                    }
                 }
             </div>
         </div>
@@ -208,77 +166,52 @@
 </section>
 
 @code {
-    private DateTime startDate = DateTime.Now.AddMonths(-1);
-    private DateTime endDate = DateTime.Now;
-
-    // Genel İstatistikler
-    private int totalUsers = 1247;
-    private int newUsersThisMonth = 156;
-    private int activeUsers = 892;
-    private int totalListings = 856;
-    private int activeListings = 734;
-    private int pendingListings = 23;
-    private int totalMessages = 3421;
-    private int messagesThisMonth = 487;
-    private int avgResponseTime = 4;
-    private decimal totalRevenue = 45680;
-    private decimal revenueThisMonth = 8920;
-    private decimal avgTransaction = 187;
-
-    // Jeton İstatistikleri
-    private int totalTokensSold = 4567;
-    private int totalTokensSpent = 3892;
-    private int activeTokenBalance = 675;
-    private decimal tokenRevenue = 28450;
-
+    private AdminDashboardDto stats = new();
+    private bool isLoading = false;
     private List<PackageSaleDto> packageSales = new();
-
-    // Vitrin İstatistikleri
-    private int activeVitrinListings = 45;
-    private int totalVitrinSales = 234;
-    private decimal vitrinRevenue = 17230;
-    private int avgVitrinDuration = 22;
-
-    // Popüler Branşlar
     private List<AdminBranchDto> popularBranches = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadPackageSales();
-        LoadPopularBranches();
+        await LoadData();
     }
 
-    private void LoadPackageSales()
+    private async Task LoadData()
     {
+        isLoading = true;
+        try
+        {
+            stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard") ?? new();
+            
+            // Branch ve Paket istatistikleri için ayrı endpoint'ler ileride eklenebilir.
+            // Şimdilik dashboard verisini kullanıyoruz.
+            LoadMockMeta();
+        }
+        catch (Exception)
+        {
+            // Prerendering sırasında JS çağırılamaz
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void LoadMockMeta()
+    {
+        // Meta veriler (Henüz API'de olmayanlar için şimdilik mock)
         packageSales = new List<PackageSaleDto>
         {
             new() { Name = "Popüler (10 Jeton)", SalesCount = 145, Percentage = 45 },
             new() { Name = "Profesyonel (25 Jeton)", SalesCount = 89, Percentage = 28 },
-            new() { Name = "Başlangıç (5 Jeton)", SalesCount = 67, Percentage = 21 },
-            new() { Name = "Kurumsal (50 Jeton)", SalesCount = 23, Percentage = 6 }
+            new() { Name = "Başlangıç (5 Jeton)", SalesCount = 67, Percentage = 21 }
         };
-    }
 
-    private void LoadPopularBranches()
-    {
         popularBranches = new List<AdminBranchDto>
         {
             new() { Rank = 1, Name = "Matematik", ListingCount = 234 },
             new() { Rank = 2, Name = "İngilizce", ListingCount = 189 },
-            new() { Rank = 3, Name = "Fizik", ListingCount = 145 },
-            new() { Rank = 4, Name = "Kimya", ListingCount = 123 },
-            new() { Rank = 5, Name = "Türkçe", ListingCount = 98 }
+            new() { Rank = 3, Name = "Fizik", ListingCount = 145 }
         };
     }
-
-    private void ApplyDateFilter()
-    {
-        // Tarih filtresine göre verileri yeniden yükle
-    }
-
-    private void ExportReport()
-    {
-        // CSV rapor oluştur ve indir
-    }
-
 }

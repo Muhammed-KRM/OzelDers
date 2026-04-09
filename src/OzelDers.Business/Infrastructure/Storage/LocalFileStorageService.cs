@@ -1,61 +1,89 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OzelDers.Business.Interfaces;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace OzelDers.Business.Infrastructure.Storage;
 
 public class LocalFileStorageService : IFileStorageService
 {
-    private readonly string _basePath;
+    private readonly string _uploadPath;
+    private readonly ILogger<LocalFileStorageService> _logger;
 
-    public LocalFileStorageService()
+    // İzin verilen dosya türleri ve maksimum boyut
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        _basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-        if (!Directory.Exists(_basePath))
-            Directory.CreateDirectory(_basePath);
+        ".jpg", ".jpeg", ".png", ".webp"
+    };
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
+
+    public LocalFileStorageService(IConfiguration config, ILogger<LocalFileStorageService> logger)
+    {
+        _logger = logger;
+        _uploadPath = config["FileStorage:UploadPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+        
+        // Klasör yoksa oluştur
+        if (!Directory.Exists(_uploadPath))
+        {
+            Directory.CreateDirectory(_uploadPath);
+            _logger.LogInformation("Upload dizini oluşturuldu: {Path}", _uploadPath);
+        }
     }
 
     public async Task<string> UploadAsync(Stream fileStream, string fileName, string contentType)
     {
-        // Dosya adını benzersiz yap
-        var uniqueName = $"{Guid.NewGuid():N}_{fileName}";
-        var filePath = Path.Combine(_basePath, uniqueName);
-
-        // Resmi ImageSharp ile Yükle ve İşle
-        using var image = await Image.LoadAsync(fileStream);
-
-        // Max 500x500 px (En-boy oranını koruyarak)
-        image.Mutate(x => x.Resize(new ResizeOptions
+        // ── Güvenlik Kontrolleri ──
+        
+        // 1. Dosya boyutu kontrolü
+        if (fileStream.Length > MaxFileSizeBytes)
         {
-            Mode = ResizeMode.Max,
-            Size = new Size(500, 500)
-        }));
-
-        // Kayıt formatı belirleme (Önerilen format WebP)
-        if (contentType == "image/png" || contentType == "image/webp")
-        {
-            await image.SaveAsWebpAsync(filePath, new WebpEncoder { Quality = 80 });
-        }
-        else
-        {
-            await image.SaveAsJpegAsync(filePath, new JpegEncoder { Quality = 80 });
+            throw new InvalidOperationException($"Dosya boyutu çok büyük. Maksimum {MaxFileSizeBytes / (1024 * 1024)} MB yüklenebilir.");
         }
 
-        // Relative URL döndür (frontend tarafından erişilebilir)
-        return $"/uploads/{uniqueName}";
+        // 2. Dosya uzantısı kontrolü
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException($"Desteklenmeyen dosya türü: {extension}. İzin verilenler: {string.Join(", ", AllowedExtensions)}");
+        }
+
+        // 3. Content-Type kontrolü
+        var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg", "image/png", "image/webp"
+        };
+        if (!allowedContentTypes.Contains(contentType))
+        {
+            throw new InvalidOperationException($"Desteklenmeyen içerik türü: {contentType}");
+        }
+
+        // ── Dosya Kaydetme ──
+        
+        // Benzersiz dosya adı oluştur (GUID bazlı, path traversal engellenir)
+        var safeFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(_uploadPath, safeFileName);
+
+        await using var outputStream = new FileStream(filePath, FileMode.Create);
+        await fileStream.CopyToAsync(outputStream);
+
+        _logger.LogInformation("Dosya yüklendi: {FileName} → {FilePath} ({Size} bytes)", fileName, safeFileName, fileStream.Length);
+
+        // Dosyanın URL'ini döndür (relative path)
+        return $"/uploads/{safeFileName}";
     }
 
     public Task DeleteAsync(string fileUrl)
     {
-        if (string.IsNullOrWhiteSpace(fileUrl)) return Task.CompletedTask;
+        if (string.IsNullOrEmpty(fileUrl)) return Task.CompletedTask;
 
+        // URL'den dosya adını çıkar
         var fileName = Path.GetFileName(fileUrl);
-        var filePath = Path.Combine(_basePath, fileName);
+        var filePath = Path.Combine(_uploadPath, fileName);
 
         if (File.Exists(filePath))
+        {
             File.Delete(filePath);
+            _logger.LogInformation("Dosya silindi: {FilePath}", filePath);
+        }
 
         return Task.CompletedTask;
     }

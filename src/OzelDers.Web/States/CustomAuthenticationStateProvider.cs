@@ -20,11 +20,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
     {
         try
         {
+            // Prerendering sırasında JS çağrısı yapılamaz. 
+            // Bu hata ProtectedLocalStorage tarafından fırlatılır.
             var result = await _localStorage.GetAsync<UserSession>("UserSession");
             var userSession = result.Success ? result.Value : null;
-
+            
             if (userSession == null)
-                return await Task.FromResult(new AuthenticationState(_anonymous));
+                return new AuthenticationState(_anonymous);
 
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
             {
@@ -34,11 +36,13 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider, IC
                 new Claim(ClaimTypes.NameIdentifier, userSession.Id.ToString())
             }, "CustomAuth"));
 
-            return await Task.FromResult(new AuthenticationState(claimsPrincipal));
+            return new AuthenticationState(claimsPrincipal);
         }
-        catch
+        catch (Exception)
         {
-            return await Task.FromResult(new AuthenticationState(_anonymous));
+            // Prerendering sırasında veya hata durumunda anonim kullanıcı döner.
+            // Blazor bağlantı kurulduğunda bu metodu tekrar çağıracaktır.
+            return new AuthenticationState(_anonymous);
         }
     }
 

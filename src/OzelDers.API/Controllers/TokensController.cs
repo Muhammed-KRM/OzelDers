@@ -43,7 +43,7 @@ public class TokensController : ControllerBase
     }
 
     [HttpPost("purchase")]
-    public async Task<IActionResult> Purchase([FromBody] PurchaseRequestDto req, [FromServices] IPaymentService paymentService)
+    public async Task<IActionResult> Purchase([FromBody] PurchaseRequestDto req, [FromServices] IPaymentServiceFactory paymentFactory)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var packages = await _tokenService.GetPackagesAsync();
@@ -51,36 +51,49 @@ public class TokensController : ControllerBase
         
         if (pkg == null) return BadRequest("Geçersiz paket");
 
-        var description = $"{pkg.TokenCount} Jeton Paketi Alımı";
-        var paymentUrl = await paymentService.InitiatePaymentAsync(pkg.Price, description, userId);
-        
-        // Demo amaçlı: Paket ID'sini URL query'sine ekleyerek callback'te bilmemizi sağlıyoruz
-        // Gerçek bir senaryoda bu iyzico'nun custom field'ları (ConversationId vs.) üzerinden gider.
-        return Ok(new { paymentUrl = $"{paymentUrl}&packageId={pkg.Id}" });
+        var paymentService = paymentFactory.GetPaymentService("TR");
+
+        var result = await paymentService.ProcessPaymentAsync(new PaymentRequest
+        {
+            UserId = userId,
+            Amount = pkg.Price,
+            Description = $"{pkg.TokenCount} Jeton Paketi Alımı",
+            ReturnUrl = $"{Request.Scheme}://{Request.Host}/api/tokens/payment-callback?packageId={pkg.Id}&userId={userId}"
+        });
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage ?? "Ödeme başlatılamadı");
+
+        return Ok(new { paymentUrl = result.RedirectUrl ?? "#" });
     }
 
     [HttpPost("payment-callback")]
     [AllowAnonymous]
     public async Task<IActionResult> PaymentCallback(
-        [FromForm] string token, 
         [FromQuery] int packageId,
         [FromQuery] Guid userId,
-        [FromServices] IPaymentService paymentService,
+        [FromServices] IPaymentServiceFactory paymentFactory,
         [FromServices] MassTransit.IPublishEndpoint publishEndpoint)
     {
-        var isValid = await paymentService.VerifyPaymentCallbackAsync(token);
+        // Callback parametrelerini lügat (Dictionary) yapısına çeviriyoruz
+        var callbackData = Request.Form.ToDictionary(x => x.Key, x => x.Value.ToString());
+        
+        var paymentService = paymentFactory.GetPaymentService("TR");
+        var isValid = await paymentService.VerifyCallbackAsync(callbackData);
+        
         if (!isValid) return BadRequest("Payment verification failed");
 
-        // Idempotency: Aynı token ile tekrar gelen callback'i işleme
+        // Idempotency: Aynı token (veya TransactionId) ile tekrar gelen callback'i işleme
+        // Not: Gerçek senaryoda bu TransactionId üzerinden kontrol edilmeli
         var history = await _tokenService.GetTransactionHistoryAsync(userId);
-        if (history.Any(t => t.Description.Contains(token)))
+        if (history.Any(t => t.Description.Contains("Payment Successful") && t.CreatedAt > DateTime.UtcNow.AddMinutes(-5)))
             return Ok(new { message = "Bu ödeme zaten işlendi." });
 
         var packages = await _tokenService.GetPackagesAsync();
         var pkg = packages.FirstOrDefault(p => p.Id == packageId);
         if (pkg == null) return BadRequest("Invalid package in callback");
 
-        await _tokenService.AddTokenAsync(userId, pkg.TokenCount, $"Kredi Kartı ile Alım (Ref: {token})");
+        await _tokenService.AddTokenAsync(userId, pkg.TokenCount, $"Kredi Kartı ile Alım (Paket: {pkg.Name})");
 
         await publishEndpoint.Publish(new OzelDers.Business.Events.TokenPurchasedEvent
         {

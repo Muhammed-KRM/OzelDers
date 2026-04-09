@@ -29,7 +29,7 @@ public class VitrinController : ControllerBase
     }
 
     [HttpPost("{listingId}/purchase")]
-    public async Task<IActionResult> Purchase(Guid listingId, [FromBody] VitrinPurchaseRequestDto req, [FromServices] IPaymentService paymentService)
+    public async Task<IActionResult> Purchase(Guid listingId, [FromBody] VitrinPurchaseRequestDto req, [FromServices] IPaymentServiceFactory paymentFactory)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var packages = await _vitrinService.GetPackagesAsync();
@@ -37,23 +37,37 @@ public class VitrinController : ControllerBase
         
         if (pkg == null) return BadRequest("Geçersiz paket");
 
-        var description = $"Vitrin Paketi: {pkg.Name} - İlan ID: {listingId}";
-        var paymentUrl = await paymentService.InitiatePaymentAsync(pkg.Price, description, userId);
-        
-        // Demo amaçlı: ID'leri query'sine ekleyerek callback'te bilmemizi sağlıyoruz
-        return Ok(new { paymentUrl = $"{paymentUrl}&packageId={pkg.Id}&listingId={listingId}" });
+        // Factory'den uygun servis alınır (Varsayılan TR)
+        var paymentService = paymentFactory.GetPaymentService("TR");
+
+        var result = await paymentService.ProcessPaymentAsync(new PaymentRequest
+        {
+            UserId = userId,
+            Amount = pkg.Price,
+            Description = $"Vitrin Paketi: {pkg.Name} - İlan ID: {listingId}",
+            ReturnUrl = $"{Request.Scheme}://{Request.Host}/api/vitrin/payment-callback?listingId={listingId}&packageId={pkg.Id}&userId={userId}"
+        });
+
+        if (!result.Success)
+            return BadRequest(result.ErrorMessage ?? "Ödeme başlatılamadı");
+
+        return Ok(new { paymentUrl = result.RedirectUrl ?? "#" });
     }
 
     [HttpPost("payment-callback")]
     [AllowAnonymous]
     public async Task<IActionResult> PaymentCallback(
-        [FromForm] string token, 
         [FromQuery] int packageId,
         [FromQuery] Guid listingId,
         [FromQuery] Guid userId,
-        [FromServices] IPaymentService paymentService)
+        [FromServices] IPaymentServiceFactory paymentFactory)
     {
-        var isValid = await paymentService.VerifyPaymentCallbackAsync(token);
+        // Callback parametrelerini lügat (Dictionary) yapısına çeviriyoruz
+        var callbackData = Request.Form.ToDictionary(x => x.Key, x => x.Value.ToString());
+        
+        var paymentService = paymentFactory.GetPaymentService("TR");
+        var isValid = await paymentService.VerifyCallbackAsync(callbackData);
+        
         if (!isValid) return BadRequest("Payment verification failed");
 
         await _vitrinService.PurchaseVitrinAsync(listingId, packageId, userId);

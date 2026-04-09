@@ -135,7 +135,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Ana sayfa yüklendi.");
         try { vitrinListings = await ListingService.GetVitrinListingsAsync(); }
         catch { /* API henüz çalışmıyorsa sessizce geç */ }
     }

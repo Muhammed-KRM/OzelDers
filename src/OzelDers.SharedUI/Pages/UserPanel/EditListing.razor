@@ -29,6 +29,8 @@
         {
             <div class="form-container card">
                 <EditForm Model="model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger" />
                     <div class="form-section">
                         <h2>İlan Türü</h2>
                         <div class="info-badge">

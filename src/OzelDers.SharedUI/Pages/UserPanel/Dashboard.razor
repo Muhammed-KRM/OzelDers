@@ -158,7 +158,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kontrol Paneli yükleniyor. Veriler çekiliyor...");
         await LoadDashboardData();
     }
 
@@ -172,24 +171,20 @@
             userName = authState.User.Identity?.Name ?? "Kullanıcı";
 
             // Bakiye
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/tokens/balance");
             tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
 
             // İlanlar
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/listings/my");
             var mylistings = await ListingService.GetMyListingsAsync(Guid.Empty);
             recentListings = mylistings?.Take(3).ToList() ?? new List<ListingDto>();
             activeListingsCount = mylistings?.Count(l => l.Status.ToString().ToLower() == "active") ?? 0;
             
             // Mesajlar
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/messages/inbox");
             var inbox = await MessageService.GetInboxAsync(Guid.Empty);
             unreadMessagesCount = inbox?.Count(m => !m.IsUnlocked) ?? 0;
 
             averageRating = mylistings?.Select(l => l.AverageRating).DefaultIfEmpty(0).Average() ?? 0;
             totalReviews = mylistings?.Sum(l => l.ReviewCount) ?? 0;
             
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Kontrol Paneli verileri BAŞARIYLA yüklendi.");
 
             // Son aktiviteler - mock yerinde bırakıldı ancak UI'daki class silinip DTOya baglandi
             recentActivities = new List<UserActivityDto>
@@ -197,9 +192,9 @@
                 new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
             };
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Kontrol Paneli verileri alınamadı.", ex.Message);
+            // Prerendering sırasında JS çağırılamaz
         }
         finally
         {

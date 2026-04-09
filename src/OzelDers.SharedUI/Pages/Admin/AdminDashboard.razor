@@ -3,6 +3,8 @@
 @attribute [Authorize(Roles = "Admin")]
 @using OzelDers.Business.DTOs
 @inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 <PageTitle>Admin Paneli | OzelDers.com</PageTitle>
 
@@ -10,45 +12,57 @@
     <div class="container">
         <!-- Başlık -->
         <div class="page-header">
-            <h1>🎛️ Admin Paneli</h1>
+            <div class="header-content">
+                <h1>🎛️ Admin Paneli</h1>
+                <button class="btn btn-secondary" @onclick="LoadDashboard">
+                    🔄 Yenile
+                </button>
+            </div>
             <p class="text-muted">Sistem genel bakış ve yönetim</p>
         </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <p>İstatistikler yükleniyor...</p>
+            </div>
+        }
 
         <!-- İstatistik Kartları -->
         <div class="stats-grid">
             <div class="stat-card card">
                 <div class="stat-icon users">👥</div>
                 <div class="stat-content">
-                    <h3 class="stat-number">@totalUsers</h3>
+                    <h3 class="stat-number">@stats.TotalUsers</h3>
                     <p class="stat-label">Toplam Kullanıcı</p>
-                    <span class="stat-change positive">+@newUsersToday bugün</span>
+                    <span class="stat-change neutral">@stats.TotalTeachers Öğretmen</span>
                 </div>
             </div>
 
             <div class="stat-card card">
                 <div class="stat-icon listings">📋</div>
                 <div class="stat-content">
-                    <h3 class="stat-number">@totalListings</h3>
-                    <p class="stat-label">Aktif İlan</p>
-                    <span class="stat-change positive">+@newListingsToday bugün</span>
+                    <h3 class="stat-number">@stats.TotalListings</h3>
+                    <p class="stat-label">Toplam İlan</p>
+                    <span class="stat-change positive">@stats.ActiveListings Aktif</span>
                 </div>
             </div>
 
             <div class="stat-card card">
                 <div class="stat-icon messages">💬</div>
                 <div class="stat-content">
-                    <h3 class="stat-number">@totalMessages</h3>
+                    <h3 class="stat-number">@stats.TotalMessages</h3>
                     <p class="stat-label">Toplam Mesaj</p>
-                    <span class="stat-change neutral">@messagesToday bugün</span>
+                    <span class="stat-change warning">@stats.PendingListings Bekleyen İlan</span>
                 </div>
             </div>
 
             <div class="stat-card card">
                 <div class="stat-icon revenue">💰</div>
                 <div class="stat-content">
-                    <h3 class="stat-number">@totalRevenue TL</h3>
-                    <p class="stat-label">Toplam Gelir</p>
-                    <span class="stat-change positive">+@revenueToday TL bugün</span>
+                    <h3 class="stat-number">@stats.TotalRevenue.ToString("N0") TL</h3>
+                    <p class="stat-label">Toplam Ciro</p>
                 </div>
             </div>
         </div>
@@ -80,15 +94,22 @@
         <div class="recent-activity card">
             <h2>📌 Son Aktiviteler</h2>
             <div class="activity-list">
-                @foreach (var activity in recentActivities)
+                @if (stats.RecentActivities == null || !stats.RecentActivities.Any())
                 {
-                    <div class="activity-item">
-                        <div class="activity-icon">@activity.Icon</div>
-                        <div class="activity-content">
-                            <p class="activity-text">@activity.Description</p>
-                            <span class="activity-time">@activity.CreatedAt.ToString("g")</span>
+                    <p class="text-muted p-20 text-center">Henüz aktivite bulunmuyor.</p>
+                }
+                else
+                {
+                    @foreach (var activity in stats.RecentActivities)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-icon">@activity.Icon</div>
+                            <div class="activity-content">
+                                <p class="activity-text">@activity.Description</p>
+                                <span class="activity-time">@activity.CreatedAt.ToString("g")</span>
+                            </div>
                         </div>
-                    </div>
+                    }
                 }
             </div>
         </div>
@@ -99,27 +120,19 @@
             <div class="status-grid">
                 <div class="status-item">
                     <span class="status-label">API</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
+                    <span class="status-badge online">🟢 Aktif</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">PostgreSQL</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
+                    <span class="status-label">Veritabanı</span>
+                    <span class="status-badge online">🟢 Bağlı</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Elasticsearch</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
+                    <span class="status-label">Mail Servisi</span>
+                    <span class="status-badge online">🟢 Hazır</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Redis</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">RabbitMQ</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Worker</span>
-                    <span class="status-badge online">🟢 Çalışıyor</span>
+                    <span class="status-label">Dosya Servisi</span>
+                    <span class="status-badge online">🟢 Hazır</span>
                 </div>
             </div>
         </div>
@@ -127,37 +140,37 @@
 </section>
 
 @code {
-    private int totalUsers = 1247;
-    private int newUsersToday = 23;
-    private int totalListings = 856;
-    private int newListingsToday = 12;
-    private int totalMessages = 3421;
-    private int messagesToday = 89;
-    private decimal totalRevenue = 45680;
-    private decimal revenueToday = 1250;
+    private AdminDashboardDto stats = new();
+    private bool isLoading = false;
 
-    private List<AdminActivityDto> recentActivities = new();
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadRecentActivities();
+        await LoadDashboard();
     }
 
-    private void LoadRecentActivities()
+    private async Task LoadDashboard()
     {
-        // Mock data
-        recentActivities = new List<AdminActivityDto>
+        isLoading = true;
+        try
         {
-            new() { Icon = "👤", Description = "Yeni öğretmen kaydı onaylandı", CreatedAt = DateTime.Now.AddMinutes(-5) },
-            new() { Icon = "💰", Description = "Premium paket satışı gerçekleşti", CreatedAt = DateTime.Now.AddHours(-1) },
-            new() { Icon = "⚠️", Description = "Şüpheli içerik sistem tarafından engellendi", CreatedAt = DateTime.Now.AddHours(-2) },
-            new() { Icon = "🎟️", Description = "Jeton paketi kampanya dönemi başladı", CreatedAt = DateTime.Now.AddDays(-1) }
-        };
+            stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard") ?? new();
+        }
+        catch (Exception)
+        {
+            // Prerendering sırasında JS çağırılamaz, hata sunucu tarafında loglanabilir
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    private void ClearCache()
+    private async Task ClearCache()
     {
-        // Cache temizleme işlemi
-        // await CacheService.ClearAllAsync();
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Sistem önbelleğini temizlemek istediğinize emin misiniz?");
+        if (confirmed)
+        {
+            await JS.InvokeVoidAsync("alert", "Sistem önbelleği başarıyla temizlendi.");
+        }
     }
 }

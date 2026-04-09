@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewService, ReviewManager>();
         services.AddScoped<IVitrinService, VitrinManager>();
         services.AddScoped<IUserService, UserManager>();
+        services.AddScoped<IAdminService, AdminManager>();
         services.AddScoped<IEmailService, OzelDers.Business.Infrastructure.Email.SmtpEmailService>();
 
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
@@ -29,10 +30,12 @@ public static class DependencyInjection
         // Adım 3.3: Redis
         services.AddSingleton<ICacheService, OzelDers.Business.Infrastructure.Cache.RedisCacheService>();
 
-        // Adım 4.4: Payment Provider
-        services.AddScoped<IPaymentService, OzelDers.Business.Infrastructure.Payment.FakePaymentService>();
+        // Ödeme Sistemi — Strategy + Factory Pattern (PayTR yurt içi, Stripe yurt dışı)
+        services.AddScoped<IPaymentService, OzelDers.Business.Infrastructure.Payment.PayTRPaymentService>();
+        services.AddScoped<IPaymentService, OzelDers.Business.Infrastructure.Payment.StripePaymentService>();
+        services.AddScoped<IPaymentServiceFactory, OzelDers.Business.Infrastructure.Payment.PaymentServiceFactory>();
 
-        // Adım 6.3: Dosya Yükleme
+        // Dosya Yükleme (Local → ileride Azure Blob'a geçilebilir)
         services.AddScoped<IFileStorageService, OzelDers.Business.Infrastructure.Storage.LocalFileStorageService>();
 
         // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)

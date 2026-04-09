@@ -147,7 +147,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Mesajlarım sayfası yüklendi. Gelen kutusu çekiliyor...");
         await LoadMessages();
         await LoadTokenBalance();
     }
@@ -156,13 +155,11 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/messages/inbox");
             messages = await MessageService.GetInboxAsync(Guid.Empty);
-            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] BAŞARILI: {messages?.Count ?? 0} adet mesaj çekildi.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Mesajlar çekilemedi.", ex.Message);
+            // Prerendering sırasında JS çağırılamaz
         }
         finally
         {
@@ -174,12 +171,10 @@
     {
         try
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği: /api/tokens/balance");
             tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: Bakiye alınamadı.", ex.Message);
             tokenBalance = 0;
         }
     }

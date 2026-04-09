@@ -138,7 +138,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] İlanlarım sayfası yüklendi, ilanlar getiriliyor...");
         await LoadListings();
     }
 
@@ -147,14 +146,12 @@
         isLoading = true;
         try
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] API isteği atılıyor: /api/listings/my");
             listings = await ListingService.GetMyListingsAsync(Guid.Empty);
-            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] BAŞARILI: {listings?.Count ?? 0} adet ilan çekildi.");
             FilterListings();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlanlar çekilemedi.", ex.Message);
+            // Prerendering sırasında JS çağırılamaz
         }
         finally
         {
