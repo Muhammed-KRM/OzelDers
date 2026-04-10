@@ -1,0 +1,89 @@
+using System;
+using System.Threading.Tasks;
+using FluentAssertions;
+using FluentValidation;
+using FluentValidation.Results;
+using MassTransit;
+using Moq;
+using OzelDers.Business.DTOs;
+using OzelDers.Business.Exceptions;
+using OzelDers.Business.Services;
+using OzelDers.Data.Entities;
+using OzelDers.Data.Repositories;
+using Xunit;
+
+namespace OzelDers.UnitTests.Business.Services;
+
+public class ListingManagerTests
+{
+    private readonly Mock<IListingRepository> _listingRepoMock;
+    private readonly Mock<IRepository<Branch>> _branchRepoMock;
+    private readonly Mock<IRepository<District>> _districtRepoMock;
+    private readonly Mock<IValidator<ListingCreateDto>> _validatorMock;
+    private readonly Mock<IPublishEndpoint> _publishEndpointMock;
+    private readonly ListingManager _listingManager;
+
+    public ListingManagerTests()
+    {
+        _listingRepoMock = new Mock<IListingRepository>();
+        _branchRepoMock = new Mock<IRepository<Branch>>();
+        _districtRepoMock = new Mock<IRepository<District>>();
+        _validatorMock = new Mock<IValidator<ListingCreateDto>>();
+        _publishEndpointMock = new Mock<IPublishEndpoint>();
+
+        _listingManager = new ListingManager(
+            _listingRepoMock.Object,
+            _branchRepoMock.Object,
+            _districtRepoMock.Object,
+            _validatorMock.Object,
+            _publishEndpointMock.Object);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithInvalidData_ThrowsBusinessException()
+    {
+        // Arrange
+        var dto = new ListingCreateDto { Title = "" };
+        var validationResult = new FluentValidation.Results.ValidationResult(new[] { new ValidationFailure("Title", "Başlık zorunludur.") });
+        _validatorMock.Setup(v => v.ValidateAsync(dto, default)).ReturnsAsync(validationResult);
+
+        // Act
+        Func<Task> act = async () => await _listingManager.CreateAsync(dto, Guid.NewGuid());
+
+        // Assert
+        await act.Should().ThrowAsync<BusinessException>().WithMessage("*Başlık zorunludur.*");
+        _listingRepoMock.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithValidData_ReturnsListingDto()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var dto = new ListingCreateDto 
+        { 
+            Title = "Matematik Dersi", 
+            Description = "Açıklama alanı", 
+            BranchId = 1, 
+            DistrictId = 1, 
+            HourlyPrice = 500,
+            Type = OzelDers.Data.Enums.ListingType.TeacherOffering
+        };
+
+        _validatorMock.Setup(v => v.ValidateAsync(dto, default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _listingRepoMock.Setup(r => r.AddAsync(It.IsAny<Listing>())).ReturnsAsync((Listing l) => l);
+        _listingRepoMock.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
+
+        // Act
+        var result = await _listingManager.CreateAsync(dto, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Title.Should().Be("Matematik Dersi");
+        // Slug generation is tested here intrinsically
+        result.Slug.Should().Be("matematik-dersi"); 
+        
+        _listingRepoMock.Verify(r => r.AddAsync(It.Is<Listing>(l => l.OwnerId == userId && l.Title == dto.Title)), Times.Once);
+        _listingRepoMock.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+}
