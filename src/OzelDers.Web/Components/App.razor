@@ -14,11 +14,14 @@
     <link rel="stylesheet" href="_content/OzelDers.SharedUI/css/app.css" />
     <link rel="stylesheet" href="OzelDers.Web.styles.css" />
     
-    <HeadOutlet @rendermode="InteractiveServer" />
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 <body>
-    <OzelDers.SharedUI.Routes @rendermode="InteractiveServer" />
+    <OzelDers.SharedUI.Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
     
     <script src="_framework/blazor.web.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="_content/OzelDers.SharedUI/js/interop.js"></script></body>
 </html>

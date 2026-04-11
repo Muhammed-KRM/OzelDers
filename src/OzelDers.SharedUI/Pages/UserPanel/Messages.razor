@@ -1,141 +1,154 @@
 @page "/panel/mesajlarim"
-@attribute [Authorize]
 @inject IMessageService MessageService
 @inject ITokenService TokenService
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
 <PageTitle>Mesajlarım | OzelDers.com</PageTitle>
 
-<section class="section messages-page">
-    <div class="container">
-        <div class="page-header">
-            <div class="header-content">
-                <h1>Mesajlarım</h1>
-                <div class="token-badge">
-                    <span class="token-icon">🪙</span>
-                    <span class="token-count">@tokenBalance Jeton</span>
+<AuthorizeView>
+    <Authorized>
+        <section class="section messages-page">
+            <div class="container">
+                <div class="page-header">
+                    <div class="header-content">
+                        <h1>Mesajlarım</h1>
+                        <div class="token-badge">
+                            <span class="token-icon">🪙</span>
+                            <span class="token-count">@tokenBalance Jeton</span>
+                        </div>
+                    </div>
+                    <p class="text-muted">İlanlarınıza gelen mesajları görüntüleyin ve yanıtlayın</p>
                 </div>
-            </div>
-            <p class="text-muted">İlanlarınıza gelen mesajları görüntüleyin ve yanıtlayın</p>
-        </div>
 
-        @if (isLoading)
-        {
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Mesajlar yükleniyor...</p>
-            </div>
-        }
-        else if (!messages.Any())
-        {
-            <div class="empty-state card">
-                <div class="empty-icon">📭</div>
-                <h3>Henüz mesajınız yok</h3>
-                <p>İlanlarınıza gelen mesajlar burada görünecek</p>
-            </div>
-        }
-        else
-        {
-            <div class="messages-grid">
-                @foreach (var msg in messages)
+                @if (isLoading)
                 {
-                    <div class="message-card card @(msg.IsUnlocked || msg.IsInitiatedWithToken ? "" : "locked")">
-                        <!-- Mesaj Başlığı -->
-                        <div class="message-header">
-                            <div class="sender-info">
-                                <div class="avatar">@msg.SenderName[0]</div>
-                                <div class="sender-details">
-                                    <strong class="sender-name">@msg.SenderName</strong>
-                                    <span class="message-date">@msg.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
-                                </div>
-                            </div>
-                            @if (msg.IsInitiatedWithToken)
-                            {
-                                <span class="badge badge-special">Sana Özel Teklif 🌟</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-normal">İlanına Gelen Mesaj</span>
-                            }
-                        </div>
-
-                        <!-- İlan Bilgisi -->
-                        <div class="listing-info">
-                            <span class="listing-label">İlan:</span>
-                            <span class="listing-title">@msg.ListingTitle</span>
-                        </div>
-
-                        <!-- Mesaj İçeriği -->
-                        <div class="message-content">
-                            @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
-                            {
-                                <p class="content-text">@msg.Content</p>
-                            }
-                            else
-                            {
-                                <div class="locked-content">
-                                    <div class="blur-overlay">
-                                        <p class="blurred-text">Bu mesajın içeriğini görmek için kilidi açmalısınız...</p>
-                                    </div>
-                                    <div class="unlock-prompt">
-                                        <span class="lock-icon">🔒</span>
-                                        <p class="unlock-text">Bu mesajı açmak için 1 jeton gerekiyor</p>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-
-                        <!-- Aksiyon Butonları -->
-                        <div class="message-actions">
-                            @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
-                            {
-                                <button class="btn btn-primary" @onclick="() => ShowReplyForm(msg.Id)">
-                                    ✉️ Yanıtla
-                                </button>
-                            }
-                            else
-                            {
-                                <button class="btn btn-unlock" @onclick="() => UnlockMessage(msg.Id)" disabled="@(tokenBalance < 1)">
-                                    🔓 1 Jeton ile Aç
-                                </button>
-                                @if (tokenBalance < 1)
-                                {
-                                    <a href="/panel/jetonlarim" class="link-buy-tokens">Jeton Satın Al →</a>
-                                }
-                            }
-                        </div>
-
-                        <!-- Yanıt Formu -->
-                        @if (replyingToMessageId == msg.Id)
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Mesajlar yükleniyor...</p>
+                    </div>
+                }
+                else if (!messages.Any())
+                {
+                    <div class="empty-state card">
+                        <div class="empty-icon">📭</div>
+                        <h3>Henüz mesajınız yok</h3>
+                        <p>İlanlarınıza gelen mesajlar burada görünecek</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="messages-grid">
+                        @foreach (var msg in messages)
                         {
-                            <div class="reply-form">
-                                <textarea @bind="replyText" class="form-textarea" rows="4" 
-                                          placeholder="Yanıtınızı yazın..." maxlength="500"></textarea>
-                                <div class="reply-form-actions">
-                                    <button class="btn btn-secondary" @onclick="CancelReply">İptal</button>
-                                    <button class="btn btn-primary" @onclick="SendReply" disabled="@isSendingReply">
-                                        @(isSendingReply ? "Gönderiliyor..." : "Gönder")
-                                    </button>
+                            <div class="message-card card @(msg.IsUnlocked || msg.IsInitiatedWithToken ? "" : "locked")">
+                                <!-- Mesaj Başlığı -->
+                                <div class="message-header">
+                                    <div class="sender-info">
+                                        <div class="avatar">@msg.SenderName[0]</div>
+                                        <div class="sender-details">
+                                            <strong class="sender-name">@msg.SenderName</strong>
+                                            <span class="message-date">@msg.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
+                                        </div>
+                                    </div>
+                                    @if (msg.IsInitiatedWithToken)
+                                    {
+                                        <span class="badge badge-special">Sana Özel Teklif 🌟</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-normal">İlanına Gelen Mesaj</span>
+                                    }
                                 </div>
+
+                                <!-- İlan Bilgisi -->
+                                <div class="listing-info">
+                                    <span class="listing-label">İlan:</span>
+                                    <span class="listing-title">@msg.ListingTitle</span>
+                                </div>
+
+                                <!-- Mesaj İçeriği -->
+                                <div class="message-content">
+                                    @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
+                                    {
+                                        <p class="content-text">@msg.Content</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="locked-content">
+                                            <div class="blur-overlay">
+                                                <p class="blurred-text">Bu mesajın içeriğini görmek için kilidi açmalısınız...</p>
+                                            </div>
+                                            <div class="unlock-prompt">
+                                                <span class="lock-icon">🔒</span>
+                                                <p class="unlock-text">Bu mesajı açmak için 1 jeton gerekiyor</p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Aksiyon Butonları -->
+                                <div class="message-actions">
+                                    @if (msg.IsUnlocked || msg.IsInitiatedWithToken)
+                                    {
+                                        <button class="btn btn-primary" @onclick="() => ShowReplyForm(msg.Id)">
+                                            ✉️ Yanıtla
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-unlock" @onclick="() => UnlockMessage(msg.Id)" disabled="@(tokenBalance < 1)">
+                                            🔓 1 Jeton ile Aç
+                                        </button>
+                                        @if (tokenBalance < 1)
+                                        {
+                                            <a href="/panel/jetonlarim" class="link-buy-tokens">Jeton Satın Al →</a>
+                                        }
+                                    }
+                                </div>
+
+                                <!-- Yanıt Formu -->
+                                @if (replyingToMessageId == msg.Id)
+                                {
+                                    <div class="reply-form">
+                                        <textarea @bind="replyText" class="form-textarea" rows="4" 
+                                                  placeholder="Yanıtınızı yazın..." maxlength="500"></textarea>
+                                        <div class="reply-form-actions">
+                                            <button class="btn btn-secondary" @onclick="CancelReply">İptal</button>
+                                            <button class="btn btn-primary" @onclick="SendReply" disabled="@isSendingReply">
+                                                @(isSendingReply ? "Gönderiliyor..." : "Gönder")
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         }
                     </div>
                 }
-            </div>
-        }
 
-        <!-- Bilgilendirme -->
-        <div class="info-panel card">
-            <h3>💡 Mesajlaşma Nasıl Çalışır?</h3>
-            <ul>
-                <li><strong>İlan Üzerinden Gelen Mesajlar:</strong> İlk mesajı açmak için 1 jeton harcarsınız. Açtıktan sonra sohbet ücretsizdir.</li>
-                <li><strong>Sana Özel Teklifler:</strong> Karşı taraf zaten jeton harcamıştır, mesaj açıktır ve ücretsiz yanıtlayabilirsiniz.</li>
-                <li><strong>Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
-            </ul>
+                <!-- Bilgilendirme -->
+                <div class="info-panel card">
+                    <h3>💡 Mesajlaşma Nasıl Çalışır?</h3>
+                    <ul>
+                        <li><strong>İlan Üzerinden Gelen Mesajlar:</strong> İlk mesajı açmak için 1 jeton harcarsınız. Açtıktan sonra sohbet ücretsizdir.</li>
+                        <li><strong>Sana Özel Teklifler:</strong> Karşı taraf zaten jeton harcamıştır, mesaj açıktır ve ücretsiz yanıtlayabilirsiniz.</li>
+                        <li><strong>Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center flex-center py-20" style="min-height: 50vh;">
+            <div class="card glass" style="max-width: 500px; margin: 0 auto; padding: 3rem;">
+                <h3 style="color: var(--color-secondary); margin-bottom: 1rem;">Lütfen Bekleyin veya Giriş Yapın</h3>
+                <p class="text-muted mb-8">Güvenlik kontrolü sağlanıyor. Lütfen giriş yaptığınızı doğrulayın.</p>
+                <a href="/giris" class="btn btn-primary" style="width: 100%;">Giriş Yap Sayfasına Git</a>
+            </div>
         </div>
-    </div>
-</section>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private List<MessageDto> messages = new();

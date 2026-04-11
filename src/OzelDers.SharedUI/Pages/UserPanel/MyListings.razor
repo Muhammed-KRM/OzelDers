@@ -1,133 +1,154 @@
 @page "/panel/ilanlarim"
-@attribute [Authorize]
+@using System.Net.Http
 @inject IListingService ListingService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>İlanlarım | OzelDers.com</PageTitle>
 
-<section class="section my-listings-page">
-    <div class="container">
-        <div class="page-header">
-            <div>
-                <h1>İlanlarım</h1>
-                <p class="text-muted">Tüm ilanlarınızı buradan yönetebilirsiniz</p>
-            </div>
-            <a href="/panel/ilan-olustur" class="btn btn-primary">
-                ➕ Yeni İlan Oluştur
-            </a>
-        </div>
+<AuthorizeView>
+    <Authorized>
+        <section class="section my-listings-page">
+            <div class="container">
+                <div class="page-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1>İlanlarım</h1>
+                        <p class="text-muted">Tüm ilanlarınızı buradan yönetebilirsiniz</p>
+                    </div>
+                    <a href="/panel/ilan-olustur" class="btn btn-primary">
+                        <span class="btn-icon">➕</span> Yeni İlan
+                    </a>
+                </div>
 
-        <!-- Filtreler -->
-        <div class="filters-bar card">
-            <div class="filter-group">
-                <label>Durum:</label>
-                <select @bind="statusFilter" @bind:after="FilterListings" class="filter-select">
-                    <option value="all">Tümü</option>
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Pasif</option>
-                    <option value="pending">Onay Bekliyor</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Sıralama:</label>
-                <select @bind="sortBy" @bind:after="FilterListings" class="filter-select">
-                    <option value="newest">En Yeni</option>
-                    <option value="oldest">En Eski</option>
-                    <option value="price-high">Fiyat (Yüksek)</option>
-                    <option value="price-low">Fiyat (Düşük)</option>
-                </select>
-            </div>
-        </div>
+                <!-- Filtreler -->
+                <div class="filters-bar card mb-6">
+                    <div class="filter-group">
+                        <label>Durum:</label>
+                        <select @bind="statusFilter" @bind:after="FilterListings" class="filter-select">
+                            <option value="all">Tümü</option>
+                            <option value="active">Aktif</option>
+                            <option value="inactive">Pasif</option>
+                            <option value="pending">Onay Bekliyor</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sıralama:</label>
+                        <select @bind="sortBy" @bind:after="FilterListings" class="filter-select">
+                            <option value="newest">En Yeni</option>
+                            <option value="oldest">En Eski</option>
+                            <option value="price-high">Fiyat (Yüksek)</option>
+                            <option value="price-low">Fiyat (Düşük)</option>
+                        </select>
+                    </div>
+                </div>
 
-        @if (isLoading)
-        {
-            <div class="listings-grid">
-                @for (int i = 0; i < 4; i++)
+                @if (isLoading)
                 {
-                    <div class="skeleton" style="height: 200px;"></div>
-                }
-            </div>
-        }
-        else if (filteredListings?.Any() == true)
-        {
-            <div class="listings-grid">
-                @foreach (var listing in filteredListings)
-                {
-                    <div class="listing-card card">
-                        @if (listing.IsVitrin)
+                    <div class="grid grid-3">
+                        @for (int i = 0; i < 3; i++)
                         {
-                            <span class="badge badge-vitrin">⭐ Vitrin</span>
+                            <div class="skeleton" style="height: 250px;"></div>
                         }
-                        
-                        <div class="listing-status">
-                            <span class="status-badge status-@listing.Status.ToString().ToLower()">
-                                @GetStatusText(listing.Status)
-                            </span>
-                        </div>
+                    </div>
+                }
+                else if (filteredListings == null || !filteredListings.Any())
+                {
+                    <div class="empty-state card">
+                        <div class="empty-icon">📝</div>
+                        <h3>İlan bulunamadı</h3>
+                        <p class="text-muted">Seçtiğiniz kriterlere uygun ilanınız bulunmuyor veya henüz hiç ilan oluşturmadınız.</p>
+                        <a href="/panel/ilan-olustur" class="btn btn-primary mt-4">İlk İlanını Oluştur</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="listings-grid">
+                        @foreach (var listing in filteredListings)
+                        {
+                            <div class="listing-card card @(listing.Status.ToString().ToLower() == "active" ? "" : "inactive")">
+                                <div class="listing-header">
+                                    <div class="listing-status @listing.Status.ToString().ToLower()">
+                                        @GetStatusText(listing.Status)
+                                    </div>
+                                    @if (listing.IsVitrin)
+                                    {
+                                        <div class="badge badge-vitrin" title="Vitrin İlanı">⭐ Vitrin</div>
+                                    }
+                                </div>
 
-                        <h3>@listing.Title</h3>
-                        
-                        <div class="listing-details">
-                            <div class="detail-item">
-                                <span class="detail-icon">🎓</span>
-                                <span>@listing.BranchName</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">📍</span>
-                                <span>@listing.CityName</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">💰</span>
-                                <span>@listing.HourlyPrice TL/saat</span>
-                            </div>
-                        </div>
+                                <div class="listing-content">
+                                    <h3 class="listing-title">@listing.Title</h3>
+                                    <div class="listing-details">
+                                        <div class="detail-item">
+                                            <span class="detail-icon">📚</span>
+                                            <span>@listing.BranchName</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-icon">💰</span>
+                                            <span>@listing.HourlyPrice TL/saat</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-icon">👥</span>
+                                            <span>@GetLessonTypeText(listing.LessonType)</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-icon">📍</span>
+                                            <span>@listing.CityName, @listing.DistrictName</span>
+                                        </div>
+                                    </div>
 
-                        <div class="listing-stats">
-                            <div class="stat-item">
-                                <span class="stat-value">@listing.ReviewCount</span>
-                                <span class="stat-label">Yorum</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value">@listing.AverageRating.ToString("F1")</span>
-                                <span class="stat-label">Puan</span>
-                            </div>
-                        </div>
+                                    <div class="listing-stats">
+                                        <div class="stat">
+                                            <span class="stat-value">@listing.ReviewCount</span>
+                                            <span class="stat-label">Yorum</span>
+                                        </div>
+                                        <div class="stat">
+                                            <span class="stat-value">⭐ @listing.AverageRating.ToString("F1")</span>
+                                            <span class="stat-label">Puan</span>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div class="listing-actions">
-                            <a href="/ilan/@listing.Slug" class="btn btn-secondary btn-sm" target="_blank">
-                                👁️ Görüntüle
-                            </a>
-                            <a href="/panel/ilan-duzenle/@listing.Id" class="btn btn-secondary btn-sm">
-                                ✏️ Düzenle
-                            </a>
-                            @if (!listing.IsVitrin)
-                            {
-                                <button class="btn btn-accent btn-sm" @onclick="() => PromoteListing(listing.Id)">
-                                    ⭐ Vitrine Çıkar
-                                </button>
-                            }
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteListing(listing.Id)">
-                                🗑️ Sil
-                            </button>
-                        </div>
+                                <div class="listing-actions">
+                                    <div class="action-group primary-actions">
+                                        <a href="/panel/ilan-duzenle/@listing.Id" class="btn btn-secondary btn-sm" title="Düzenle">
+                                            ✏️ Düzenle
+                                        </a>
+                                        <a href="/ilan/@listing.Slug" class="btn btn-secondary btn-sm" title="Görüntüle" target="_blank">
+                                            👁️ Gör
+                                        </a>
+                                    </div>
+                                    
+                                    <div class="action-group secondary-actions">
+                                        @if (!listing.IsVitrin && listing.Status == ListingStatus.Active)
+                                        {
+                                            <button class="btn btn-warning btn-sm" @onclick="() => PromoteListing(listing.Id)" title="Vitrini Al">
+                                                ⭐ Vitrin Yap
+                                            </button>
+                                        }
+                                        <button class="btn btn-danger btn-sm btn-icon-only" @onclick="() => DeleteListing(listing.Id)" title="Sil">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             </div>
-        }
-        else
-        {
-            <div class="empty-state card">
-                <div class="empty-icon">📋</div>
-                <h3>Henüz İlan Oluşturmadınız</h3>
-                <p class="text-muted">İlk ilanınızı oluşturarak öğrencilere ulaşmaya başlayın!</p>
-                <a href="/panel/ilan-olustur" class="btn btn-primary">
-                    ➕ İlk İlanımı Oluştur
-                </a>
+        </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center flex-center py-20" style="min-height: 50vh;">
+            <div class="card glass" style="max-width: 500px; margin: 0 auto; padding: 3rem;">
+                <h3 style="color: var(--color-secondary); margin-bottom: 1rem;">Lütfen Bekleyin veya Giriş Yapın</h3>
+                <p class="text-muted mb-8">Güvenlik kontrolü sağlanıyor. Lütfen giriş yaptığınızı doğrulayın.</p>
+                <a href="/giris" class="btn btn-primary" style="width: 100%;">Giriş Yap Sayfasına Git</a>
             </div>
-        }
-    </div>
-</section>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private List<ListingDto>? listings;
@@ -149,9 +170,23 @@
             listings = await ListingService.GetMyListingsAsync(Guid.Empty);
             FilterListings();
         }
-        catch (Exception)
+        catch (HttpRequestException ex)
         {
-            // Prerendering sırasında JS çağırılamaz
+            await JS.InvokeVoidAsync("console.error", "[OzelDers] İlanlar yüklenemedi:", ex.Message);
+            try
+            {
+                await JS.InvokeVoidAsync("ozelders.showSwal", "error", "Veri Yükleme Hatası", "API bağlantısı kurulamadı. Sayfayı yenilemeyi deneyin.", 0);
+            }
+            catch { /* Prerendering sırasında JS çağırılamaz */ }
+        }
+        catch (Exception ex)
+        {
+            // Prerendering sırasında JS çağırılamaz, sessizce geç
+            try
+            {
+                await JS.InvokeVoidAsync("console.error", "[OzelDers] İlanlar yüklenirken hata:", ex.Message);
+            }
+            catch { }
         }
         finally
         {
@@ -200,6 +235,17 @@
         };
     }
 
+    private string GetLessonTypeText(LessonType type)
+    {
+        return type switch
+        {
+            LessonType.FaceToFace => "Yüz Yüze",
+            LessonType.Online => "Online",
+            LessonType.Both => "Hibrit",
+            _ => "Belirtilmemiş"
+        };
+    }
+
     private async Task PromoteListing(Guid listingId)
     {
         // Vitrin satın alma sayfasına yönlendir
@@ -208,20 +254,20 @@
 
     private async Task DeleteListing(Guid listingId)
     {
-        // Onay dialogu göster ve sil
-        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Bu ilanı silmek istediğinize emin misiniz?");
+        var confirmed = await JS.InvokeAsync<bool>("ozelders.showConfirm", "İlanı Sil", "Bu ilanı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.", "Evet, Sil", "İptal");
         if (confirmed)
         {
             try
             {
                 await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] İlan siliniyor: {listingId}");
                 await ListingService.DeleteAsync(listingId, Guid.Empty);
-                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] BAŞARILI: İlan silindi.");
-                await LoadListings(); // Yeniden yükle
+                await JS.InvokeVoidAsync("ozelders.showSwal", "success", "Silindi!", "İlan başarıyla silindi.", 2000);
+                await LoadListings();
             }
             catch (Exception ex)
             {
-                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] HATA: İlan silinemedi.", ex.Message);
+                await JS.InvokeVoidAsync("ozelders.showSwal", "error", "Silinemedi", ex.Message, 0);
+                await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA: İlan silinemedi.", ex.Message);
             }
         }
     }

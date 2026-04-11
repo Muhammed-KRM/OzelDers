@@ -126,3 +126,68 @@
     50% { transform: translateY(-10px); }
     100% { transform: translateY(0px); }
 }
+
+/* ===========================
+   Responsive Navbar & Mobile Menu (UI Philosophy)
+   =========================== */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    padding: var(--space-2);
+}
+
+.mobile-only-text {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .navbar {
+        position: relative;
+    }
+
+    .navbar-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--color-glass-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: var(--shadow-glass);
+        padding: var(--space-4);
+        gap: var(--space-4);
+        z-index: 1000;
+    }
+
+    .navbar-links.open {
+        display: flex;
+    }
+
+    .navbar-links .nav-link {
+        width: 100%;
+        text-align: center;
+        padding: var(--space-3) 0;
+        font-size: 1.1rem;
+    }
+
+    .navbar-links .btn {
+        width: 100%;
+    }
+
+    .mobile-only-text {
+        display: inline;
+        margin-left: 8px;
+    }
+}

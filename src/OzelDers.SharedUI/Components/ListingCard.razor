@@ -14,7 +14,7 @@
             }
             else
             {
-                <span class="avatar-placeholder">@Listing.OwnerName[..1]</span>
+                <span class="avatar-placeholder">@(string.IsNullOrEmpty(Listing.OwnerName) ? "U" : Listing.OwnerName[..1].ToUpper())</span>
             }
         </div>
         <div class="owner-info">

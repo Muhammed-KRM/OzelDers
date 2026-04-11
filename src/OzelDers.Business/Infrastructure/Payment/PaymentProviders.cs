@@ -31,31 +31,25 @@ public class PayTRPaymentService : IPaymentService
         return Task.FromResult(new PaymentResult
         {
             Success = true,
-            TransactionId = $"PAYTR-STUB-{Guid.NewGuid():N}",
-            RedirectUrl = null,
+            TransactionId = $"STUB-{Guid.NewGuid():N}",
+            RedirectUrl = $"/fake-payment?returnUrl={System.Net.WebUtility.UrlEncode(request.ReturnUrl)}",
             ErrorMessage = null
         });
     }
 
     public Task<bool> VerifyCallbackAsync(Dictionary<string, string> callbackData)
     {
-        _logger.LogInformation("[PayTR] Callback doğrulanıyor...");
-        // TODO: PayTR callback hash doğrulaması
+        _logger.LogInformation("Webhook doğrulanıyor...");
         return Task.FromResult(true);
     }
 
     public Task<bool> RefundAsync(string transactionId, decimal amount)
     {
-        _logger.LogInformation("[PayTR] İade işlemi: {TransactionId}, Tutar: {Amount}", transactionId, amount);
-        // TODO: PayTR iade API'si
+        _logger.LogInformation("İade işlemi: {TransactionId}, Tutar: {Amount}", transactionId, amount);
         return Task.FromResult(true);
     }
 }
 
-/// <summary>
-/// Stripe Stub: Yurt dışı ödemeler için Stripe sağlayıcısı.
-/// Stripe hesabınız hazır olduğunda bu sınıfın içini gerçek API çağrılarıyla dolduracaksınız.
-/// </summary>
 public class StripePaymentService : IPaymentService
 {
     private readonly ILogger<StripePaymentService> _logger;
@@ -69,33 +63,22 @@ public class StripePaymentService : IPaymentService
 
     public Task<PaymentResult> ProcessPaymentAsync(PaymentRequest request)
     {
-        _logger.LogInformation("[Stripe] Ödeme başlatılıyor: {Amount} {Currency} - Kullanıcı: {UserId}",
-            request.Amount, request.Currency, request.UserId);
-
-        // TODO: Stripe.NET SDK entegrasyonu
-        // StripeConfiguration.ApiKey = ...
-        // var session = await new SessionService().CreateAsync(...)
-
         return Task.FromResult(new PaymentResult
         {
             Success = true,
             TransactionId = $"STRIPE-STUB-{Guid.NewGuid():N}",
-            RedirectUrl = null,
+            RedirectUrl = $"/fake-payment?returnUrl={System.Net.WebUtility.UrlEncode(request.ReturnUrl)}",
             ErrorMessage = null
         });
     }
 
     public Task<bool> VerifyCallbackAsync(Dictionary<string, string> callbackData)
     {
-        _logger.LogInformation("[Stripe] Webhook doğrulanıyor...");
-        // TODO: Stripe webhook signature doğrulaması
         return Task.FromResult(true);
     }
 
     public Task<bool> RefundAsync(string transactionId, decimal amount)
     {
-        _logger.LogInformation("[Stripe] İade işlemi: {TransactionId}, Tutar: {Amount}", transactionId, amount);
-        // TODO: Stripe Refund API
         return Task.FromResult(true);
     }
 }

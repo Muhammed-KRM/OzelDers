@@ -1,137 +1,151 @@
 @page "/panel/jetonlarim"
-@attribute [Authorize]
+@using System.Net.Http.Json
 @using OzelDers.Business.DTOs
 @using OzelDers.Business.Interfaces
 @inject ITokenService TokenService
-@* @inject IPaymentService PaymentService *@
+@inject HttpClient Http
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>Jeton Cüzdanım | OzelDers.com</PageTitle>
 
-<section class="section wallet-page">
-    <div class="container">
-        <!-- Bakiye Hero -->
-        <div class="balance-hero card">
-            <div class="balance-content">
-                <h1>Jeton Bakiyeniz</h1>
-                <div class="balance-display">
-                    <span class="balance-icon">🪙</span>
-                    <span class="balance-number">@currentBalance</span>
-                    <span class="balance-label">Jeton</span>
+<AuthorizeView>
+    <Authorized>
+        <section class="section wallet-page">
+            <div class="container">
+                <!-- Bakiye Hero -->
+                <div class="balance-hero card">
+                    <div class="balance-content">
+                        <h1>Jeton Bakiyeniz</h1>
+                        <div class="balance-display">
+                            <span class="balance-icon">🪙</span>
+                            <span class="balance-number">@currentBalance</span>
+                            <span class="balance-label">Jeton</span>
+                        </div>
+                        <p class="balance-hint">Her jeton ile bir mesaj kutusunun kilidini açabilirsiniz</p>
+                    </div>
                 </div>
-                <p class="balance-hint">Her jeton ile bir mesaj kutusunun kilidini açabilirsiniz</p>
-            </div>
-        </div>
 
-        <!-- Jeton Paketleri -->
-        <div class="section-header">
-            <h2>Jeton Paketleri</h2>
-            <p class="text-muted">İhtiyacınıza uygun paketi seçin</p>
-        </div>
+                <!-- Jeton Paketleri -->
+                <div class="section-header">
+                    <h2>Jeton Paketleri</h2>
+                    <p class="text-muted">İhtiyacınıza uygun paketi seçin</p>
+                </div>
 
-        <div class="packages-grid">
-            @foreach (var package in packages)
-            {
-                <div class="package-card card @(package.IsPopular ? "popular" : "")">
-                    @if (package.IsPopular)
+                <div class="packages-grid">
+                    @foreach (var package in packages)
                     {
-                        <div class="popular-badge">⭐ En Çok Tercih Edilen</div>
+                        <div class="package-card card @(package.IsPopular ? "popular" : "")">
+                            @if (package.IsPopular)
+                            {
+                                <div class="popular-badge">⭐ En Çok Tercih Edilen</div>
+                            }
+                            
+                            <div class="package-header">
+                                <h3 class="package-name">@package.Name</h3>
+                                <div class="package-icon">@package.Icon</div>
+                            </div>
+
+                            <div class="package-details">
+                                <div class="token-amount">
+                                    <span class="token-number">@package.TokenCount</span>
+                                    <span class="token-text">Jeton</span>
+                                </div>
+
+                                <div class="price-info">
+                                    <span class="price-amount">@package.Price TL</span>
+                                    <span class="unit-price">(@((package.Price / (decimal)package.TokenCount).ToString("F2")) TL/jeton)</span>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(package.Badge))
+                                {
+                                    <div class="package-badge">@package.Badge</div>
+                                }
+                            </div>
+
+                            <button class="btn btn-primary" @onclick="() => PurchasePackage(package.Id)" disabled="@isPurchasing">
+                                @if (isPurchasing && selectedPackageId == package.Id)
+                                {
+                                    <span>İşleniyor...</span>
+                                }
+                                else
+                                {
+                                    <span>Satın Al</span>
+                                }
+                            </button>
+                        </div>
                     }
-                    
-                    <div class="package-header">
-                        <h3 class="package-name">@package.Name</h3>
-                        <div class="package-icon">@package.Icon</div>
-                    </div>
-
-                    <div class="package-details">
-                        <div class="token-amount">
-                            <span class="token-number">@package.TokenCount</span>
-                            <span class="token-text">Jeton</span>
-                        </div>
-
-                        <div class="price-info">
-                            <span class="price-amount">@package.Price TL</span>
-                            <span class="unit-price">(@((package.Price / (decimal)package.TokenCount).ToString("F2")) TL/jeton)</span>
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(package.Badge))
-                        {
-                            <div class="package-badge">@package.Badge</div>
-                        }
-                    </div>
-
-                    <button class="btn btn-primary" @onclick="() => PurchasePackage(package.Id)" disabled="@isPurchasing">
-                        @if (isPurchasing && selectedPackageId == package.Id)
-                        {
-                            <span>İşleniyor...</span>
-                        }
-                        else
-                        {
-                            <span>Satın Al</span>
-                        }
-                    </button>
                 </div>
-            }
-        </div>
 
-        <!-- Harcama Geçmişi -->
-        <div class="section-header">
-            <h2>Harcama Geçmişi</h2>
-            <p class="text-muted">Jeton alım ve harcamalarınız</p>
-        </div>
+                <!-- Harcama Geçmişi -->
+                <div class="section-header">
+                    <h2>Harcama Geçmişi</h2>
+                    <p class="text-muted">Jeton alım ve harcamalarınız</p>
+                </div>
 
-        @if (!transactions.Any())
-        {
-            <div class="empty-state card">
-                <div class="empty-icon">📊</div>
-                <p>Henüz işlem geçmişiniz bulunmuyor</p>
+                @if (!transactions.Any())
+                {
+                    <div class="empty-state card">
+                        <div class="empty-icon">📊</div>
+                        <p>Henüz işlem geçmişiniz bulunmuyor</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="transactions-table card">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>İşlem</th>
+                                    <th>Miktar</th>
+                                    <th>Bakiye</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tx in transactions)
+                                {
+                                    <tr>
+                                        <td class="date-cell">@tx.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                        <td class="description-cell">
+                                            <span class="tx-icon">@(tx.Amount > 0 ? "💰" : "📤")</span>
+                                            <span>@tx.Description</span>
+                                        </td>
+                                        <td class="amount-cell @(tx.Amount > 0 ? "positive" : "negative")">
+                                            @(tx.Amount > 0 ? "+" : "")@tx.Amount
+                                        </td>
+                                        <td class="balance-cell">@tx.BalanceAfter</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <!-- Bilgilendirme -->
+                <div class="info-panel card">
+                    <h3>💡 Jeton Sistemi Hakkında</h3>
+                    <ul>
+                        <li><strong>Mesaj Kilidi Açma:</strong> İlanınıza gelen bir mesajı okumak için 1 jeton harcanır.</li>
+                        <li><strong>Ücretsiz Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
+                        <li><strong>Süresi Dolmaz:</strong> Jetonlarınızın kullanım süresi yoktur.</li>
+                        <li><strong>Güvenli Ödeme:</strong> Tüm ödemeler 3D Secure ile güvence altındadır.</li>
+                        <li><strong>Hoş Geldin Bonusu:</strong> Yeni öğretmenler 3 ücretsiz jeton kazanır.</li>
+                    </ul>
+                </div>
             </div>
-        }
-        else
-        {
-            <div class="transactions-table card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tarih</th>
-                            <th>İşlem</th>
-                            <th>Miktar</th>
-                            <th>Bakiye</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var tx in transactions)
-                        {
-                            <tr>
-                                <td class="date-cell">@tx.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
-                                <td class="description-cell">
-                                    <span class="tx-icon">@(tx.Amount > 0 ? "💰" : "📤")</span>
-                                    <span>@tx.Description</span>
-                                </td>
-                                <td class="amount-cell @(tx.Amount > 0 ? "positive" : "negative")">
-                                    @(tx.Amount > 0 ? "+" : "")@tx.Amount
-                                </td>
-                                <td class="balance-cell">@tx.BalanceAfter</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+        </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center flex-center py-20" style="min-height: 50vh;">
+            <div class="card glass" style="max-width: 500px; margin: 0 auto; padding: 3rem;">
+                <h3 style="color: var(--color-secondary); margin-bottom: 1rem;">Lütfen Bekleyin veya Giriş Yapın</h3>
+                <p class="text-muted mb-8">Güvenlik kontrolü sağlanıyor. Lütfen giriş yaptığınızı doğrulayın.</p>
+                <a href="/giris" class="btn btn-primary" style="width: 100%;">Giriş Yap Sayfasına Git</a>
             </div>
-        }
-
-        <!-- Bilgilendirme -->
-        <div class="info-panel card">
-            <h3>💡 Jeton Sistemi Hakkında</h3>
-            <ul>
-                <li><strong>Mesaj Kilidi Açma:</strong> İlanınıza gelen bir mesajı okumak için 1 jeton harcanır.</li>
-                <li><strong>Ücretsiz Yanıtlar:</strong> Bir mesajı açtıktan sonra tüm yanıtlar ücretsizdir.</li>
-                <li><strong>Süresi Dolmaz:</strong> Jetonlarınızın kullanım süresi yoktur.</li>
-                <li><strong>Güvenli Ödeme:</strong> Tüm ödemeler 3D Secure ile güvence altındadır.</li>
-                <li><strong>Hoş Geldin Bonusu:</strong> Yeni öğretmenler 3 ücretsiz jeton kazanır.</li>
-            </ul>
         </div>
-    </div>
-</section>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private int currentBalance = 0;
@@ -190,23 +204,23 @@
 
         try
         {
-            // Ödeme işlemi başlatılacak (İyzico 3D Secure)
-            // var paymentUrl = await PaymentService.InitiatePaymentAsync(packageId);
-            // Navigation.NavigateTo(paymentUrl, true); // External redirect
-
-            // Geçici: Başarılı ödeme simülasyonu
-            await Task.Delay(1500);
-            
-            var package = packages.FirstOrDefault(p => p.Id == packageId);
-            if (package != null)
+            var response = await Http.PostAsJsonAsync("api/Tokens/purchase", new { PackageId = packageId });
+            if (response.IsSuccessStatusCode)
             {
-                // UI Refresh for simulation purpose (since payment API is omitted for now)
-                currentBalance += package.TokenCount;
+                var result = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                if (result.TryGetProperty("paymentUrl", out var urlElement))
+                {
+                    Navigation.NavigateTo(urlElement.GetString() ?? "#", forceLoad: true);
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("ozelders.showSwal", "error", "Hata", "Ödeme başlatılamadı.", 0);
             }
         }
         catch (Exception ex)
         {
-            // Hata göster
+            await JS.InvokeVoidAsync("console.error", "Purchase error: " + ex.Message);
         }
         finally
         {

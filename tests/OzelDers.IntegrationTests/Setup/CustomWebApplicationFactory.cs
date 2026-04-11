@@ -11,6 +11,7 @@ using Testcontainers.Redis;
 using Xunit;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using OzelDers.IntegrationTests.Endpoints;
 
 namespace OzelDers.IntegrationTests.Setup;
 
@@ -59,6 +60,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     public new async Task DisposeAsync()
     {
+        // Entegrasyon testleri raporunu oluştur
+        EndpointTestReporter.GenerateReport();
+
         await _dbContainer.DisposeAsync();
         await _redisContainer.DisposeAsync();
     }

@@ -14,7 +14,7 @@ public class ListingCreateValidator : AbstractValidator<ListingCreateDto>
 
         RuleFor(x => x.Description)
             .NotEmpty().WithMessage("İlan açıklaması zorunludur.")
-            .MinimumLength(30).WithMessage("İlan açıklaması en az 30 karakter olmalıdır.")
+            .MinimumLength(10).WithMessage("İlan açıklaması en az 10 karakter olmalıdır.")
             .MaximumLength(3000).WithMessage("İlan açıklaması en fazla 3000 karakter olabilir.");
 
         RuleFor(x => x.HourlyPrice)

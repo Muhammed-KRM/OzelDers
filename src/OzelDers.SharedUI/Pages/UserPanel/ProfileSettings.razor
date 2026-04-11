@@ -1,5 +1,4 @@
 @page "/panel/profil-ayarlari"
-@attribute [Authorize]
 @using OzelDers.Business.DTOs
 @using OzelDers.Business.Interfaces
 @inject IUserService UserService
@@ -7,7 +6,9 @@
 
 <PageTitle>Profil Ayarları | OzelDers.com</PageTitle>
 
-<section class="section profile-settings-page">
+<AuthorizeView Context="authContext">
+    <Authorized>
+        <section class="section profile-settings-page">
     <div class="container">
         <div class="page-header">
             <h1>Profil Ayarları</h1>
@@ -209,6 +210,17 @@
         }
     </div>
 </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center flex-center py-20" style="min-height: 50vh;">
+            <div class="card glass" style="max-width: 500px; margin: 0 auto; padding: 3rem;">
+                <h3 style="color: var(--color-secondary); margin-bottom: 1rem;">Lütfen Bekleyin veya Giriş Yapın</h3>
+                <p class="text-muted mb-8">Güvenlik kontrolü sağlanıyor. Lütfen giriş yaptığınızı doğrulayın.</p>
+                <a href="/giris" class="btn btn-primary" style="width: 100%;">Giriş Yap Sayfasına Git</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private bool isLoading = true;

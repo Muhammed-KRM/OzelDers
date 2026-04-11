@@ -74,8 +74,9 @@
                 if (user != null)
                 {
                     await stateProvider.LogInAsync(user.Id, user.FullName, user.Email, user.Role ?? "User", result.Token);
-                    await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Oturum açıldı. Dashboard'a yönlendiriliyor...");
-                    NavigationManager.NavigateTo("/panel/dashboard", forceLoad: true);
+                    await JS.InvokeVoidAsync("ozelders.showSwal", "success", "Hoş Geldiniz! 🎉", $"Merhaba {user.FullName}, ana sayfaya yönlendiriliyorsunuz...", 2000);
+                    await Task.Delay(2100);
+                    NavigationManager.NavigateTo("/", forceLoad: true);
                 }
                 else
                 {
@@ -86,6 +87,7 @@
             else
             {
                 errorMessage = result.ErrorMessage ?? "Giriş başarısız.";
+                await JS.InvokeVoidAsync("ozelders.showSwal", "error", "Giriş Başarısız", errorMessage, 0);
                 await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] HATA: API girişi reddetti. Sebep: {errorMessage}");
             }
         }

@@ -2,10 +2,10 @@
 
 :root {
     /* Primary Colors (Daha canlı ve premium ton) */
-    --color-primary: #FF385C;       /* Modern Karmin / Airbnb tarzı premium kırmızı */
-    --color-primary-hover: #E31C5F;
-    --color-primary-light: #FFF0F4;
-    --color-primary-glow: rgba(255, 56, 92, 0.4);
+    --color-primary: #FA626B;       /* Canlı Mercan / Büyüleyici Şeftali */
+    --color-primary-hover: #E35961;
+    --color-primary-light: #FFF0F1;
+    --color-primary-glow: rgba(250, 98, 107, 0.4);
 
     /* Secondary (30% Ana Renk - Disiplin ve Güven) */
     --color-secondary: #1E293B;     /* Gece Mavisi / Koyu Indigo - Başlıklar, Kart gölgeleri */

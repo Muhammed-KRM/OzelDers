@@ -9,17 +9,34 @@
             <span class="brand-text">OzelDers</span>
         </a>
 
-        <div class="navbar-links">
-            <a href="/arama" class="nav-link">Öğretmen Bul</a>
-            <a href="/nasil-calisir" class="nav-link">Nasıl Çalışır?</a>
+        <!-- Mobil Menü Açma/Kapama Butonu -->
+        <button class="mobile-menu-toggle" @onclick="ToggleMobileMenu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                @if (isMobileMenuOpen)
+                {
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                }
+                else
+                {
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                }
+            </svg>
+        </button>
+
+        <div class="navbar-links @(isMobileMenuOpen ? "open" : "")">
+            <a href="/arama" class="nav-link" @onclick="CloseMobileMenu">Öğretmen Bul</a>
+            <a href="/nasil-calisir" class="nav-link" @onclick="CloseMobileMenu">Nasıl Çalışır?</a>
             
             <AuthorizeView>
                 <Authorized>
-                    <a href="/panel/ilan-olustur" class="btn btn-accent btn-sm" style="border-radius: 50px; padding: 0.6rem 1.4rem;">
+                    <a href="/panel/ilan-olustur" class="btn btn-primary btn-sm" style="border-radius: 50px; padding: 0.6rem 1.4rem;" @onclick="CloseMobileMenu">
                         ➕ İlan Ver
                     </a>
-                    <a href="/panel/mesajlarim" class="nav-link nav-icon-link" title="Mesajlarım">
-                        💬
+                    <a href="/panel/mesajlarim" class="nav-link nav-icon-link" title="Mesajlarım" @onclick="CloseMobileMenu">
+                        💬<span class="mobile-only-text"> Mesajlarım</span>
                     </a>
 
                     <div class="profile-dropdown-wrapper">
@@ -47,8 +64,8 @@
                     </div>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/giris" class="btn btn-secondary btn-sm">Giriş Yap</a>
-                    <a href="/kayit" class="btn btn-primary btn-sm">Ücretsiz Kayıt</a>
+                    <a href="/giris" class="btn btn-secondary btn-sm" @onclick="CloseMobileMenu">Giriş Yap</a>
+                    <a href="/kayit" class="btn btn-primary btn-sm" @onclick="CloseMobileMenu">Ücretsiz Kayıt</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -57,9 +74,17 @@
 
 @code {
     private bool isDropdownOpen = false;
+    private bool isMobileMenuOpen = false;
 
     private void ToggleDropdown() => isDropdownOpen = !isDropdownOpen;
     private void CloseDropdown() => isDropdownOpen = false;
+
+    private void ToggleMobileMenu() => isMobileMenuOpen = !isMobileMenuOpen;
+    private void CloseMobileMenu() 
+    {
+        isMobileMenuOpen = false;
+        isDropdownOpen = false;
+    }
 
     private string GetEmail(AuthenticationState context)
     {
@@ -69,6 +94,7 @@
     private async Task HandleLogout()
     {
         isDropdownOpen = false;
+        isMobileMenuOpen = false;
         if (AuthStateProvider is OzelDers.Business.Interfaces.ICustomAuthStateProvider stateProvider)
         {
             await stateProvider.LogOutAsync();

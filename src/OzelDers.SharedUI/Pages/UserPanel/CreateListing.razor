@@ -1,5 +1,4 @@
 @page "/panel/ilan-olustur"
-@attribute [Authorize]
 @using OzelDers.Business.DTOs
 @inject IListingService ListingService
 @inject HttpClient Http
@@ -8,166 +7,179 @@
 
 <PageTitle>Yeni İlan Oluştur | OzelDers.com</PageTitle>
 
-<section class="section create-listing-page">
-    <div class="container">
-        <div class="page-header">
-            <h1>Yeni İlan Oluştur</h1>
-            <p class="text-muted">Öğrencilere ulaşmak için ilanınızı oluşturun</p>
-        </div>
+<AuthorizeView Context="authContext">
+    <Authorized>
+        <section class="section create-listing-page">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Yeni İlan Oluştur</h1>
+                    <p class="text-muted">Öğrencilere ulaşmak için ilanınızı oluşturun</p>
+                </div>
 
-        <div class="form-container card">
-            <EditForm Model="model" OnValidSubmit="HandleSubmit">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="alert alert-danger" />
-                <!-- İlan Türü -->
-                <div class="form-section">
-                    <h2>İlan Türü</h2>
-                        <InputRadioGroup @bind-Value="model.Type">
-                            <label class="radio-card">
-                                <InputRadio Value="ListingType.TeacherOffering" />
-                                <div class="radio-content">
-                                    <span class="radio-icon">👨‍🏫</span>
-                                    <span class="radio-label">Öğretmen</span>
-                                    <span class="radio-desc">Ders vermek istiyorum</span>
+                <div class="form-container card">
+                    <EditForm Model="model" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+                        <!-- İlan Türü -->
+                        <div class="form-section">
+                            <h2>İlan Türü</h2>
+                                <InputRadioGroup @bind-Value="model.Type">
+                                    <label class="radio-card">
+                                        <InputRadio Value="ListingType.TeacherOffering" />
+                                        <div class="radio-content">
+                                            <span class="radio-icon">👨‍🏫</span>
+                                            <span class="radio-label">Öğretmen</span>
+                                            <span class="radio-desc">Ders vermek istiyorum</span>
+                                        </div>
+                                    </label>
+                                    <label class="radio-card">
+                                        <InputRadio Value="ListingType.StudentLooking" />
+                                        <div class="radio-content">
+                                            <span class="radio-icon">👨‍🎓</span>
+                                            <span class="radio-label">Öğrenci</span>
+                                            <span class="radio-desc">Ders almak istiyorum</span>
+                                        </div>
+                                    </label>
+                                </InputRadioGroup>
+                        </div>
+
+                        <!-- Temel Bilgiler -->
+                        <div class="form-section">
+                            <h2>Temel Bilgiler</h2>
+                            
+                            <div class="form-group">
+                                <label>İlan Başlığı <span class="required">*</span></label>
+                                <input type="text" @bind="model.Title" class="form-input" 
+                                       placeholder="Örn: Deneyimli Matematik Öğretmeni" maxlength="100" />
+                                <span class="form-hint">Dikkat çekici ve açıklayıcı bir başlık yazın</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Açıklama <span class="required">*</span></label>
+                                <textarea @bind="model.Description" class="form-textarea" rows="6"
+                                          placeholder="Kendinizi, deneyimlerinizi ve ders verme tarzınızı anlatın..." maxlength="1000"></textarea>
+                                <span class="form-hint">@model.Description?.Length / 1000 karakter</span>
+                            </div>
+                        </div>
+
+                        <!-- Ders Detayları -->
+                        <div class="form-section">
+                            <h2>Ders Detayları</h2>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Branş <span class="required">*</span></label>
+                                    <select @bind="model.BranchId" class="form-select">
+                                        <option value="0">Branş Seçin</option>
+                                        @foreach (var branch in branches)
+                                        {
+                                            <option value="@branch.Id">@branch.Name</option>
+                                        }
+                                    </select>
                                 </div>
-                            </label>
-                            <label class="radio-card">
-                                <InputRadio Value="ListingType.StudentLooking" />
-                                <div class="radio-content">
-                                    <span class="radio-icon">👨‍🎓</span>
-                                    <span class="radio-label">Öğrenci</span>
-                                    <span class="radio-desc">Ders almak istiyorum</span>
+
+                                <div class="form-group">
+                                    <label>Ders Türü <span class="required">*</span></label>
+                                    <select @bind="model.LessonType" class="form-select">
+                                        <option value="@LessonType.FaceToFace">Yüz Yüze</option>
+                                        <option value="@LessonType.Online">Online</option>
+                                        <option value="@LessonType.Both">Her İkisi</option>
+                                    </select>
                                 </div>
-                            </label>
-                        </InputRadioGroup>
-                </div>
+                            </div>
 
-                <!-- Temel Bilgiler -->
-                <div class="form-section">
-                    <h2>Temel Bilgiler</h2>
-                    
-                    <div class="form-group">
-                        <label>İlan Başlığı <span class="required">*</span></label>
-                        <input type="text" @bind="model.Title" class="form-input" 
-                               placeholder="Örn: Deneyimli Matematik Öğretmeni" maxlength="100" />
-                        <span class="form-hint">Dikkat çekici ve açıklayıcı bir başlık yazın</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Açıklama <span class="required">*</span></label>
-                        <textarea @bind="model.Description" class="form-textarea" rows="6"
-                                  placeholder="Kendinizi, deneyimlerinizi ve ders verme tarzınızı anlatın..." maxlength="1000"></textarea>
-                        <span class="form-hint">@model.Description?.Length / 1000 karakter</span>
-                    </div>
-                </div>
-
-                <!-- Ders Detayları -->
-                <div class="form-section">
-                    <h2>Ders Detayları</h2>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Branş <span class="required">*</span></label>
-                            <select @bind="model.BranchId" class="form-select">
-                                <option value="0">Branş Seçin</option>
-                                @foreach (var branch in branches)
-                                {
-                                    <option value="@branch.Id">@branch.Name</option>
-                                }
-                            </select>
+                            <div class="form-group">
+                                <label>Saatlik Ücret (TL) <span class="required">*</span></label>
+                                <div class="input-with-icon">
+                                    <span class="input-icon">💰</span>
+                                    <input type="number" @bind="model.HourlyPrice" class="form-input" 
+                                           placeholder="0" min="0" max="10000" />
+                                    <span class="input-suffix">TL/saat</span>
+                                </div>
+                                <span class="form-hint">Piyasa ortalamasına uygun bir fiyat belirleyin</span>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Ders Türü <span class="required">*</span></label>
-                            <select @bind="model.LessonType" class="form-select">
-                                <option value="@LessonType.FaceToFace">Yüz Yüze</option>
-                                <option value="@LessonType.Online">Online</option>
-                                <option value="@LessonType.Both">Her İkisi</option>
-                            </select>
-                        </div>
-                    </div>
+                        <!-- Konum -->
+                        <div class="form-section">
+                            <h2>Konum Bilgileri</h2>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Şehir <span class="required">*</span></label>
+                                    <select @bind="selectedCityId" @bind:after="LoadDistricts" class="form-select">
+                                        <option value="0">Şehir Seçin</option>
+                                        @foreach (var city in cities)
+                                        {
+                                            <option value="@city.Id">@city.Name</option>
+                                        }
+                                    </select>
+                                </div>
 
-                    <div class="form-group">
-                        <label>Saatlik Ücret (TL) <span class="required">*</span></label>
-                        <div class="input-with-icon">
-                            <span class="input-icon">💰</span>
-                            <input type="number" @bind="model.HourlyPrice" class="form-input" 
-                                   placeholder="0" min="0" max="10000" />
-                            <span class="input-suffix">TL/saat</span>
-                        </div>
-                        <span class="form-hint">Piyasa ortalamasına uygun bir fiyat belirleyin</span>
-                    </div>
-                </div>
-
-                <!-- Konum -->
-                <div class="form-section">
-                    <h2>Konum Bilgileri</h2>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Şehir <span class="required">*</span></label>
-                            <select @bind="selectedCityId" @bind:after="LoadDistricts" class="form-select">
-                                <option value="0">Şehir Seçin</option>
-                                @foreach (var city in cities)
-                                {
-                                    <option value="@city.Id">@city.Name</option>
-                                }
-                            </select>
+                                <div class="form-group">
+                                    <label>İlçe <span class="required">*</span></label>
+                                    <select @bind="model.DistrictId" class="form-select" disabled="@(districts.Count == 0)">
+                                        <option value="0">İlçe Seçin</option>
+                                        @foreach (var district in districts)
+                                        {
+                                            <option value="@district.Id">@district.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>İlçe <span class="required">*</span></label>
-                            <select @bind="model.DistrictId" class="form-select" disabled="@(districts.Count == 0)">
-                                <option value="0">İlçe Seçin</option>
-                                @foreach (var district in districts)
-                                {
-                                    <option value="@district.Id">@district.Name</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hata Mesajı -->
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="alert alert-danger">
-                        @errorMessage
-                    </div>
-                }
-
-                <!-- Form Aksiyonları -->
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
-                        İptal
-                    </button>
-                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
-                        @if (isSubmitting)
+                        <!-- Hata Mesajı -->
+                        @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <span>Oluşturuluyor...</span>
+                            <div class="alert alert-danger">
+                                @errorMessage
+                            </div>
                         }
-                        else
-                        {
-                            <span>✓ İlanı Yayınla</span>
-                        }
-                    </button>
-                </div>
-            </EditForm>
-        </div>
 
-        <!-- Bilgilendirme Kutusu -->
-        <div class="info-box card">
-            <h3>💡 İpuçları</h3>
-            <ul>
-                <li>Başlığınızı kısa ve öz tutun</li>
-                <li>Deneyimlerinizi ve eğitim geçmişinizi belirtin</li>
-                <li>Ders verme tarzınızı açıklayın</li>
-                <li>Başarı hikayelerinizi paylaşın</li>
-                <li>İletişim bilgilerinizi açıklamaya eklemeyin (platform üzerinden iletişim kurulur)</li>
-            </ul>
+                        <!-- Form Aksiyonları -->
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                                İptal
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                @if (isSubmitting)
+                                {
+                                    <span>Oluşturuluyor...</span>
+                                }
+                                else
+                                {
+                                    <span>✓ İlanı Yayınla</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+
+                <!-- Bilgilendirme Kutusu -->
+                <div class="info-box card">
+                    <h3>💡 İpuçları</h3>
+                    <ul>
+                        <li>Başlığınızı kısa ve öz tutun</li>
+                        <li>Deneyimlerinizi ve eğitim geçmişinizi belirtin</li>
+                        <li>Ders verme tarzınızı açıklayın</li>
+                        <li>Başarı hikayelerinizi paylaşın</li>
+                        <li>İletişim bilgilerinizi açıklamaya eklemeyin (platform üzerinden iletişim kurulur)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center py-20 flex-center" style="min-height: 50vh;">
+            <div class="card glass" style="max-width: 500px; margin: 0 auto; padding: 3rem;">
+                <h3 style="color: var(--color-secondary); margin-bottom: 1rem;">Lütfen Bekleyin veya Giriş Yapın</h3>
+                <p class="text-muted mb-8">Güvenlik kontrolü sağlanıyor. Lütfen giriş yaptığınızı doğrulayın.</p>
+                <a href="/giris" class="btn btn-primary" style="width: 100%;">Giriş Yap Sayfasına Git</a>
+            </div>
         </div>
-    </div>
-</section>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private ListingCreateDto model = new() 
@@ -245,20 +257,19 @@
             // Validasyon
             if (string.IsNullOrWhiteSpace(model.Title))
             {
-                errorMessage = "İlan başlığı zorunludur.";
-                await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Uyarı: İlan başlığı eksik.");
+                await JS.InvokeVoidAsync("ozelders.showSwal", "warning", "Eksik Alan", "İlan başlığı zorunludur.", 0);
                 return;
             }
 
             if (model.BranchId == 0)
             {
-                errorMessage = "Lütfen bir branş seçin.";
+                await JS.InvokeVoidAsync("ozelders.showSwal", "warning", "Eksik Alan", "Lütfen bir branş seçin.", 0);
                 return;
             }
 
             if (model.DistrictId == 0)
             {
-                errorMessage = "Lütfen şehir ve ilçe seçin.";
+                await JS.InvokeVoidAsync("ozelders.showSwal", "warning", "Eksik Alan", "Lütfen şehir ve ilçe seçin.", 0);
                 return;
             }
 
@@ -279,17 +290,33 @@
             await ListingService.CreateAsync(model, Guid.Empty);
             
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] İlan BAŞARIYLA oluşturuldu. İlanlarım sayfasına yönlendiriliyor...");
-            // Başarılı, ilanlar sayfasına yönlendir
+            await JS.InvokeVoidAsync("ozelders.showSwal", "success", "İlan Yayınlandı! 🎉", "İlanınız başarıyla oluşturuldu.", 2500);
+            await Task.Delay(2600);
             Navigation.NavigateTo("/panel/ilanlarim");
         }
         catch (HttpRequestException ex)
         {
-            errorMessage = "Kayıt Başarısız. Girdiğiniz bilgileri kontrol edin. Lütfen konsola bakın.";
-            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA DETAYI: İlan API'ye kaydedilemedi.", ex.Message);
+            var rawMsg = ex.Message;
+            var friendlyMsg = rawMsg;
+            try
+            {
+                if (rawMsg.Contains("{"))
+                {
+                    var jsonPart = rawMsg.Substring(rawMsg.IndexOf("{"));
+                    var doc = System.Text.Json.JsonDocument.Parse(jsonPart);
+                    if (doc.RootElement.TryGetProperty("detail", out var detail))
+                        friendlyMsg = detail.GetString() ?? rawMsg;
+                }
+            }
+            catch { /* JSON parse başarısızsa ham mesajı kullan */ }
+            errorMessage = friendlyMsg;
+            await JS.InvokeVoidAsync("ozelders.showSwal", "error", "İlan Oluşturulamadı", friendlyMsg, 0);
+            await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA DETAYI:", ex.Message);
         }
         catch (Exception ex)
         {
-            errorMessage = "Beklenmeyen bir hata oluştu: " + ex.Message;
+            errorMessage = ex.Message;
+            await JS.InvokeVoidAsync("ozelders.showSwal", "error", "Beklenmeyen Hata", ex.Message, 0);
             await JS.InvokeVoidAsync("console.error", "[OzelDers Tracker] HATA:", ex.Message);
         }
         finally
