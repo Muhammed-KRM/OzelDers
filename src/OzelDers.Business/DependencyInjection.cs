@@ -18,6 +18,8 @@ public static class DependencyInjection
         services.AddScoped<IVitrinService, VitrinManager>();
         services.AddScoped<IUserService, UserManager>();
         services.AddScoped<IAdminService, AdminManager>();
+        services.AddScoped<ISettingService, SettingManager>();
+        services.AddMemoryCache();
         services.AddScoped<IEmailService, OzelDers.Business.Infrastructure.Email.SmtpEmailService>();
 
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet

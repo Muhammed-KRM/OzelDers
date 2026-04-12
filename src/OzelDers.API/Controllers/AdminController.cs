@@ -10,10 +10,34 @@ namespace OzelDers.API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
+    private readonly ISettingService _settingService;
 
-    public AdminController(IAdminService adminService)
+    public AdminController(IAdminService adminService, ISettingService settingService)
     {
         _adminService = adminService;
+        _settingService = settingService;
+    }
+
+    // ─── Sistem Ayarları ─────────────────────────────────────
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetSettings()
+    {
+        // Örnek olarak bilinen anahtarları döndürelim (veya tümünü veritabanından çekelim)
+        // Şimdilik DB'den çekmek daha doğru:
+        var settings = new List<OzelDers.Business.DTOs.GlobalSettingDto>
+        {
+            new() { Key = "ListingCreationCost", Value = await _settingService.GetSettingAsync("ListingCreationCost", "5"), Description = "İlan oluşturma jeton maliyeti" },
+            new() { Key = "MessageUnlockCost", Value = await _settingService.GetSettingAsync("MessageUnlockCost", "1"), Description = "Mesaj kilidi açma jeton maliyeti" },
+            new() { Key = "DirectOfferCost", Value = await _settingService.GetSettingAsync("DirectOfferCost", "2"), Description = "Direkt teklif gönderme jeton maliyeti" }
+        };
+        return Ok(settings);
+    }
+
+    [HttpPut("settings")]
+    public async Task<IActionResult> UpdateSetting([FromBody] OzelDers.Business.DTOs.GlobalSettingDto dto)
+    {
+        await _settingService.SetSettingAsync(dto.Key, dto.Value, dto.Description);
+        return Ok(new { message = "Ayar güncellendi." });
     }
 
     // ─── Dashboard ───────────────────────────────────────────

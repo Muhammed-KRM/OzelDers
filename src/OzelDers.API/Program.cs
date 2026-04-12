@@ -12,6 +12,7 @@ using OzelDers.Data;
 using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
 using OzelDers.API;
+using OzelDers.Business.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,6 +144,9 @@ using (var scope = app.Services.CreateScope())
     }
     
     await DatabaseSeeder.SeedAsync(context);
+    
+    var settingService = scope.ServiceProvider.GetRequiredService<ISettingService>();
+    await settingService.InitializeDefaultsAsync();
 }
 
 app.Run();

@@ -1,0 +1,243 @@
+@page "/admin/settings"
+@attribute [Authorize(Roles = "Admin")]
+@using OzelDers.Business.DTOs
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Sistem Ayarları | Admin Panel</PageTitle>
+
+<section class="section system-settings">
+    <div class="container">
+        <!-- Başlık -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1>⚙️ Sistem Ayarları</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
+                        ← Panele Dön
+                    </button>
+                </div>
+            </div>
+            <p class="text-muted">Platformun çalışma kurallarını ve maliyetlerini yönetin</p>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <p>Ayarlar yükleniyor...</p>
+            </div>
+        }
+        else
+        {
+            <div class="settings-grid">
+                <!-- Jeton Maliyetleri -->
+                <div class="settings-card card">
+                    <div class="card-header">
+                        <h2>💎 Jeton Maliyetleri</h2>
+                        <span class="badge">Ekonomik Ayarlar</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="settings-list">
+                            @foreach (var setting in settings)
+                            {
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <label>@setting.Description</label>
+                                        <span class="setting-key">Anahtar: @setting.Key</span>
+                                    </div>
+                                    <div class="setting-action">
+                                        <div class="input-with-suffix">
+                                            <input type="number" @bind="setting.Value" class="form-input" />
+                                            <span class="suffix">Jeton</span>
+                                        </div>
+                                        <button class="btn btn-success btn-sm" @onclick="() => SaveSetting(setting)">
+                                            Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gelecekte eklenecek ayarlar için yer tutucu -->
+                <div class="settings-card card bg-light-gray opacity-70">
+                    <div class="card-header">
+                        <h2>🚀 Diğer Ayarlar (Yakında)</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-center py-10">Email şablonları, Bildirim ayarları ve KVKK metinleri yakında bu panelden yönetilebilecek.</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<style>
+    .system-settings {
+        padding: 2rem 0;
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .settings-card {
+        background: var(--color-white);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to right, var(--color-surface), var(--color-white));
+    }
+
+    .card-header h2 {
+        font-size: 1.25rem;
+        margin: 0;
+        color: var(--color-secondary);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .settings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .setting-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .setting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .setting-info label {
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .setting-key {
+        font-size: 0.8rem;
+        color: var(--color-text-light);
+        font-family: monospace;
+    }
+
+    .setting-action {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .input-with-suffix {
+        display: flex;
+        align-items: center;
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        padding-right: 0.75rem;
+    }
+
+    .input-with-suffix .form-input {
+        border: none;
+        background: transparent;
+        width: 80px;
+        text-align: center;
+        padding: 0.5rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .input-with-suffix .suffix {
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        border-left: 1px solid var(--color-border);
+        padding-left: 0.75rem;
+    }
+
+    .bg-light-gray {
+        background-color: #f9fafb;
+    }
+
+    .opacity-70 {
+        opacity: 0.7;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+    }
+</style>
+
+@code {
+    private List<GlobalSettingDto> settings = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        isLoading = true;
+        try
+        {
+            settings = await Http.GetFromJsonAsync<List<GlobalSettingDto>>("api/admin/settings") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Hata: " + ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveSetting(GlobalSettingDto setting)
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync("api/admin/settings", setting);
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", $"{setting.Description} başarıyla güncellendi.");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Güncelleme sırasında bir hata oluştu.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Hata: " + ex.Message);
+        }
+    }
+}

@@ -20,19 +20,25 @@ public class ListingManager : IListingService
     private readonly IRepository<District> _districtRepo;
     private readonly IValidator<ListingCreateDto> _createValidator;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly ITokenService _tokenService;
+    private readonly ISettingService _settingService;
 
     public ListingManager(
         IListingRepository listingRepo,
         IRepository<Branch> branchRepo,
         IRepository<District> districtRepo,
         IValidator<ListingCreateDto> createValidator,
-        IPublishEndpoint publishEndpoint)
+        IPublishEndpoint publishEndpoint,
+        ITokenService tokenService,
+        ISettingService settingService)
     {
         _listingRepo = listingRepo;
         _branchRepo = branchRepo;
         _districtRepo = districtRepo;
         _createValidator = createValidator;
         _publishEndpoint = publishEndpoint;
+        _tokenService = tokenService;
+        _settingService = settingService;
     }
 
     public async Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId)
@@ -63,7 +69,11 @@ public class ListingManager : IListingService
             Status = PerformAutoModeration(dto.Title, sanitizedDescription)
         };
 
-        // 4. Repository ile kaydet
+        // 4. Jeton Harcaması
+        var cost = await _settingService.GetIntSettingAsync("ListingCreationCost", 5);
+        await _tokenService.SpendTokenAsync(userId, cost, "Yeni ilan oluşturuldu");
+
+        // 5. Repository ile kaydet
         await _listingRepo.AddAsync(listing);
         await _listingRepo.SaveChangesAsync();
 

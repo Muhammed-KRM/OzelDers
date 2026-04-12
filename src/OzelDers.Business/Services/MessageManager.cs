@@ -14,15 +14,18 @@ public class MessageManager : IMessageService
     private readonly IRepository<Message> _messageRepo;
     private readonly ITokenService _tokenService;
     private readonly IValidator<MessageSendDto> _sendValidator;
+    private readonly ISettingService _settingService;
 
     public MessageManager(
         IRepository<Message> messageRepo,
         ITokenService tokenService,
-        IValidator<MessageSendDto> sendValidator)
+        IValidator<MessageSendDto> sendValidator,
+        ISettingService settingService)
     {
         _messageRepo = messageRepo;
         _tokenService = tokenService;
         _sendValidator = sendValidator;
+        _settingService = settingService;
     }
 
     public async Task<List<MessageDto>> GetInboxAsync(Guid userId)
@@ -70,7 +73,8 @@ public class MessageManager : IMessageService
         // Senaryo B: Direkt teklif ise gönderen jeton harcar, mesaj zaten açık gelir
         if (dto.IsDirectOffer)
         {
-            await _tokenService.SpendTokenAsync(senderId, 1, "Direkt teklif mesajı gönderildi");
+            var cost = await _settingService.GetIntSettingAsync("DirectOfferCost", 2);
+            await _tokenService.SpendTokenAsync(senderId, cost, "Direkt teklif mesajı gönderildi");
             message.Status = MessageStatus.Unlocked;
         }
         else
@@ -107,8 +111,9 @@ public class MessageManager : IMessageService
 
         if (!previouslyUnlocked.Any())
         {
-            // İlk kez bu göndericinin mesajını açıyor — 1 jeton harça
-            await _tokenService.SpendTokenAsync(userId, 1, "Mesaj kilidi açıldı");
+            // İlk kez bu göndericinin mesajını açıyor
+            var cost = await _settingService.GetIntSettingAsync("MessageUnlockCost", 1);
+            await _tokenService.SpendTokenAsync(userId, cost, "Mesaj kilidi açıldı");
         }
 
         message.Status = MessageStatus.Unlocked;

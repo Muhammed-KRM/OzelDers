@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<District> Districts => Set<District>();
     public DbSet<TokenPackage> TokenPackages => Set<TokenPackage>();
     public DbSet<VitrinPackage> VitrinPackages => Set<VitrinPackage>();
+    public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
