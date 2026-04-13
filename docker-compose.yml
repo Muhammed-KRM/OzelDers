@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: src/OzelDers.Worker/Dockerfile
-    depends_on: [postgres, elasticsearch, redis, rabbitmq]
+    depends_on: [postgres, redis]
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:?DB_PASSWORD is required}

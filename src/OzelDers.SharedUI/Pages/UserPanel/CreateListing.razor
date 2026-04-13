@@ -273,16 +273,12 @@
                 return;
             }
 
-            // Payload ve Header loglama
+            // Payload loglama
             var payloadStr = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            
-            // Jetonu manual olarak LocalStorage'dan alıp logluyoruz
-            var tokenRaw = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
-            var authHeaderStr = !string.IsNullOrEmpty(tokenRaw) ? $"Bearer {tokenRaw.Replace("\"", "")}" : "Token Yok";
 
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ----- API İSTEK DETAYI -----");
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] URL: /api/listings");
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Headers: \n { Authorization: '" + authHeaderStr + "' }");
+            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Authorization: Bearer token AuthTokenHandler tarafından otomatik ekleniyor");
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Payload: \n" + payloadStr);
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ------------------------------");
 

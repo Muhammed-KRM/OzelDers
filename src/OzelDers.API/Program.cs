@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using OzelDers.Data;
 using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
-using OzelDers.API;
 using OzelDers.Business.Interfaces;
 using BC = BCrypt.Net.BCrypt;
 
@@ -24,7 +23,24 @@ builder.Services.AddDataLayer(connectionString);
 // === 2. İŞ KATMANI ===
 builder.Services.AddBusinessServices();
 
-// === 3. JWT KİMLİK DOĞRULAMA ===
+// === 3. MassTransit + RabbitMQ ===
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "rabbitmq";
+        var mqUser = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+        var mqPass = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+
+        cfg.Host(mqHost, "/", h =>
+        {
+            h.Username(mqUser);
+            h.Password(mqPass);
+        });
+    });
+});
+
+// === 4. JWT KİMLİK DOĞRULAMA ===
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -99,9 +115,6 @@ builder.Services.AddCors(options =>
 });
 
 // === 6. MassTransit (Event Publishing) ===
-// NOTE: MassTransit son sürümlerinde MT_LICENSE istiyor. Şimdilik lokal çalışması için
-// Dummy bir IPublishEndpoint kullanıyoruz. (Canlıda RabbitMQ için lisans key girilmelidir).
-builder.Services.AddScoped<IPublishEndpoint, DummyPublishEndpoint>();
 
 var app = builder.Build();
 
@@ -109,16 +122,16 @@ var app = builder.Build();
 app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Swagger sadece Development ortamında açık
+// Swagger her ortamda açık (API geliştirme kolaylığı için)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
+    c.RoutePrefix = "swagger";
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
-        c.RoutePrefix = "swagger";
-    });
-
     app.MapGet("/", context =>
     {
         context.Response.Redirect("/swagger");
@@ -127,7 +140,6 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    // Production'da kök adres 404 döner
     app.MapGet("/", () => Results.NotFound());
 }
 

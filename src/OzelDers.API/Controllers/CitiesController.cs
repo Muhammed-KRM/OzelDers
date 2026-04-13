@@ -41,5 +41,22 @@ public class CitiesController : ControllerBase
         await _cacheService.SetAsync(cacheKey, cities, TimeSpan.FromHours(1));
         return Ok(cities);
     }
+
+    [HttpGet("{cityId}/districts")]
+    public async Task<IActionResult> GetDistricts(int cityId)
+    {
+        var cacheKey = $"cities:{cityId}:districts";
+        var cached = await _cacheService.GetAsync<object>(cacheKey);
+        if (cached != null) return Ok(cached);
+
+        var districts = await _context.Districts
+            .Where(d => d.CityId == cityId)
+            .OrderBy(d => d.Name)
+            .Select(d => new { d.Id, d.Name, d.Slug })
+            .ToListAsync();
+
+        await _cacheService.SetAsync(cacheKey, districts, TimeSpan.FromHours(1));
+        return Ok(districts);
+    }
 }
 

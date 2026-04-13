@@ -87,3 +87,17 @@
         margin-top: 0.5rem;
     }
 }
+
+.cookie-kvkk-link {
+    color: var(--color-primary);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.cookie-kvkk-link:hover {
+    color: var(--color-primary-hover);
+}
+
+.cookie-text p {
+    color: var(--color-light);
+}

@@ -5,24 +5,22 @@ using OzelDers.Data;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// DbContext & Business Services
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=ozelders;Username=ozelders_user;Password=dev_password";
 
 OzelDers.Data.ServiceRegistration.AddDataLayer(builder.Services, connectionString);
 OzelDers.Business.DependencyInjection.AddBusinessServices(builder.Services);
 
-// RabbitMQ (MassTransit)
+// MassTransit v8 — RabbitMQ (ücretsiz, lisans gerektirmez)
 builder.Services.AddMassTransit(x =>
 {
-    // Tüketicileri kaydet
     x.AddConsumer<ListingCreatedConsumer>();
     x.AddConsumer<ListingUpdatedConsumer>();
     x.AddConsumer<ListingDeletedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
+        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "rabbitmq";
         var mqUser = builder.Configuration["RabbitMQ:Username"] ?? "guest";
         var mqPass = builder.Configuration["RabbitMQ:Password"] ?? "guest";
 
@@ -36,7 +34,6 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-// Adım 5.4: Vitrin Süresi Dolum Kontrolcüsü
 builder.Services.AddHostedService<OzelDers.Worker.Services.VitrinExpirationWorker>();
 
 var host = builder.Build();

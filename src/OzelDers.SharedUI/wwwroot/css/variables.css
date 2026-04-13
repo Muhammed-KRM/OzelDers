@@ -30,6 +30,7 @@
     --color-text-secondary: #64748B;
     --color-text-muted: #94A3B8;
     --color-text-inverse: #FFFFFF;
+    --color-light: #F8F9FA;         /* Açık zemin — cookie bar ve koyu arka planlardaki metinler için */
 
     /* Spacing */
     --space-1: 0.25rem;

@@ -1,5 +1,4 @@
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using OzelDers.Business.Events;
 using OzelDers.Business.Interfaces;
 
@@ -26,7 +25,7 @@ public class ListingUpdatedConsumer : IConsumer<ListingUpdatedEvent>
 
     public async Task Consume(ConsumeContext<ListingUpdatedEvent> context)
     {
-        _logger.LogInformation("Processing ListingUpdatedEvent for ListingId: {ListingId}", context.Message.ListingId);
+        _logger.LogInformation("ListingUpdatedEvent alındı: {ListingId}", context.Message.ListingId);
         try
         {
             var listing = await _listingService.GetByIdAsync(context.Message.ListingId);
@@ -35,12 +34,12 @@ public class ListingUpdatedConsumer : IConsumer<ListingUpdatedEvent>
                 await _searchService.IndexListingAsync(listing);
                 await _cacheService.RemoveByPatternAsync("search:*");
                 await _cacheService.RemoveAsync($"listing:{listing.Slug}");
-                _logger.LogInformation("Updated ES index for listing {ListingId}.", listing.Id);
+                _logger.LogInformation("İlan ES indexi güncellendi: {ListingId}", listing.Id);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing ListingUpdatedEvent for {ListingId}", context.Message.ListingId);
+            _logger.LogError(ex, "ListingUpdatedEvent işlenirken hata: {ListingId}", context.Message.ListingId);
             throw;
         }
     }

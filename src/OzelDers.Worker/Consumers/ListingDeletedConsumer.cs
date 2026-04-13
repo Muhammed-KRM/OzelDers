@@ -1,5 +1,4 @@
 using MassTransit;
-using Microsoft.Extensions.Logging;
 using OzelDers.Business.Events;
 using OzelDers.Business.Interfaces;
 
@@ -23,17 +22,17 @@ public class ListingDeletedConsumer : IConsumer<ListingDeletedEvent>
 
     public async Task Consume(ConsumeContext<ListingDeletedEvent> context)
     {
-        _logger.LogInformation("Processing ListingDeletedEvent for ListingId: {ListingId}", context.Message.ListingId);
+        _logger.LogInformation("ListingDeletedEvent alındı: {ListingId}", context.Message.ListingId);
         try
         {
             await _searchService.DeleteListingIndexAsync(context.Message.ListingId);
             await _cacheService.RemoveByPatternAsync("search:*");
             await _cacheService.RemoveByPatternAsync("vitrin:*");
-            _logger.LogInformation("Deleted ES index for listing {ListingId}.", context.Message.ListingId);
+            _logger.LogInformation("İlan ES indexinden silindi: {ListingId}", context.Message.ListingId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing ListingDeletedEvent for {ListingId}", context.Message.ListingId);
+            _logger.LogError(ex, "ListingDeletedEvent işlenirken hata: {ListingId}", context.Message.ListingId);
             throw;
         }
     }
