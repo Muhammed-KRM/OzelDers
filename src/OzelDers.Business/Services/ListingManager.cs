@@ -15,6 +15,19 @@ namespace OzelDers.Business.Services;
 
 public class ListingManager : IListingService
 {
+    // ═══════════════════════════════════════════════
+    // HATA KODLARI — ListingManager (Prefix: LM)
+    // ═══════════════════════════════════════════════
+    private const string EC_CREATE   = "LM-001"; // CreateAsync
+    private const string EC_GETBYID  = "LM-002"; // GetByIdAsync
+    private const string EC_GETSLUG  = "LM-003"; // GetBySlugAsync
+    private const string EC_VITRIN   = "LM-004"; // GetVitrinListingsAsync
+    private const string EC_MYLIST   = "LM-005"; // GetMyListingsAsync
+    private const string EC_UPDATE   = "LM-006"; // UpdateAsync
+    private const string EC_DELETE   = "LM-007"; // DeleteAsync
+    private const string EC_SEARCH   = "LM-008"; // SearchAsync
+    // ═══════════════════════════════════════════════
+
     private readonly IListingRepository _listingRepo;
     private readonly IRepository<Branch> _branchRepo;
     private readonly IRepository<District> _districtRepo;
@@ -22,6 +35,7 @@ public class ListingManager : IListingService
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ITokenService _tokenService;
     private readonly ISettingService _settingService;
+    private readonly ILogService _logService;
 
     public ListingManager(
         IListingRepository listingRepo,
@@ -30,7 +44,8 @@ public class ListingManager : IListingService
         IValidator<ListingCreateDto> createValidator,
         IPublishEndpoint publishEndpoint,
         ITokenService tokenService,
-        ISettingService settingService)
+        ISettingService settingService,
+        ILogService logService)
     {
         _listingRepo = listingRepo;
         _branchRepo = branchRepo;
@@ -39,10 +54,13 @@ public class ListingManager : IListingService
         _publishEndpoint = publishEndpoint;
         _tokenService = tokenService;
         _settingService = settingService;
+        _logService = logService;
     }
 
     public async Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId)
     {
+        try
+        {
         // 1. FluentValidation ile doğrula
         var validationResult = await _createValidator.ValidateAsync(dto);
         if (!validationResult.IsValid)
@@ -82,37 +100,75 @@ public class ListingManager : IListingService
 
         // 6. DTO olarak döndür
         return MapToDto(listing);
+        }
+        catch (BusinessException) { throw; }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_CREATE, ex, dto, userId);
+            throw;
+        }
     }
 
     public async Task<ListingDto?> GetByIdAsync(Guid id)
     {
-        var listing = await _listingRepo.GetByIdAsync(id);
-        
-        // Ensure entity navigations like Branch, District, Owner are loaded when manually mapping
-        // In a real scenario we use eager loading (e.g. Include).
-        return listing is null ? null : MapToDto(listing);
+        try
+        {
+            var listing = await _listingRepo.GetByIdAsync(id);
+            return listing is null ? null : MapToDto(listing);
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_GETBYID, ex, id);
+            throw;
+        }
     }
 
     public async Task<ListingDto?> GetBySlugAsync(string slug)
     {
-        var listing = await _listingRepo.GetBySlugWithDetailsAsync(slug);
-        return listing is null ? null : MapToDto(listing);
+        try
+        {
+            var listing = await _listingRepo.GetBySlugWithDetailsAsync(slug);
+            return listing is null ? null : MapToDto(listing);
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_GETSLUG, ex, slug);
+            throw;
+        }
     }
 
     public async Task<List<ListingDto>> GetVitrinListingsAsync()
     {
-        var listings = await _listingRepo.FindAsync(l => l.IsVitrin && l.Status == ListingStatus.Active);
-        return listings.Select(MapToDto).ToList();
+        try
+        {
+            var listings = await _listingRepo.FindAsync(l => l.IsVitrin && l.Status == ListingStatus.Active);
+            return listings.Select(MapToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_VITRIN, ex);
+            throw;
+        }
     }
 
     public async Task<List<ListingDto>> GetMyListingsAsync(Guid userId)
     {
-        var listings = await _listingRepo.GetAllListingsByOwnerAsync(userId);
-        return listings.Select(MapToDto).ToList();
+        try
+        {
+            var listings = await _listingRepo.GetAllListingsByOwnerAsync(userId);
+            return listings.Select(MapToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_MYLIST, ex, userId, userId);
+            throw;
+        }
     }
 
     public async Task<ListingDto> UpdateAsync(Guid id, ListingUpdateDto dto, Guid userId)
     {
+        try
+        {
         var listing = await _listingRepo.GetByIdAsync(id)
             ?? throw new NotFoundException("İlan", id);
 
@@ -131,31 +187,31 @@ public class ListingManager : IListingService
         listing.BranchId = dto.BranchId;
         listing.DistrictId = dto.DistrictId;
         
-        // Check auto-moderation for content violation
         var modStatus = PerformAutoModeration(dto.Title, sanitizedDescription);
-        
-        // If it passed moderation, honor the user's toggle (IsActive)
         if (modStatus == ListingStatus.Active)
-        {
             listing.Status = dto.IsActive ? ListingStatus.Active : ListingStatus.Suspended;
-        }
         else
-        {
-            // If violation found, force pending
             listing.Status = ListingStatus.Pending;
-        }
 
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
 
-        // Event fırlat
         await _publishEndpoint.Publish(new ListingUpdatedEvent { ListingId = listing.Id });
 
         return MapToDto(listing);
+        }
+        catch (BusinessException) { throw; }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_UPDATE, ex, new { id, dto }, userId);
+            throw;
+        }
     }
 
     public async Task DeleteAsync(Guid id, Guid userId)
     {
+        try
+        {
         var listing = await _listingRepo.GetByIdAsync(id)
             ?? throw new NotFoundException("İlan", id);
 
@@ -166,14 +222,20 @@ public class ListingManager : IListingService
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
 
-        // Event fırlat
         await _publishEndpoint.Publish(new ListingDeletedEvent { ListingId = listing.Id });
+        }
+        catch (BusinessException) { throw; }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_DELETE, ex, new { id }, userId);
+            throw;
+        }
     }
 
     public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters)
     {
-        // Bu metod ileride SearchManager (ES) üzerinden çağrılacak.
-        // Şimdilik basit PostgreSQL sorgusu:
+        try
+        {
         var all = await _listingRepo.FindAsync(l => l.Status == ListingStatus.Active);
         var items = all.Select(MapToDto).ToList();
         return new SearchResultDto
@@ -183,6 +245,12 @@ public class ListingManager : IListingService
             Page = filters.Page,
             PageSize = filters.PageSize
         };
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync(EC_SEARCH, ex, filters);
+            throw;
+        }
     }
 
     /// <summary>

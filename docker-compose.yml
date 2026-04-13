@@ -7,7 +7,7 @@ services:
     depends_on: [postgres, redis]
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:?DB_PASSWORD is required}
 
   api:
     build:
@@ -17,11 +17,14 @@ services:
     depends_on: [postgres, redis, rabbitmq]
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:?DB_PASSWORD is required}
       - Redis__ConnectionString=redis:6379
-      - Jwt__Issuer=OzelDers
-      - Jwt__Audience=OzelDersClients
-      - Jwt__Key=SuperSecretKeyForJwtTokenGeneration2026!
+      - Jwt__Issuer=OzelDers.API
+      - Jwt__Audience=OzelDers.Clients
+      - Jwt__Key=${JWT_KEY:?JWT_KEY is required}
+      - Encryption__AesKey=${AES_KEY:?AES_KEY is required}
+      - AdminSeed__Email=${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      - AdminSeed__Password=${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
 
   worker:
     build:
@@ -30,7 +33,7 @@ services:
     depends_on: [postgres, elasticsearch, redis, rabbitmq]
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:-dev_password}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:?DB_PASSWORD is required}
       - Redis__ConnectionString=redis:6379
 
   nginx:
@@ -47,13 +50,14 @@ services:
     environment:
       POSTGRES_DB: ozelders
       POSTGRES_USER: ozelders_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
 
   elasticsearch:
     image: elasticsearch:8.12.0
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD is required}
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
     ports: ["9200:9200"]
     volumes: [esdata:/usr/share/elasticsearch/data]

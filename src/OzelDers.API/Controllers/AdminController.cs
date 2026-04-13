@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OzelDers.Business.Interfaces;
+using OzelDers.Data.Context;
 
 namespace OzelDers.API.Controllers;
 
@@ -11,11 +13,13 @@ public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
     private readonly ISettingService _settingService;
+    private readonly AppDbContext _db;
 
-    public AdminController(IAdminService adminService, ISettingService settingService)
+    public AdminController(IAdminService adminService, ISettingService settingService, AppDbContext db)
     {
         _adminService = adminService;
         _settingService = settingService;
+        _db = db;
     }
 
     // ─── Sistem Ayarları ─────────────────────────────────────
@@ -104,5 +108,78 @@ public class AdminController : ControllerBase
     {
         await _adminService.DeleteListingAsync(listingId);
         return Ok(new { message = "İlan silindi." });
+    }
+
+    // ─── Log Sorguları ───────────────────────────────────────
+    [HttpGet("logs/endpoints")]
+    public async Task<IActionResult> GetEndpointLogs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? statusCode = null,
+        [FromQuery] string? path = null,
+        [FromQuery] string? method = null,
+        [FromQuery] Guid? userId = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
+    {
+        var query = _db.EndpointLogs.AsQueryable();
+
+        if (statusCode.HasValue) query = query.Where(l => l.StatusCode == statusCode.Value);
+        if (!string.IsNullOrEmpty(path)) query = query.Where(l => l.Path.Contains(path));
+        if (!string.IsNullOrEmpty(method)) query = query.Where(l => l.Method == method.ToUpper());
+        if (userId.HasValue) query = query.Where(l => l.UserId == userId.Value);
+        if (from.HasValue) query = query.Where(l => l.CreatedAt >= from.Value);
+        if (to.HasValue) query = query.Where(l => l.CreatedAt <= to.Value);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(l => new
+            {
+                l.Id, l.TraceId, l.Method, l.Path, l.Query,
+                l.RequestBody, l.ResponseBody, l.StatusCode,
+                l.UserId, l.UserEmail, l.IpAddress, l.DurationMs, l.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, items });
+    }
+
+    [HttpGet("logs/functions")]
+    public async Task<IActionResult> GetFunctionLogs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? errorCode = null,
+        [FromQuery] string? className = null,
+        [FromQuery] string? severity = null,
+        [FromQuery] Guid? userId = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
+    {
+        var query = _db.FunctionLogs.AsQueryable();
+
+        if (!string.IsNullOrEmpty(errorCode)) query = query.Where(l => l.ErrorCode == errorCode);
+        if (!string.IsNullOrEmpty(className)) query = query.Where(l => l.ClassName.Contains(className));
+        if (!string.IsNullOrEmpty(severity)) query = query.Where(l => l.Severity == severity);
+        if (userId.HasValue) query = query.Where(l => l.UserId == userId.Value);
+        if (from.HasValue) query = query.Where(l => l.CreatedAt >= from.Value);
+        if (to.HasValue) query = query.Where(l => l.CreatedAt <= to.Value);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(l => new
+            {
+                l.Id, l.ErrorCode, l.ClassName, l.MethodName,
+                l.LineNumber, l.ErrorMessage, l.InputType, l.InputValue,
+                l.UserId, l.TraceId, l.Severity, l.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, items });
     }
 }

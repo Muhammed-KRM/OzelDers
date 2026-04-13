@@ -6,7 +6,7 @@ using OzelDers.Web.States;
 var builder = WebApplication.CreateBuilder(args);
 
 // === 1. API SERVİSLERİ VE BAĞIMLILIKLAR ===
-var apiBaseAddress = builder.Environment.IsDevelopment() ? "https://localhost:5001/" : "http://api:8080/";
+var apiBaseAddress = builder.Environment.IsDevelopment() ? "http://localhost:5074/" : "http://api:8080/";
 
 // AuthTokenHandler → HttpClient pipeline'ına enjekte
 builder.Services.AddScoped<AuthTokenHandler>();

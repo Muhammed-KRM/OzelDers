@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserManager>();
         services.AddScoped<IAdminService, AdminManager>();
         services.AddScoped<ISettingService, SettingManager>();
+        services.AddScoped<ILogService, LogManager>();
         services.AddMemoryCache();
         services.AddScoped<IEmailService, OzelDers.Business.Infrastructure.Email.SmtpEmailService>();
 

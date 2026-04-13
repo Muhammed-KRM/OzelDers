@@ -13,6 +13,7 @@ using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
 using OzelDers.API;
 using OzelDers.Business.Interfaces;
+using BC = BCrypt.Net.BCrypt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,10 +81,22 @@ builder.Services.AddRateLimiter(options =>
 
 // === 5. CORS ===
 builder.Services.AddCors(options =>
+{
+    // Development: her yerden izin ver
     options.AddPolicy("AllowAll", b => b
         .AllowAnyOrigin()
         .AllowAnyMethod()
-        .AllowAnyHeader()));
+        .AllowAnyHeader());
+
+    // Production: sadece izin verilen origin'ler
+    options.AddPolicy("Production", b => b
+        .WithOrigins(
+            builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+            ?? ["https://ozelders.com", "https://www.ozelders.com"])
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
+});
 
 // === 6. MassTransit (Event Publishing) ===
 // NOTE: MassTransit son sürümlerinde MT_LICENSE istiyor. Şimdilik lokal çalışması için
@@ -93,25 +106,32 @@ builder.Services.AddScoped<IPublishEndpoint, DummyPublishEndpoint>();
 var app = builder.Build();
 
 // === MİDDLEWARE PİPELINE ===
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Swagger her ortamda açık (Test/Demo süreci için)
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Swagger sadece Development ortamında açık
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
-    c.RoutePrefix = "swagger"; // Artık http://localhost:5001/swagger adresinde
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OzelDers.API v1");
+        c.RoutePrefix = "swagger";
+    });
 
-app.UseCors("AllowAll");
-
-// Kök adrese (/) gelindiğinde otomatik olarak Swagger'a yönlendir
-app.MapGet("/", context =>
+    app.MapGet("/", context =>
+    {
+        context.Response.Redirect("/swagger");
+        return Task.CompletedTask;
+    });
+}
+else
 {
-    context.Response.Redirect("/swagger");
-    return Task.CompletedTask;
-});
+    // Production'da kök adres 404 döner
+    app.MapGet("/", () => Results.NotFound());
+}
 
+app.UseCors(app.Environment.IsDevelopment() ? "AllowAll" : "Production");
 app.UseStaticFiles(); // uploads klasörü için
 app.UseAuthentication();
 app.UseAuthorization();
@@ -145,6 +165,28 @@ using (var scope = app.Services.CreateScope())
     
     await DatabaseSeeder.SeedAsync(context);
     
+    // Admin kullanıcı seed — bilgiler appsettings/environment'tan okunur, kaynak koda gömülmez
+    if (!context.Users.Any(u => u.Role == OzelDers.Data.Enums.UserRole.Admin))
+    {
+        var adminEmail = builder.Configuration["AdminSeed:Email"]
+            ?? throw new InvalidOperationException("AdminSeed:Email konfigürasyonu eksik. appsettings.Development.json veya environment variable olarak tanımlayın.");
+        var adminPassword = builder.Configuration["AdminSeed:Password"]
+            ?? throw new InvalidOperationException("AdminSeed:Password konfigürasyonu eksik.");
+
+        context.Users.Add(new OzelDers.Data.Entities.User
+        {
+            Email = adminEmail,
+            PasswordHash = BC.HashPassword(adminPassword),
+            FullName = "Site Yöneticisi",
+            Role = OzelDers.Data.Enums.UserRole.Admin,
+            IsActive = true,
+            IsEmailVerified = true,
+            TokenBalance = 0
+        });
+        await context.SaveChangesAsync();
+        logger.LogInformation("Admin kullanıcı oluşturuldu.");
+    }
+
     var settingService = scope.ServiceProvider.GetRequiredService<ISettingService>();
     await settingService.InitializeDefaultsAsync();
 }

@@ -25,6 +25,13 @@
             <p class="text-muted">Sistem performansı ve istatistikler</p>
         </div>
 
+        <!-- Sekmeler -->
+        <div class="report-tabs">
+            <button class="tab-btn @(activeTab == "stats" ? "active" : "")" @onclick='() => SetTab("stats")'>📈 İstatistikler</button>
+            <button class="tab-btn @(activeTab == "endpoint-logs" ? "active" : "")" @onclick='() => SetTab("endpoint-logs")'>🌐 Endpoint Logları</button>
+            <button class="tab-btn @(activeTab == "function-logs" ? "active" : "")" @onclick='() => SetTab("function-logs")'>⚠️ Hata Logları</button>
+        </div>
+
         @if (isLoading)
         {
             <div class="loading-overlay">
@@ -33,185 +40,379 @@
             </div>
         }
 
-        <!-- Genel İstatistikler -->
+        <!-- İstatistikler Sekmesi -->
+        @if (activeTab == "stats")
+        {
         <div class="stats-section">
             <h2>📈 Genel İstatistikler</h2>
             <div class="stats-grid">
                 <div class="stat-card card">
-                    <div class="stat-header">
-                        <span class="stat-icon">👥</span>
-                        <h3>Kullanıcılar</h3>
-                    </div>
+                    <div class="stat-header"><span class="stat-icon">👥</span><h3>Kullanıcılar</h3></div>
                     <div class="stat-body">
-                        <div class="stat-row">
-                            <span>Toplam Kullanıcı:</span>
-                            <strong>@stats.TotalUsers</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Öğretmen Sayısı:</span>
-                            <strong>@stats.TotalTeachers</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Öğrenci Sayısı:</span>
-                            <strong>@stats.TotalStudents</strong>
-                        </div>
+                        <div class="stat-row"><span>Toplam Kullanıcı:</span><strong>@stats.TotalUsers</strong></div>
+                        <div class="stat-row"><span>Öğretmen Sayısı:</span><strong>@stats.TotalTeachers</strong></div>
+                        <div class="stat-row"><span>Öğrenci Sayısı:</span><strong>@stats.TotalStudents</strong></div>
                     </div>
                 </div>
-
                 <div class="stat-card card">
-                    <div class="stat-header">
-                        <span class="stat-icon">📋</span>
-                        <h3>İlanlar</h3>
-                    </div>
+                    <div class="stat-header"><span class="stat-icon">📋</span><h3>İlanlar</h3></div>
                     <div class="stat-body">
-                        <div class="stat-row">
-                            <span>Toplam İlan:</span>
-                            <strong>@stats.TotalListings</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Aktif İlan:</span>
-                            <strong class="positive">@stats.ActiveListings</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Onay Bekleyen:</span>
-                            <strong class="warning">@stats.PendingListings</strong>
-                        </div>
+                        <div class="stat-row"><span>Toplam İlan:</span><strong>@stats.TotalListings</strong></div>
+                        <div class="stat-row"><span>Aktif İlan:</span><strong class="positive">@stats.ActiveListings</strong></div>
+                        <div class="stat-row"><span>Onay Bekleyen:</span><strong class="warning">@stats.PendingListings</strong></div>
                     </div>
                 </div>
-
                 <div class="stat-card card">
-                    <div class="stat-header">
-                        <span class="stat-icon">💬</span>
-                        <h3>İletişim</h3>
-                    </div>
+                    <div class="stat-header"><span class="stat-icon">💬</span><h3>İletişim</h3></div>
                     <div class="stat-body">
-                        <div class="stat-row">
-                            <span>Toplam Mesaj:</span>
-                            <strong>@stats.TotalMessages</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Sistem Sağlığı:</span>
-                            <strong class="positive">Mükemmel</strong>
-                        </div>
+                        <div class="stat-row"><span>Toplam Mesaj:</span><strong>@stats.TotalMessages</strong></div>
                     </div>
                 </div>
-
                 <div class="stat-card card">
-                    <div class="stat-header">
-                        <span class="stat-icon">💰</span>
-                        <h3>Finansal</h3>
-                    </div>
+                    <div class="stat-header"><span class="stat-icon">💰</span><h3>Finansal</h3></div>
                     <div class="stat-body">
-                        <div class="stat-row">
-                            <span>Toplam Ciro:</span>
-                            <strong class="positive">@stats.TotalRevenue.ToString("N0") TL</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>Para Birimi:</span>
-                            <strong>TRY</strong>
-                        </div>
+                        <div class="stat-row"><span>Toplam Ciro:</span><strong class="positive">@stats.TotalRevenue.ToString("N0") TL</strong></div>
                     </div>
                 </div>
             </div>
         </div>
+        }
 
-        <!-- Jeton İstatistikleri -->
-        <div class="token-stats card">
-            <h2>🪙 Jeton Satış Dağılımı</h2>
-            <div class="package-distribution">
-                @if (packageSales == null || !packageSales.Any())
-                {
-                    <p class="text-muted text-center p-20">Henüz satış verisi bulunmuyor.</p>
-                }
-                else
-                {
-                    @foreach (var package in packageSales)
+        <!-- Endpoint Logları Sekmesi -->
+        @if (activeTab == "endpoint-logs")
+        {
+        <div class="logs-section card">
+            <div class="logs-header">
+                <h2>🌐 Endpoint Logları</h2>
+                <div class="log-filters">
+                    <select @bind="endpointStatusFilter" class="filter-select">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="200">200 Başarılı</option>
+                        <option value="400">400 Hatalı İstek</option>
+                        <option value="401">401 Yetkisiz</option>
+                        <option value="404">404 Bulunamadı</option>
+                        <option value="500">500 Sunucu Hatası</option>
+                    </select>
+                    <input type="text" @bind="endpointPathFilter" placeholder="Path filtrele..." class="filter-input" />
+                    <button class="btn btn-primary btn-sm" @onclick="LoadEndpointLogs">Filtrele</button>
+                </div>
+            </div>
+
+            @if (endpointLogs == null)
+            {
+                <p class="text-muted text-center p-20">Yükleniyor...</p>
+            }
+            else if (!endpointLogs.Any())
+            {
+                <p class="text-muted text-center p-20">Log kaydı bulunamadı.</p>
+            }
+            else
+            {
+                <div class="log-summary">Toplam <strong>@endpointLogTotal</strong> kayıt</div>
+                <div class="logs-table-wrapper">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Zaman</th>
+                                <th>Method</th>
+                                <th>Path</th>
+                                <th>Durum</th>
+                                <th>Süre</th>
+                                <th>Kullanıcı</th>
+                                <th>IP</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in endpointLogs)
+                            {
+                                <tr class="log-row @GetStatusClass(log.StatusCode)">
+                                    <td class="log-time">@log.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm:ss")</td>
+                                    <td><span class="method-badge method-@log.Method.ToLower()">@log.Method</span></td>
+                                    <td class="log-path" title="@log.Path">@TruncatePath(log.Path)</td>
+                                    <td><span class="status-badge status-@GetStatusGroup(log.StatusCode)">@log.StatusCode</span></td>
+                                    <td class="log-duration">@log.DurationMs ms</td>
+                                    <td class="log-user">@(log.UserEmail ?? "Anonim")</td>
+                                    <td class="log-ip">@log.IpAddress</td>
+                                    <td>
+                                        <button class="btn-icon" @onclick="() => ShowLogDetail(log)">🔍</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="btn btn-secondary btn-sm" disabled="@(endpointPage <= 1)" @onclick="() => ChangeEndpointPage(-1)">← Önceki</button>
+                    <span>Sayfa @endpointPage</span>
+                    <button class="btn btn-secondary btn-sm" @onclick="() => ChangeEndpointPage(1)">Sonraki →</button>
+                </div>
+            }
+        </div>
+        }
+
+        <!-- Hata Logları Sekmesi -->
+        @if (activeTab == "function-logs")
+        {
+        <div class="logs-section card">
+            <div class="logs-header">
+                <h2>⚠️ Fonksiyon Hata Logları</h2>
+                <div class="log-filters">
+                    <input type="text" @bind="errorCodeFilter" placeholder="Hata kodu (örn: LM-001)" class="filter-input" />
+                    <select @bind="severityFilter" class="filter-select">
+                        <option value="">Tüm Seviyeler</option>
+                        <option value="Error">Error</option>
+                        <option value="Critical">Critical</option>
+                        <option value="Warning">Warning</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" @onclick="LoadFunctionLogs">Filtrele</button>
+                </div>
+            </div>
+
+            @if (functionLogs == null)
+            {
+                <p class="text-muted text-center p-20">Yükleniyor...</p>
+            }
+            else if (!functionLogs.Any())
+            {
+                <p class="text-muted text-center p-20">✅ Hata logu bulunamadı. Sistem sağlıklı görünüyor.</p>
+            }
+            else
+            {
+                <div class="log-summary">Toplam <strong>@functionLogTotal</strong> hata kaydı</div>
+                <div class="logs-table-wrapper">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Zaman</th>
+                                <th>Hata Kodu</th>
+                                <th>Sınıf</th>
+                                <th>Fonksiyon</th>
+                                <th>Hata Mesajı</th>
+                                <th>Seviye</th>
+                                <th>Kullanıcı</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in functionLogs)
+                            {
+                                <tr class="log-row log-error">
+                                    <td class="log-time">@log.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm:ss")</td>
+                                    <td><code class="error-code">@log.ErrorCode</code></td>
+                                    <td class="log-class">@log.ClassName</td>
+                                    <td class="log-method">@log.MethodName</td>
+                                    <td class="log-message" title="@log.ErrorMessage">@TruncateMessage(log.ErrorMessage)</td>
+                                    <td><span class="severity-badge severity-@log.Severity.ToLower()">@log.Severity</span></td>
+                                    <td>@(log.UserId.HasValue ? log.UserId.Value.ToString()[..8] + "..." : "—")</td>
+                                    <td>
+                                        <button class="btn-icon" @onclick="() => ShowFunctionLogDetail(log)">🔍</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="btn btn-secondary btn-sm" disabled="@(functionPage <= 1)" @onclick="() => ChangeFunctionPage(-1)">← Önceki</button>
+                    <span>Sayfa @functionPage</span>
+                    <button class="btn btn-secondary btn-sm" @onclick="() => ChangeFunctionPage(1)">Sonraki →</button>
+                </div>
+            }
+        </div>
+        }
+
+        <!-- Log Detay Modal -->
+        @if (selectedEndpointLog != null)
+        {
+        <div class="modal-overlay" @onclick="CloseModal">
+            <div class="modal-box" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h3>🔍 Endpoint Log Detayı</h3>
+                    <button class="modal-close" @onclick="CloseModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-row"><strong>TraceId:</strong> <code>@selectedEndpointLog.TraceId</code></div>
+                    <div class="detail-row"><strong>Zaman:</strong> @selectedEndpointLog.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</div>
+                    <div class="detail-row"><strong>Method:</strong> @selectedEndpointLog.Method</div>
+                    <div class="detail-row"><strong>Path:</strong> @selectedEndpointLog.Path@selectedEndpointLog.Query</div>
+                    <div class="detail-row"><strong>Status:</strong> @selectedEndpointLog.StatusCode</div>
+                    <div class="detail-row"><strong>Süre:</strong> @selectedEndpointLog.DurationMs ms</div>
+                    <div class="detail-row"><strong>Kullanıcı:</strong> @(selectedEndpointLog.UserEmail ?? "Anonim")</div>
+                    <div class="detail-row"><strong>IP:</strong> @selectedEndpointLog.IpAddress</div>
+                    @if (!string.IsNullOrEmpty(selectedEndpointLog.RequestBody))
                     {
-                        <div class="package-bar">
-                            <div class="package-info">
-                                <span class="package-name">@package.Name</span>
-                                <span class="package-count">@package.SalesCount satış</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: @package.Percentage%"></div>
-                            </div>
-                        </div>
+                        <div class="detail-row"><strong>Request Body:</strong><pre class="log-pre">@selectedEndpointLog.RequestBody</pre></div>
                     }
-                }
-            </div>
-        </div>
-
-        <!-- Popüler Branşlar -->
-        <div class="popular-branches card">
-            <h2>📚 En Popüler Branşlar</h2>
-            <div class="branches-list">
-                @if (popularBranches == null || !popularBranches.Any())
-                {
-                    <p class="text-muted text-center p-20">Veri bulunamadı.</p>
-                }
-                else
-                {
-                    @foreach (var branch in popularBranches)
+                    @if (!string.IsNullOrEmpty(selectedEndpointLog.ResponseBody))
                     {
-                        <div class="branch-item">
-                            <span class="branch-rank">@branch.Rank</span>
-                            <span class="branch-name">@branch.Name</span>
-                            <span class="branch-count">@branch.ListingCount ilan</span>
-                        </div>
+                        <div class="detail-row"><strong>Response Body:</strong><pre class="log-pre">@selectedEndpointLog.ResponseBody</pre></div>
                     }
-                }
+                </div>
             </div>
         </div>
+        }
+
+        @if (selectedFunctionLog != null)
+        {
+        <div class="modal-overlay" @onclick="CloseModal">
+            <div class="modal-box" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h3>⚠️ Hata Log Detayı</h3>
+                    <button class="modal-close" @onclick="CloseModal">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-row"><strong>Hata Kodu:</strong> <code class="error-code">@selectedFunctionLog.ErrorCode</code></div>
+                    <div class="detail-row"><strong>Zaman:</strong> @selectedFunctionLog.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</div>
+                    <div class="detail-row"><strong>Sınıf:</strong> @selectedFunctionLog.ClassName</div>
+                    <div class="detail-row"><strong>Fonksiyon:</strong> @selectedFunctionLog.MethodName</div>
+                    <div class="detail-row"><strong>Satır:</strong> @selectedFunctionLog.LineNumber</div>
+                    <div class="detail-row"><strong>Seviye:</strong> @selectedFunctionLog.Severity</div>
+                    <div class="detail-row"><strong>Hata Mesajı:</strong><pre class="log-pre">@selectedFunctionLog.ErrorMessage</pre></div>
+                    @if (!string.IsNullOrEmpty(selectedFunctionLog.InputValue))
+                    {
+                        <div class="detail-row"><strong>Gelen Veri (@selectedFunctionLog.InputType):</strong><pre class="log-pre">@selectedFunctionLog.InputValue</pre></div>
+                    }
+                    @if (!string.IsNullOrEmpty(selectedFunctionLog.StackTrace))
+                    {
+                        <div class="detail-row"><strong>Stack Trace:</strong><pre class="log-pre stack-trace">@selectedFunctionLog.StackTrace</pre></div>
+                    }
+                </div>
+            </div>
+        </div>
+        }
     </div>
 </section>
 
 @code {
+    // ── Genel ──────────────────────────────────────────────
     private AdminDashboardDto stats = new();
     private bool isLoading = false;
-    private List<PackageSaleDto> packageSales = new();
-    private List<AdminBranchDto> popularBranches = new();
+    private string activeTab = "stats";
+
+    // ── Endpoint Log ────────────────────────────────────────
+    private List<EndpointLogItem>? endpointLogs;
+    private int endpointLogTotal;
+    private int endpointPage = 1;
+    private string endpointStatusFilter = "";
+    private string endpointPathFilter = "";
+
+    // ── Function Log ────────────────────────────────────────
+    private List<FunctionLogItem>? functionLogs;
+    private int functionLogTotal;
+    private int functionPage = 1;
+    private string errorCodeFilter = "";
+    private string severityFilter = "";
+
+    // ── Modal ───────────────────────────────────────────────
+    private EndpointLogItem? selectedEndpointLog;
+    private FunctionLogItem? selectedFunctionLog;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
     }
 
+    private async Task SetTab(string tab)
+    {
+        activeTab = tab;
+        if (tab == "endpoint-logs" && endpointLogs == null) await LoadEndpointLogs();
+        if (tab == "function-logs" && functionLogs == null) await LoadFunctionLogs();
+    }
+
     private async Task LoadData()
+    {
+        isLoading = true;
+        try { stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard") ?? new(); }
+        catch { }
+        finally { isLoading = false; }
+    }
+
+    private async Task LoadEndpointLogs()
     {
         isLoading = true;
         try
         {
-            stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard") ?? new();
-            
-            // Branch ve Paket istatistikleri için ayrı endpoint'ler ileride eklenebilir.
-            // Şimdilik dashboard verisini kullanıyoruz.
-            LoadMockMeta();
+            var url = $"api/admin/logs/endpoints?page={endpointPage}&pageSize=20";
+            if (!string.IsNullOrEmpty(endpointStatusFilter)) url += $"&statusCode={endpointStatusFilter}";
+            if (!string.IsNullOrEmpty(endpointPathFilter)) url += $"&path={Uri.EscapeDataString(endpointPathFilter)}";
+            var result = await Http.GetFromJsonAsync<LogPageResult<EndpointLogItem>>(url);
+            if (result != null) { endpointLogs = result.Items; endpointLogTotal = result.Total; }
         }
-        catch (Exception)
-        {
-            // Prerendering sırasında JS çağırılamaz
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { endpointLogs = new(); }
+        finally { isLoading = false; }
     }
 
-    private void LoadMockMeta()
+    private async Task LoadFunctionLogs()
     {
-        // Meta veriler (Henüz API'de olmayanlar için şimdilik mock)
-        packageSales = new List<PackageSaleDto>
+        isLoading = true;
+        try
         {
-            new() { Name = "Popüler (10 Jeton)", SalesCount = 145, Percentage = 45 },
-            new() { Name = "Profesyonel (25 Jeton)", SalesCount = 89, Percentage = 28 },
-            new() { Name = "Başlangıç (5 Jeton)", SalesCount = 67, Percentage = 21 }
-        };
+            var url = $"api/admin/logs/functions?page={functionPage}&pageSize=20";
+            if (!string.IsNullOrEmpty(errorCodeFilter)) url += $"&errorCode={Uri.EscapeDataString(errorCodeFilter)}";
+            if (!string.IsNullOrEmpty(severityFilter)) url += $"&severity={severityFilter}";
+            var result = await Http.GetFromJsonAsync<LogPageResult<FunctionLogItem>>(url);
+            if (result != null) { functionLogs = result.Items; functionLogTotal = result.Total; }
+        }
+        catch { functionLogs = new(); }
+        finally { isLoading = false; }
+    }
 
-        popularBranches = new List<AdminBranchDto>
-        {
-            new() { Rank = 1, Name = "Matematik", ListingCount = 234 },
-            new() { Rank = 2, Name = "İngilizce", ListingCount = 189 },
-            new() { Rank = 3, Name = "Fizik", ListingCount = 145 }
-        };
+    private async Task ChangeEndpointPage(int delta)
+    {
+        endpointPage = Math.Max(1, endpointPage + delta);
+        await LoadEndpointLogs();
+    }
+
+    private async Task ChangeFunctionPage(int delta)
+    {
+        functionPage = Math.Max(1, functionPage + delta);
+        await LoadFunctionLogs();
+    }
+
+    private void ShowLogDetail(EndpointLogItem log) { selectedEndpointLog = log; selectedFunctionLog = null; }
+    private void ShowFunctionLogDetail(FunctionLogItem log) { selectedFunctionLog = log; selectedEndpointLog = null; }
+    private void CloseModal() { selectedEndpointLog = null; selectedFunctionLog = null; }
+
+    private string GetStatusClass(int code) => code >= 500 ? "log-500" : code >= 400 ? "log-400" : "log-ok";
+    private string GetStatusGroup(int code) => code >= 500 ? "error" : code >= 400 ? "warn" : "ok";
+    private string TruncatePath(string? p) => p?.Length > 45 ? p[..45] + "…" : p ?? "";
+    private string? TruncateMessage(string? m) => m?.Length > 60 ? m[..60] + "…" : m;
+
+    // ── DTO'lar ─────────────────────────────────────────────
+    private class LogPageResult<T> { public int Total { get; set; } public List<T> Items { get; set; } = new(); }
+
+    private class EndpointLogItem
+    {
+        public long Id { get; set; }
+        public string? TraceId { get; set; }
+        public string Method { get; set; } = "";
+        public string Path { get; set; } = "";
+        public string? Query { get; set; }
+        public string? RequestBody { get; set; }
+        public string? ResponseBody { get; set; }
+        public int StatusCode { get; set; }
+        public Guid? UserId { get; set; }
+        public string? UserEmail { get; set; }
+        public string? IpAddress { get; set; }
+        public int DurationMs { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private class FunctionLogItem
+    {
+        public long Id { get; set; }
+        public string ErrorCode { get; set; } = "";
+        public string ClassName { get; set; } = "";
+        public string MethodName { get; set; } = "";
+        public int LineNumber { get; set; }
+        public string? ErrorMessage { get; set; }
+        public string? StackTrace { get; set; }
+        public string? InputType { get; set; }
+        public string? InputValue { get; set; }
+        public Guid? UserId { get; set; }
+        public string? TraceId { get; set; }
+        public string Severity { get; set; } = "Error";
+        public DateTime CreatedAt { get; set; }
     }
 }

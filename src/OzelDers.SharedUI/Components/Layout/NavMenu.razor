@@ -58,6 +58,12 @@
                                 <a href="/panel/jetonlarim" class="dropdown-item">💰 Cüzdan & Jetonlar</a>
                                 <a href="/panel/profil-ayarlari" class="dropdown-item">⚙️ Profil Ayarları</a>
                                 <hr class="dropdown-divider" />
+                                <AuthorizeView Roles="Admin" Context="adminCtx">
+                                    <Authorized>
+                                        <a href="/admin" class="dropdown-item dropdown-admin">🛡️ Admin Paneli</a>
+                                        <hr class="dropdown-divider" />
+                                    </Authorized>
+                                </AuthorizeView>
                                 <button class="dropdown-item dropdown-logout" @onclick="HandleLogout">🚪 Çıkış Yap</button>
                             </div>
                         }

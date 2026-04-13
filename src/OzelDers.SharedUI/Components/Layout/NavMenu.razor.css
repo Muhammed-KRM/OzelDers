@@ -165,3 +165,15 @@
     .navbar-links { gap: 0.75rem; }
     .profile-dropdown { right: -1rem; width: 240px; }
 }
+
+.dropdown-admin {
+    color: #e53e3e;
+    font-weight: 700;
+    background: rgba(229, 62, 62, 0.06);
+    border-radius: 8px;
+}
+
+.dropdown-admin:hover {
+    background: rgba(229, 62, 62, 0.12) !important;
+    color: #c53030;
+}

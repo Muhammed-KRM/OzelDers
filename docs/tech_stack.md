@@ -21,14 +21,23 @@ Bu döküman, projenin teknolojik omurgasını ve kullanılan araçların roller
 *   **MediatR:** API ve Business katmanı arasında CQRS (Okuma/Yazma ayrımı) prensibini uygulamak için kullanılır. (Enterprise seviye .NET kodu standardı).
 *   **OzelDers.Worker:** Kuyruktaki işleri (E-posta, Görsel Boyutlandırma, ES Indexleme) sırayla yapan arka plan (Background) servisi.
 
-## 4. Güvenlik ve Altyapı
+## 4. AI & Moderasyon
+*   **ML.NET:** İlanlardaki iletişim bilgilerini (telefon, e-posta) yakalamak için kullanılan yerel makine öğrenmesi kütüphanesi.
+*   **Smart Regex:** API seviyesinde hızlı ve akıllı modelleme ile ilk katman denetimi sağlar.
+*   **LlamaSharp / Ollama (Opsiyonel):** Worker seviyesinde daha derinlemesine niyet analizi yapabilen yerel dil modelleri.
+
+## 5. Güvenlik ve Altyapı
 *   **JWT:** Bearer Token tabanlı kimlik doğrulama.
 *   **AES-256:** Hassas veriler (TCKN, IBAN) için veritabanı düzeyinde şifreleme.
 *   **ImageSharp:** Fotoğrafların WebP formatına dönüştürülmesi ve watermark basılması.
 *   **Docker:** Tüm bu teknolojilerin (Postgre, Redis, ES, RabbitMQ) tek komutla ayağa kaldırılmasını sağlayan konteyner yapısı.
 *   **Nginx:** Gelen trafiği Web App veya API'ye yönlendiren Reverse Proxy.
 
-## 5. Doküman Referansları
+## 6. Geliştirme ve SDK Ortamı
+*   **Android SDK & Tools:** MAUI projelerinin Android platformuna derlenmesi için gerekli `avdmanager`, `emulator` ve `platform-tools`.
+*   **JDK (Java Development Kit):** Android derleme süreçleri için `jbr` (Android Studio) veya OpenJDK bağımlılığı.
+
+## 7. Doküman Referansları
 | Konu | Doküman |
 | :--- | :--- |
 | Katmanlı Mimari ve Klasörler | [implementation_plan_part1.md](file:///d:/OZELDERS/docs/implementation_plan_part1.md) |

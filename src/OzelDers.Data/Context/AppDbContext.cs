@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<TokenPackage> TokenPackages => Set<TokenPackage>();
     public DbSet<VitrinPackage> VitrinPackages => Set<VitrinPackage>();
     public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
+    public DbSet<EndpointLog> EndpointLogs => Set<EndpointLog>();
+    public DbSet<FunctionLog> FunctionLogs => Set<FunctionLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

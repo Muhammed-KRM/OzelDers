@@ -44,20 +44,38 @@ Kullanıcının ilk karşılaştığı, güven veren ve harekete geçiren bölü
 ### 4. Kullanıcı Paneli (Unified Dashboard)
 Herkesin tek bir hesabı vardır (Öğretmen/Öğrenci ayrımı yoktur).
 *   **İlanlarım:** "Ders Veriyorum" ve "Ders Arıyorum" tiplerindeki tüm ilanların yönetimi.
-*   **Mesajlarım:**
-    *   *Teklif Gelenler:* İlana gelen (Jetonla açılacak) mesajlar.
-    *   *Direkt Gelenler:* Başkasının jetonla gönderdiği (Ücretsiz açılacak) mesajlar.
-*   **Jeton ve Cüzdan:** Bakiye takibi ve jeton satın alma ekranı.
+*   **Mesajlarım:** bakiye takibi ve jeton satın alma ekranı.
 *   **Profil Ayarları:** Temel bilgiler, IBAN ve onay belgeleri doğrulaması.
 
-### 6. Admin Paneli (Kontrol Kulesi)
+### 5. Admin Paneli (Kontrol Kulesi)
 *   **İlan Onayı:** Yeni ilanları KVKK ve site kurallarına göre denetleme.
 *   **Kullanıcı Yönetimi:** Üyeleri görüntüleme, askıya alma veya destek verme.
 *   **Finansal Raporlar:** Günlük satışlar ve toplam ciro takibi.
 
 ---
 
-## 🛠️ Teknik Nedenler (Neden Bu Altyapı?)
+## 🛡️ 6. Akıllı Moderasyon ve Güvenlik Altyapısı
+Platformun kalitesini korumak için ileri seviye bir denetim sistemi kurulmuştur:
+*   **AI Destekli Filtreleme:** İlan başlığı ve açıklamasında telefon, e-posta veya harici link paylaşımı ML.NET ve derin öğrenme algoritmalarıyla engellenir.
+*   **Kademeli Ban Sistemi (Strike System):**
+    *   **5 İhlal:** 1 Hafta uzaklaştırma.
+    *   **8 İhlal:** 1 Ay uzaklaştırma.
+    *   **11 İhlal:** Kalıcı hesap kapatma.
+*   **Moderation Middleware:** Banlanan kullanıcılar sistemdaki kritik menülere erişemez, sadece aktif yasak uyarısını görürler.
+
+## 🔍 7. Gelişmiş Keşif (Discovery) ve "Sahibinden" Modeli
+Kullanıcıların aradıkları eğitime saniyeler içinde ulaşması için tasarlanmıştır:
+*   **Mega-Filter:** Ana sayfada Branş, Şehir/İlçe ve Fiyat Aralığı (Range Slider) ile anlık süzme.
+*   **Dinamik Grid:** Filtreleme yapılmadığında, algoritmik olarak öne çıkarılan ve vitrin paketi olan ilanların şık bir dizilimle sunulması.
+
+## 🧭 8. Stratejik Kategori Navigasyonu
+Eğitim seviyelerine göre özelleştirilmiş kategori ağacı:
+*   **Okul Seviyeleri:** Ana Sınıfı, İlkokul, Ortaokul ve Lise hiyerarşisi (Dropdown destekli).
+*   **Dinamik Landing Sayfaları:** Her kategoriye (YKS, Yazılım, Müzik vb.) özel renk paleti ve görsel içerik yükleyen dinamik `/kategori/{slug}` yapısı.
+
+---
+
+## 🛠️ 9. Teknik Nedenler (Neden Bu Altyapı?)
 *   **Blazor & MAUI:** Teknoloji birliği sağlar. Web siteni Google bulabilir (**SEO**), mobil uygulamanı ise kullanıcı cebinde taşır.
 *   **PostgreSQL & Elasticsearch:** Verilerin güvenli saklanması (Postgre) ve devasa ilan yığınları arasında ışık hızında arama (Elastic) dengesini kurar.
 *   **RabbitMQ:** E-posta bildirimi ve fotoğraf işleme gibi yan işlerin ana siteyi asla yavaşlatmamasını sağlar.
