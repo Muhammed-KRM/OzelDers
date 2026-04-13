@@ -1,5 +1,9 @@
 using Microsoft.Extensions.Logging;
 
+using OzelDers.App.States;
+using Microsoft.AspNetCore.Components.Authorization;
+using OzelDers.Business.Interfaces;
+
 namespace OzelDers.App;
 
 public static class MauiProgram
@@ -16,8 +20,20 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
         
-        // MAUI Uygulaması: Güvenlik (N-Tier kuralları) gereği DB'yi bilemez. Sadece HttpClient ile API'ye gidecek.
-        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:5001/") }); // API Adresi
+        // MAUI Kimlik Doğrulama Servisleri
+        builder.Services.AddAuthorizationCore();
+        builder.Services.AddCascadingAuthenticationState();
+        builder.Services.AddScoped<AuthenticationStateProvider, MauiAuthenticationStateProvider>();
+        builder.Services.AddScoped<ICustomAuthStateProvider>(sp => (ICustomAuthStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
+        
+        // HTTP Client ve Token Yönetimi
+        builder.Services.AddScoped<MauiAuthTokenHandler>();
+        builder.Services.AddScoped(sp =>
+        {
+            var handler = sp.GetRequiredService<MauiAuthTokenHandler>();
+            handler.InnerHandler = new HttpClientHandler();
+            return new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5001/") }; // API Adresi
+        });
         
         // MAUI için API Wrapper servislerini bağla
         OzelDers.SharedUI.DependencyInjection.AddSharedApiServices(builder.Services);
