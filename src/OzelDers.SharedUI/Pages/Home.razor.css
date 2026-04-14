@@ -3,6 +3,8 @@
     position: relative;
     overflow: hidden;
     text-align: center;
+    /* Mobilde taşmayı engelle */
+    max-width: 100%;
 }
 
 .hero-title {
@@ -116,4 +118,5 @@
     .hero-title { font-size: 2.5rem; }
     .hero-subtitle { font-size: 1.125rem; }
     .cta-section { padding: 4rem 1.5rem; }
+    .search-btn { padding: 0.75rem 1.25rem; font-size: 0.875rem; white-space: nowrap; }
 }

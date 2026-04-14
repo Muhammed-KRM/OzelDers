@@ -10,7 +10,7 @@
         <div class="owner-avatar">
             @if (!string.IsNullOrEmpty(Listing.OwnerImageUrl))
             {
-                <img src="@Listing.OwnerImageUrl" alt="@Listing.OwnerName" />
+                <img src="@Listing.OwnerImageUrl" alt="@Listing.OwnerName" loading="lazy" />
             }
             else
             {

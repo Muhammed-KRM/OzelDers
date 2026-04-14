@@ -11,16 +11,14 @@
     <Authorized>
         <section class="section messages-page">
             <div class="container">
-                <div class="page-header">
-                    <div class="header-content">
-                        <h1>Mesajlarım</h1>
+                <PageHeader Title="Mesajlarım" Subtitle="İlanlarınıza gelen mesajları görüntüleyin ve yanıtlayın" BackUrl="/panel/dashboard">
+                    <Actions>
                         <div class="token-badge">
                             <span class="token-icon">🪙</span>
                             <span class="token-count">@tokenBalance Jeton</span>
                         </div>
-                    </div>
-                    <p class="text-muted">İlanlarınıza gelen mesajları görüntüleyin ve yanıtlayın</p>
-                </div>
+                    </Actions>
+                </PageHeader>
 
                 @if (isLoading)
                 {
@@ -158,10 +156,14 @@
     private string replyText = string.Empty;
     private bool isSendingReply = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadMessages();
-        await LoadTokenBalance();
+        if (firstRender)
+        {
+            await LoadMessages();
+            await LoadTokenBalance();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadMessages()

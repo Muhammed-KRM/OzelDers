@@ -16,17 +16,6 @@
 }
 
 /* Sayfa Başlığı */
-.page-header {
-    margin-bottom: var(--space-8);
-}
-
-.page-header h1 {
-    font-family: var(--font-heading);
-    font-size: 2.5rem;
-    color: var(--color-text-primary);
-    margin-bottom: var(--space-2);
-}
-
 .text-muted {
     font-size: 1.125rem;
     color: var(--color-text-secondary);
@@ -308,10 +297,6 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .page-header h1 {
-        font-size: 2rem;
-    }
-
     .stats-grid {
         grid-template-columns: 1fr;
     }

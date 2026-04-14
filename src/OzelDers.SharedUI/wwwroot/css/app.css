@@ -11,7 +11,7 @@ body {
         radial-gradient(at 0% 0%, rgba(250, 98, 107, 0.05) 0px, transparent 50%),
         radial-gradient(at 100% 0%, rgba(30, 41, 59, 0.03) 0px, transparent 50%),
         radial-gradient(at 50% 100%, rgba(250, 98, 107, 0.02) 0px, transparent 50%);
-    background-attachment: fixed;
+    background-attachment: scroll; /* C-1: Mobil repaint sorunu giderildi */
     min-height: 100vh;
     color: var(--color-text-primary);
     overflow-x: hidden;
@@ -42,4 +42,16 @@ body {
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
+}
+
+/* C-7: Glassmorphism mobil optimizasyonu — düşük GPU'lu cihazlarda blur azaltıldı */
+@media (max-width: 768px) {
+    .glass {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+    .glass-dark {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
 }

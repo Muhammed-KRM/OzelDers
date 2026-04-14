@@ -11,10 +11,7 @@
     <Authorized>
         <section class="section edit-listing-page">
             <div class="container">
-                <div class="page-header">
-                    <h1>İlanı Düzenle</h1>
-                    <p class="text-muted">İlan bilgilerininizi güncelleyin</p>
-                </div>
+                <PageHeader Title="İlanı Düzenle" Subtitle="İlan bilgilerini güncelleyin" BackUrl="/panel/ilanlarim" />
 
                 @if (isLoading)
                 {
@@ -195,10 +192,14 @@
     private bool isSubmitting = false;
     private string? errorMessage;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadFormData();
-        await LoadListing();
+        if (firstRender)
+        {
+            await LoadFormData();
+            await LoadListing();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadListing()

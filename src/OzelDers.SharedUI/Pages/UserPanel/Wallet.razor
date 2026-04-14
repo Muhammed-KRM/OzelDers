@@ -13,7 +13,7 @@
     <Authorized>
         <section class="section wallet-page">
             <div class="container">
-                <!-- Bakiye Hero -->
+                <PageHeader Title="Jeton Cüzdanım" Subtitle="Jeton bakiyenizi yönetin ve paket satın alın" BackUrl="/panel/dashboard" />
                 <div class="balance-hero card">
                     <div class="balance-content">
                         <h1>Jeton Bakiyeniz</h1>
@@ -154,11 +154,15 @@
     private bool isPurchasing = false;
     private int? selectedPackageId = null;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadBalance();
-        await LoadPackages();
-        await LoadTransactions();
+        if (firstRender)
+        {
+            await LoadBalance();
+            await LoadPackages();
+            await LoadTransactions();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadBalance()

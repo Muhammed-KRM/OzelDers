@@ -10,16 +10,11 @@
 
 <section class="section admin-dashboard">
     <div class="container">
-        <!-- Başlık -->
-        <div class="page-header">
-            <div class="header-content">
-                <h1>🎛️ Admin Paneli</h1>
-                <button class="btn btn-secondary" @onclick="LoadDashboard">
-                    🔄 Yenile
-                </button>
-            </div>
-            <p class="text-muted">Sistem genel bakış ve yönetim</p>
-        </div>
+        <PageHeader Title="Admin Paneli" Subtitle="Sistem genel bakış ve yönetim" ShowBack="false">
+            <Actions>
+                <button class="btn btn-secondary" @onclick="LoadDashboard">🔄 Yenile</button>
+            </Actions>
+        </PageHeader>
 
         @if (isLoading)
         {
@@ -147,9 +142,13 @@
     private AdminDashboardDto stats = new();
     private bool isLoading = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadDashboard();
+        if (firstRender)
+        {
+            await LoadDashboard();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadDashboard()

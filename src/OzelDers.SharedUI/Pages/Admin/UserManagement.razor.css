@@ -16,10 +16,6 @@
 }
 
 /* Sayfa Başlığı */
-.page-header {
-    margin-bottom: var(--space-6);
-}
-
 .header-content {
     display: flex;
     justify-content: space-between;
@@ -336,10 +332,6 @@
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-3);
-    }
-
-    .page-header h1 {
-        font-size: 2rem;
     }
 
     .filters-bar {

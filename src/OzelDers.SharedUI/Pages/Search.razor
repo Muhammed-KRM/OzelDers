@@ -29,7 +29,7 @@
             <div class="grid grid-3">
                 @foreach (var listing in result.Items)
                 {
-                    <ListingCard Listing="listing" />
+                    <ListingCard @key="listing.Id" Listing="listing" />
                 }
             </div>
             <Pagination CurrentPage="result.Page" TotalPages="result.TotalPages" OnPageChanged="ChangePage" />

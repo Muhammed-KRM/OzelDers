@@ -9,21 +9,11 @@
 
 <section class="section user-management">
     <div class="container">
-        <!-- Başlık ve Filtreler -->
-        <div class="page-header">
-            <div class="header-content">
-                <h1>👥 Kullanıcı Yönetimi</h1>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" @onclick="LoadUsers">
-                        🔄 Yenile
-                    </button>
-                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
-                        ← Panele Dön
-                    </button>
-                </div>
-            </div>
-            <p class="text-muted">Tüm kullanıcıları görüntüleyin ve yönetin</p>
-        </div>
+        <PageHeader Title="Kullanıcı Yönetimi" Subtitle="Tüm kullanıcıları görüntüleyin ve yönetin" BackUrl="/admin">
+            <Actions>
+                <button class="btn btn-secondary" @onclick="LoadUsers">🔄 Yenile</button>
+            </Actions>
+        </PageHeader>
 
         <!-- Filtre ve Arama -->
         <div class="filters-bar card">
@@ -133,9 +123,13 @@
     private bool isLoading = false;
     private System.Timers.Timer? searchTimer;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadUsers();
+        if (firstRender)
+        {
+            await LoadUsers();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadUsers()

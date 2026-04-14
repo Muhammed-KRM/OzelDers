@@ -9,21 +9,11 @@
 
 <section class="section listing-management">
     <div class="container">
-        <!-- Başlık -->
-        <div class="page-header">
-            <div class="header-content">
-                <h1>📋 İlan Yönetimi</h1>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" @onclick="LoadListings">
-                        🔄 Yenile
-                    </button>
-                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/admin")'>
-                        ← Panele Dön
-                    </button>
-                </div>
-            </div>
-            <p class="text-muted">Tüm ilanları görüntüleyin ve yönetin</p>
-        </div>
+        <PageHeader Title="İlan Yönetimi" Subtitle="Tüm ilanları görüntüleyin ve yönetin" BackUrl="/admin">
+            <Actions>
+                <button class="btn btn-secondary" @onclick="LoadListings">🔄 Yenile</button>
+            </Actions>
+        </PageHeader>
 
         <!-- Filtre ve Arama -->
         <div class="filters-bar card">
@@ -162,9 +152,13 @@
     private bool isLoading = false;
     private System.Timers.Timer? searchTimer;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadListings();
+        if (firstRender)
+        {
+            await LoadListings();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadListings()

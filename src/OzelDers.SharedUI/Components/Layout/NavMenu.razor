@@ -1,92 +1,175 @@
 @using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 
 <nav class="navbar navbar-glass">
-    <div class="container flex-between">
-        <a href="/" class="navbar-brand">
-            <span class="brand-icon">🎓</span>
-            <span class="brand-text">OzelDers</span>
-        </a>
+    <div class="navbar-inner">
+        <!-- Sol: Geri oku (panel/admin sayfalarında) + Logo -->
+        <div class="navbar-left">
+            @if (showBackButton)
+            {
+                <button class="navbar-back-btn" @onclick="GoBack" aria-label="Geri dön" title="Geri">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M12 5l-7 7 7 7" />
+                    </svg>
+                </button>
+            }
+            <a href="/" class="navbar-brand">
+                <span class="brand-icon">🎓</span>
+                <span class="brand-text">OzelDers</span>
+            </a>
+        </div>
 
-        <!-- Mobil Menü Açma/Kapama Butonu -->
-        <button class="mobile-menu-toggle" @onclick="ToggleMobileMenu">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                @if (isMobileMenuOpen)
-                {
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                }
-                else
-                {
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                }
-            </svg>
-        </button>
+        <!-- Sağ: Linkler (masaüstü) + Hamburger (mobil) -->
+        <div class="navbar-right">
+            <!-- Masaüstü linkleri -->
+            <div class="navbar-links">
+                <a href="/arama" class="nav-link">Öğretmen Bul</a>
+                <a href="/nasil-calisir" class="nav-link">Nasıl Çalışır?</a>
 
-        <div class="navbar-links @(isMobileMenuOpen ? "open" : "")">
-            <a href="/arama" class="nav-link" @onclick="CloseMobileMenu">Öğretmen Bul</a>
-            <a href="/nasil-calisir" class="nav-link" @onclick="CloseMobileMenu">Nasıl Çalışır?</a>
-            
+                <AuthorizeView>
+                    <Authorized>
+                        <a href="/panel/ilan-olustur" class="btn btn-primary btn-sm" style="border-radius: 50px; padding: 0.6rem 1.4rem;">
+                            ➕ İlan Ver
+                        </a>
+                        <a href="/panel/mesajlarim" class="nav-link nav-icon-link" title="Mesajlarım">
+                            💬
+                        </a>
+                        <div class="profile-dropdown-wrapper">
+                            <button class="profile-avatar-btn" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+                                @(context.User.Identity?.Name?[..1].ToUpper() ?? "U")
+                            </button>
+                            @if (isDropdownOpen)
+                            {
+                                <div class="profile-dropdown" @onclick="CloseDropdown">
+                                    <div class="dropdown-header">
+                                        <span class="dropdown-name">@context.User.Identity?.Name</span>
+                                        <span class="dropdown-email">@GetEmail(context)</span>
+                                    </div>
+                                    <hr class="dropdown-divider" />
+                                    <a href="/panel/dashboard" class="dropdown-item">📊 Kontrol Paneli</a>
+                                    <a href="/panel/ilanlarim" class="dropdown-item">📋 İlanlarım</a>
+                                    <a href="/panel/mesajlarim" class="dropdown-item">💬 Mesajlarım</a>
+                                    <a href="/panel/jetonlarim" class="dropdown-item">💰 Cüzdan & Jetonlar</a>
+                                    <a href="/panel/profil-ayarlari" class="dropdown-item">⚙️ Profil Ayarları</a>
+                                    <hr class="dropdown-divider" />
+                                    <AuthorizeView Roles="Admin" Context="adminCtx">
+                                        <Authorized>
+                                            <a href="/admin" class="dropdown-item dropdown-admin">🛡️ Admin Paneli</a>
+                                            <hr class="dropdown-divider" />
+                                        </Authorized>
+                                    </AuthorizeView>
+                                    <button class="dropdown-item dropdown-logout" @onclick="HandleLogout">🚪 Çıkış Yap</button>
+                                </div>
+                            }
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/giris" class="btn btn-secondary btn-sm">Giriş Yap</a>
+                        <a href="/kayit" class="btn btn-primary btn-sm">Ücretsiz Kayıt</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+
+            <!-- Hamburger (sadece mobilde görünür) -->
+            <button class="mobile-menu-toggle @(isMobileMenuOpen ? "menu-open" : "")" @onclick="ToggleMobileMenu" aria-label="Menü">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    @if (isMobileMenuOpen)
+                    {
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    }
+                    else
+                    {
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    }
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobil açılır menü -->
+    @if (isMobileMenuOpen)
+    {
+        <div class="mobile-menu">
+            <a href="/arama" class="mobile-menu-link" @onclick="CloseMobileMenu">Öğretmen Bul</a>
+            <a href="/nasil-calisir" class="mobile-menu-link" @onclick="CloseMobileMenu">Nasıl Çalışır?</a>
+
             <AuthorizeView>
                 <Authorized>
-                    <a href="/panel/ilan-olustur" class="btn btn-primary btn-sm" style="border-radius: 50px; padding: 0.6rem 1.4rem;" @onclick="CloseMobileMenu">
-                        ➕ İlan Ver
-                    </a>
-                    <a href="/panel/mesajlarim" class="nav-link nav-icon-link" title="Mesajlarım" @onclick="CloseMobileMenu">
-                        💬<span class="mobile-only-text"> Mesajlarım</span>
-                    </a>
-
-                    <div class="profile-dropdown-wrapper">
-                        <button class="profile-avatar-btn" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
-                            @(context.User.Identity?.Name?[..1].ToUpper() ?? "U")
-                        </button>
-
-                        @if (isDropdownOpen)
-                        {
-                            <div class="profile-dropdown" @onclick="CloseDropdown">
-                                <div class="dropdown-header">
-                                    <span class="dropdown-name">@context.User.Identity?.Name</span>
-                                    <span class="dropdown-email">@GetEmail(context)</span>
-                                </div>
-                                <hr class="dropdown-divider" />
-                                <a href="/panel/dashboard" class="dropdown-item">📊 Kontrol Paneli</a>
-                                <a href="/panel/ilanlarim" class="dropdown-item">📋 İlanlarım</a>
-                                <a href="/panel/mesajlarim" class="dropdown-item">💬 Mesajlarım</a>
-                                <a href="/panel/jetonlarim" class="dropdown-item">💰 Cüzdan & Jetonlar</a>
-                                <a href="/panel/profil-ayarlari" class="dropdown-item">⚙️ Profil Ayarları</a>
-                                <hr class="dropdown-divider" />
-                                <AuthorizeView Roles="Admin" Context="adminCtx">
-                                    <Authorized>
-                                        <a href="/admin" class="dropdown-item dropdown-admin">🛡️ Admin Paneli</a>
-                                        <hr class="dropdown-divider" />
-                                    </Authorized>
-                                </AuthorizeView>
-                                <button class="dropdown-item dropdown-logout" @onclick="HandleLogout">🚪 Çıkış Yap</button>
-                            </div>
-                        }
-                    </div>
+                    <a href="/panel/ilan-olustur" class="mobile-menu-link mobile-menu-highlight" @onclick="CloseMobileMenu">➕ İlan Ver</a>
+                    <a href="/panel/mesajlarim" class="mobile-menu-link" @onclick="CloseMobileMenu">💬 Mesajlarım</a>
+                    <a href="/panel/dashboard" class="mobile-menu-link" @onclick="CloseMobileMenu">📊 Kontrol Paneli</a>
+                    <a href="/panel/ilanlarim" class="mobile-menu-link" @onclick="CloseMobileMenu">📋 İlanlarım</a>
+                    <a href="/panel/jetonlarim" class="mobile-menu-link" @onclick="CloseMobileMenu">💰 Cüzdan & Jetonlar</a>
+                    <a href="/panel/profil-ayarlari" class="mobile-menu-link" @onclick="CloseMobileMenu">⚙️ Profil Ayarları</a>
+                    <AuthorizeView Roles="Admin" Context="adminCtx">
+                        <Authorized>
+                            <a href="/admin" class="mobile-menu-link mobile-menu-admin" @onclick="CloseMobileMenu">🛡️ Admin Paneli</a>
+                        </Authorized>
+                    </AuthorizeView>
+                    <div class="mobile-menu-divider"></div>
+                    <button class="mobile-menu-link mobile-menu-logout" @onclick="HandleLogout">🚪 Çıkış Yap</button>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="/giris" class="btn btn-secondary btn-sm" @onclick="CloseMobileMenu">Giriş Yap</a>
-                    <a href="/kayit" class="btn btn-primary btn-sm" @onclick="CloseMobileMenu">Ücretsiz Kayıt</a>
+                    <a href="/giris" class="mobile-menu-link" @onclick="CloseMobileMenu">Giriş Yap</a>
+                    <a href="/kayit" class="mobile-menu-link mobile-menu-highlight" @onclick="CloseMobileMenu">Ücretsiz Kayıt</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
-    </div>
+    }
 </nav>
 
 @code {
     private bool isDropdownOpen = false;
     private bool isMobileMenuOpen = false;
+    private bool showBackButton = false;
+
+    protected override void OnInitialized()
+    {
+        showBackButton = IsSubPage();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        showBackButton = IsSubPage();
+        isMobileMenuOpen = false;
+        isDropdownOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+
+    private bool IsSubPage()
+    {
+        var path = Navigation.Uri.Replace(Navigation.BaseUri, "/").TrimEnd('/');
+        if (string.IsNullOrEmpty(path) || path == "/") return false;
+        var rootPages = new[] { "/arama", "/nasil-calisir", "/giris", "/kayit", "/hakkimizda" };
+        if (rootPages.Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase))) return false;
+        return path.StartsWith("/panel/") || path.StartsWith("/admin/") || path.StartsWith("/ilan/");
+    }
+
+    private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
 
     private void ToggleDropdown() => isDropdownOpen = !isDropdownOpen;
     private void CloseDropdown() => isDropdownOpen = false;
 
-    private void ToggleMobileMenu() => isMobileMenuOpen = !isMobileMenuOpen;
-    private void CloseMobileMenu() 
+    private void ToggleMobileMenu()
+    {
+        isMobileMenuOpen = !isMobileMenuOpen;
+        isDropdownOpen = false;
+    }
+
+    private void CloseMobileMenu()
     {
         isMobileMenuOpen = false;
         isDropdownOpen = false;

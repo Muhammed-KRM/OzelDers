@@ -11,15 +11,13 @@
     <Authorized>
         <section class="section my-listings-page">
             <div class="container">
-                <div class="page-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1>İlanlarım</h1>
-                        <p class="text-muted">Tüm ilanlarınızı buradan yönetebilirsiniz</p>
-                    </div>
-                    <a href="/panel/ilan-olustur" class="btn btn-primary">
-                        <span class="btn-icon">➕</span> Yeni İlan
-                    </a>
-                </div>
+                <PageHeader Title="İlanlarım" Subtitle="Tüm ilanlarınızı buradan yönetebilirsiniz" BackUrl="/panel/dashboard">
+                    <Actions>
+                        <a href="/panel/ilan-olustur" class="btn btn-primary">
+                            <span class="btn-icon">➕</span> Yeni İlan
+                        </a>
+                    </Actions>
+                </PageHeader>
 
                 <!-- Filtreler -->
                 <div class="filters-bar card mb-6">
@@ -66,7 +64,7 @@
                     <div class="listings-grid">
                         @foreach (var listing in filteredListings)
                         {
-                            <div class="listing-card card @(listing.Status.ToString().ToLower() == "active" ? "" : "inactive")">
+                            <div @key="listing.Id" class="listing-card card @(listing.Status.ToString().ToLower() == "active" ? "" : "inactive")">
                                 <div class="listing-header">
                                     <div class="listing-status @listing.Status.ToString().ToLower()">
                                         @GetStatusText(listing.Status)
@@ -157,9 +155,13 @@
     private string statusFilter = "all";
     private string sortBy = "newest";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadListings();
+        if (firstRender)
+        {
+            await LoadListings();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadListings()

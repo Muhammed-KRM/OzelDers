@@ -67,6 +67,11 @@
     box-shadow: var(--shadow-md);
 }
 
+/* C-3: will-change — sadece ilan kartlarına, genel .card'a değil */
+.listing-card {
+    will-change: transform;
+}
+
 .card:hover {
     box-shadow: var(--shadow-hover);
     transform: translateY(-4px);
@@ -83,25 +88,37 @@
     background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
 }
 
-/* SearchBar Revamp */
+/* SearchBar */
 .search-container {
-    padding: var(--space-2);
+    padding: 0.75rem;
     border-radius: var(--radius-full);
     background: white;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
-    max-width: 800px;
+    width: 100%;
+    max-width: 600px;
     margin: 0 auto;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .search-input {
     flex: 1;
     border: none;
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
+    padding: 1rem;
+    font-size: 1rem;
     outline: none;
-    border-radius: var(--radius-full);
+    background: transparent;
+    min-width: 0; /* flex shrink için kritik */
+}
+
+.search-btn {
+    border-radius: 40px;
+    padding: 0.875rem 1.5rem;
+    font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Utility Spacing */
@@ -128,7 +145,58 @@
 }
 
 /* ===========================
-   Responsive Navbar & Mobile Menu (UI Philosophy)
+   Mobil UI Standartları (Touch Targets, Safe Area, iOS Input Fix)
+   =========================== */
+
+/* Touch Target — sadece .btn sınıfı ve özel touch elementler */
+.btn {
+    min-height: 48px;
+    min-width: 48px;
+}
+
+/* iOS auto-zoom engeli: input'lar min 16px font */
+input,
+textarea,
+select {
+    font-size: 1rem;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    font-size: 1rem;
+}
+
+/* Safe Area — cihaz çentik ve alt navigasyon çubuğu için */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* App geneli safe area — MAUI WebView için */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* Status bar safe area div (index.html'de kullanılıyor) */
+.status-bar-safe-area {
+    height: env(safe-area-inset-top);
+    background: transparent;
+}
+
+/* ===========================
+   Responsive Navbar & Mobile Menu — NavMenu.razor.css'de yönetiliyor
    =========================== */
 .mobile-menu-toggle {
     display: none;
@@ -137,6 +205,10 @@
     color: var(--color-text-primary);
     cursor: pointer;
     padding: var(--space-2);
+    min-height: 48px;
+    min-width: 48px;
+    align-items: center;
+    justify-content: center;
 }
 
 .mobile-only-text {
@@ -146,44 +218,6 @@
 @media (max-width: 768px) {
     .mobile-menu-toggle {
         display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .navbar {
-        position: relative;
-    }
-
-    .navbar-links {
-        display: none;
-        flex-direction: column;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: var(--color-glass-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: var(--shadow-glass);
-        padding: var(--space-4);
-        gap: var(--space-4);
-        z-index: 1000;
-    }
-
-    .navbar-links.open {
-        display: flex;
-    }
-
-    .navbar-links .nav-link {
-        width: 100%;
-        text-align: center;
-        padding: var(--space-3) 0;
-        font-size: 1.1rem;
-    }
-
-    .navbar-links .btn {
-        width: 100%;
     }
 
     .mobile-only-text {

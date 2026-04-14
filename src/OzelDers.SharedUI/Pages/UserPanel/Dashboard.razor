@@ -11,10 +11,7 @@
     <Authorized>
         <section class="section dashboard-page">
             <div class="container">
-                <div class="dashboard-header">
-                    <h1>Hoş Geldiniz, @userName</h1>
-                    <p class="text-muted">Hesap özetiniz ve son aktiviteleriniz</p>
-                </div>
+                <PageHeader Title="Kontrol Paneli" Subtitle="Hesap özetiniz ve son aktiviteleriniz" ShowBack="false" />
 
                 @if (isLoading)
                 {
@@ -168,20 +165,19 @@
     private List<ListingDto>? recentListings;
     private List<UserActivityDto>? recentActivities;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
         await LoadDashboardData();
+        StateHasChanged();
     }
 
     private async Task LoadDashboardData()
     {
         isLoading = true;
+        StateHasChanged();
         try
         {
-            // Kullanıcı adı
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            userName = authState.User.Identity?.Name ?? "Kullanıcı";
-
             // Bakiye
             tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
 
@@ -196,17 +192,16 @@
 
             averageRating = mylistings?.Select(l => l.AverageRating).DefaultIfEmpty(0).Average() ?? 0;
             totalReviews = mylistings?.Sum(l => l.ReviewCount) ?? 0;
-            
 
-            // Son aktiviteler - mock yerinde bırakıldı ancak UI'daki class silinip DTOya baglandi
             recentActivities = new List<UserActivityDto>
             {
                 new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Prerendering sırasında JS çağırılamaz
+            // Hata logla ama sessizce geçme
+            Console.WriteLine($"[Dashboard] Veri yükleme hatası: {ex.Message}");
         }
         finally
         {

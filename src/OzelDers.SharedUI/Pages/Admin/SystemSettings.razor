@@ -199,9 +199,13 @@
     private List<GlobalSettingDto> settings = new();
     private bool isLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await LoadSettings();
+        if (firstRender)
+        {
+            await LoadSettings();
+            StateHasChanged();
+        }
     }
 
     private async Task LoadSettings()

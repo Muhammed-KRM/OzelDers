@@ -16,23 +16,6 @@
 }
 
 /* Sayfa Başlığı */
-.page-header {
-    text-align: center;
-    margin-bottom: var(--space-8);
-}
-
-.page-header h1 {
-    font-family: var(--font-heading);
-    font-size: 2.5rem;
-    color: var(--color-text-primary);
-    margin-bottom: var(--space-2);
-}
-
-.text-muted {
-    font-size: 1.125rem;
-    color: var(--color-text-secondary);
-}
-
 /* Loading State */
 .loading-state {
     display: flex;
@@ -273,10 +256,6 @@
 }
 
 @media (max-width: 768px) {
-    .page-header h1 {
-        font-size: 2rem;
-    }
-
     .settings-card {
         padding: var(--space-4);
     }
