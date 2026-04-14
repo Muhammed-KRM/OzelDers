@@ -74,6 +74,136 @@
     letter-spacing: -0.03em;
 }
 
+/* Kategoriler Dropdown */
+.nav-dropdown-wrapper {
+    position: relative;
+}
+
+.nav-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    padding: 0;
+    transition: color var(--transition-fast);
+}
+
+.nav-dropdown-trigger:hover {
+    color: var(--color-primary);
+}
+
+.nav-chevron {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.nav-chevron.open {
+    transform: rotate(180deg);
+}
+
+.nav-category-dropdown {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    background: white;
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
+    padding: 0.5rem 0;
+    z-index: 9999;
+    animation: dropdownFadeIn 0.18s ease-out;
+}
+
+.cat-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1.25rem;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.cat-dropdown-item:hover {
+    background: rgba(var(--color-primary-rgb, 99,102,241), 0.05);
+}
+
+.cat-dd-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.cat-dropdown-item div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.cat-dropdown-item strong {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.cat-dropdown-item span {
+    font-size: 0.775rem;
+    color: var(--color-text-muted, #888);
+}
+
+.cat-dropdown-footer {
+    border-top: 1px solid rgba(0,0,0,0.06);
+    margin-top: 0.25rem;
+    padding: 0.75rem 1.25rem 0.25rem;
+}
+
+.cat-dropdown-footer a {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.cat-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Mobil kategori alt menü */
+.mobile-menu-section-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+.mobile-menu-sub {
+    padding-left: 2.5rem !important;
+    font-size: 0.9375rem !important;
+    font-weight: 500 !important;
+    background: rgba(0,0,0,0.015);
+}
+
+.mobile-menu-sub:hover {
+    background: var(--color-primary-light);
+}
+
 /* Masaüstü linkleri */
 .navbar-links {
     display: flex;

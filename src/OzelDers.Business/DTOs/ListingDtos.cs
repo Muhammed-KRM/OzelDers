@@ -25,6 +25,18 @@ public class ListingDto
     public ListingStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<string> ImageUrls { get; set; } = new();
+
+    // Madde 7 — Yeni alanlar
+    public string? EducationLevel { get; set; }
+    public int? ExperienceYears { get; set; }
+    public int LessonDurationMinutes { get; set; } = 60;
+    public bool IsGroupLesson { get; set; }
+    public int? MaxGroupSize { get; set; }
+    public bool HasTrialLesson { get; set; }
+    public string? EducationBackground { get; set; }
+    // Sınıf aralığı
+    public int? GradeMin { get; set; }
+    public int? GradeMax { get; set; }
 }
 
 // İlan oluşturma formu
@@ -51,6 +63,17 @@ public class ListingCreateDto
 
     [Range(1, int.MaxValue, ErrorMessage = "Lütfen bir ilçe seçiniz.")]
     public int DistrictId { get; set; }
+
+    // Madde 7 — Yeni alanlar (CreateDto)
+    public string? EducationLevel { get; set; }
+    [Range(0, 50)] public int? ExperienceYears { get; set; }
+    public int LessonDurationMinutes { get; set; } = 60;
+    public bool IsGroupLesson { get; set; } = false;
+    public int? MaxGroupSize { get; set; }
+    public bool HasTrialLesson { get; set; } = false;
+    public string? EducationBackground { get; set; }
+    public int? GradeMin { get; set; }
+    public int? GradeMax { get; set; }
 }
 
 // İlan güncelleme formu
@@ -81,4 +104,15 @@ public class ListingUpdateDto
     public int DistrictId { get; set; }
 
     public bool IsActive { get; set; }
+
+    // Madde 7 — Yeni alanlar (UpdateDto)
+    public string? EducationLevel { get; set; }
+    [Range(0, 50)] public int? ExperienceYears { get; set; }
+    public int LessonDurationMinutes { get; set; } = 60;
+    public bool IsGroupLesson { get; set; } = false;
+    public int? MaxGroupSize { get; set; }
+    public bool HasTrialLesson { get; set; } = false;
+    public string? EducationBackground { get; set; }
+    public int? GradeMin { get; set; }
+    public int? GradeMax { get; set; }
 }

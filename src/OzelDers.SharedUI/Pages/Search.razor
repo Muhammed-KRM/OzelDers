@@ -1,20 +1,168 @@
 @page "/arama"
 @inject IListingService ListingService
+@inject HttpClient Http
 
 <PageTitle>Öğretmen Arama | OzelDers.com</PageTitle>
 
-<section class="section">
+<section class="search-page">
     <div class="container">
-        <SearchBar Query="@query" OnSearchSubmit="HandleSearch" />
+        <!-- Arama Başlığı -->
+        <div class="search-hero">
+            <h1>Öğretmen Bul</h1>
+            <p class="text-muted">Türkiye genelinde binlerce öğretmen arasından size uygun olanı bulun</p>
+        </div>
 
-        <div class="search-results-header">
-            <h2>Arama Sonuçları</h2>
+        <!-- Filtre Paneli -->
+        <div class="search-filters card">
+            <div class="filter-row">
+                <!-- Metin Arama -->
+                <div class="filter-group filter-search">
+                    <label>Arama</label>
+                    <div class="search-input-wrap">
+                        <span class="search-icon-inner">🔍</span>
+                        <input type="text" @bind="filters.Query" @bind:event="oninput"
+                               @onkeyup="OnSearchKeyUp"
+                               class="form-input" placeholder="Branş, öğretmen adı..." />
+                    </div>
+                </div>
+
+                <!-- Branş -->
+                <div class="filter-group">
+                    <label>Branş</label>
+                    <select @bind="filters.Branch" class="form-select">
+                        <option value="">Tüm Branşlar</option>
+                        @foreach (var branch in branches)
+                        {
+                            <option value="@branch.Name">@branch.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Şehir -->
+                <div class="filter-group">
+                    <label>Şehir</label>
+                    <select @bind="filters.City" class="form-select">
+                        <option value="">Tüm Şehirler</option>
+                        @foreach (var city in cities)
+                        {
+                            <option value="@city.Name">@city.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Ders Türü -->
+                <div class="filter-group">
+                    <label>Ders Türü</label>
+                    <select @bind="filters.LessonType" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="FaceToFace">Yüz Yüze</option>
+                        <option value="Online">Online</option>
+                        <option value="Both">Her İkisi</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-row filter-row-secondary">
+                <!-- Fiyat Aralığı -->
+                <div class="filter-group filter-price">
+                    <label>Fiyat (TL/saat)</label>
+                    <div class="price-range">
+                        <input type="number" @bind="filters.MinPrice" class="form-input price-input"
+                               placeholder="Min" min="0" max="10000" />
+                        <span class="price-sep">—</span>
+                        <input type="number" @bind="filters.MaxPrice" class="form-input price-input"
+                               placeholder="Max" min="0" max="10000" />
+                    </div>
+                </div>
+
+                <!-- Eğitim Seviyesi -->
+                <div class="filter-group">
+                    <label>Eğitim Seviyesi</label>
+                    <select @bind="filters.EducationLevel" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="İlkokul">İlkokul</option>
+                        <option value="Ortaokul">Ortaokul</option>
+                        <option value="Lise">Lise</option>
+                        <option value="Üniversite">Üniversite</option>
+                        <option value="Yetişkin">Yetişkin</option>
+                    </select>
+                </div>
+
+                <!-- Sınıf -->
+                <div class="filter-group">
+                    <label>Sınıf</label>
+                    <select @bind="gradeLevel" class="form-select">
+                        <option value="">Tüm Sınıflar</option>
+                        <option value="0">Anasınıfı</option>
+                        <option value="1">1. Sınıf</option>
+                        <option value="2">2. Sınıf</option>
+                        <option value="3">3. Sınıf</option>
+                        <option value="4">4. Sınıf</option>
+                        <option value="5">5. Sınıf</option>
+                        <option value="6">6. Sınıf</option>
+                        <option value="7">7. Sınıf</option>
+                        <option value="8">8. Sınıf</option>
+                        <option value="9">9. Sınıf</option>
+                        <option value="10">10. Sınıf</option>
+                        <option value="11">11. Sınıf</option>
+                        <option value="12">12. Sınıf</option>
+                        <option value="13">Üniversite</option>
+                        <option value="14">Mezun / Yetişkin</option>
+                    </select>
+                </div>
+
+                <!-- Sıralama -->
+                <div class="filter-group">
+                    <label>Sıralama</label>
+                    <select @bind="filters.SortBy" class="form-select">
+                        <option value="">Önerilen</option>
+                        <option value="newest">En Yeni</option>
+                        <option value="price_asc">En Ucuz</option>
+                        <option value="price_desc">En Pahalı</option>
+                        <option value="rating">En Yüksek Puan</option>
+                    </select>
+                </div>
+
+                <!-- Checkbox Filtreler -->
+                <div class="filter-group filter-checks">
+                    <label>Özellikler</label>
+                    <div class="check-group">
+                        <label class="check-label">
+                            <input type="checkbox" @bind="hasTrialLesson" />
+                            Deneme dersi var
+                        </label>
+                        <label class="check-label">
+                            <input type="checkbox" @bind="isGroupLesson" />
+                            Grup dersi
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Ara Butonu -->
+                <div class="filter-group filter-action">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" @onclick="ApplyFilters" disabled="@isLoading">
+                        @if (isLoading) { <span>Aranıyor...</span> } else { <span>🔍 Ara</span> }
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sonuç Başlığı -->
+        <div class="results-header">
             @if (result != null)
             {
-                <span class="text-muted">@result.TotalCount sonuç bulundu</span>
+                <span class="results-count">
+                    <strong>@result.TotalCount</strong> ilan bulundu
+                </span>
+            }
+            @if (HasActiveFilters())
+            {
+                <button class="btn-clear-filters" @onclick="ClearFilters">✕ Filtreleri Temizle</button>
             }
         </div>
 
+        <!-- Sonuçlar -->
         @if (isLoading)
         {
             <div class="grid grid-3">
@@ -36,47 +184,107 @@
         }
         else
         {
-            <div class="text-center" style="padding: 3rem;">
-                <p class="text-muted">Aramanıza uygun ilan bulunamadı.</p>
+            <div class="empty-search">
+                <div class="empty-icon">🔍</div>
+                <h3>Sonuç bulunamadı</h3>
+                <p class="text-muted">Farklı filtreler deneyebilir veya arama teriminizi değiştirebilirsiniz.</p>
+                <button class="btn btn-secondary" @onclick="ClearFilters">Filtreleri Temizle</button>
             </div>
         }
     </div>
 </section>
 
 @code {
-    private string? query;
+    private SearchFilterDto filters = new() { PageSize = 12 };
     private SearchResultDto? result;
     private bool isLoading;
+    private bool hasTrialLesson;
+    private bool isGroupLesson;
+    private string gradeLevel = "";
 
-    protected override async Task OnInitializedAsync()
+    private List<BranchDto> branches = [];
+    private List<CityDto> cities = [];
+    private bool dataLoaded = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        await LoadFormData();
         await LoadListings();
+        StateHasChanged();
     }
 
-    private async Task HandleSearch(string searchQuery)
+    private async Task LoadFormData()
     {
-        query = searchQuery;
-        await LoadListings();
+        try
+        {
+            var b = await Http.GetFromJsonAsync<List<BranchDto>>("api/branches");
+            if (b != null) branches = b;
+            var c = await Http.GetFromJsonAsync<List<CityDto>>("api/cities");
+            if (c != null) cities = c;
+            dataLoaded = true;
+        }
+        catch { }
     }
 
-    private async Task ChangePage(int page)
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
     {
-        await LoadListings(page);
+        if (e.Key == "Enter") await ApplyFilters();
     }
+
+    private async Task ApplyFilters()
+    {
+        filters.HasTrialLesson = hasTrialLesson ? true : null;
+        filters.IsGroupLesson = isGroupLesson ? true : null;
+        filters.GradeLevel = string.IsNullOrEmpty(gradeLevel) ? null : int.Parse(gradeLevel);
+        await LoadListings(1);
+    }
+
+    private async Task ClearFilters()
+    {
+        filters = new() { PageSize = 12 };
+        hasTrialLesson = false;
+        isGroupLesson = false;
+        gradeLevel = "";
+        await LoadListings(1);
+    }
+
+    private async Task ChangePage(int page) => await LoadListings(page);
 
     private async Task LoadListings(int page = 1)
     {
         isLoading = true;
+        StateHasChanged();
+        filters.Page = page;
         try
         {
-            result = await ListingService.SearchAsync(new SearchFilterDto
-            {
-                Query = query,
-                Page = page,
-                PageSize = 12
-            });
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            result = await ListingService.SearchAsync(filters, cts.Token);
         }
-        catch { /* API henüz çalışmıyorsa */ }
-        isLoading = false;
+        catch (OperationCanceledException)
+        {
+            // 5 saniye timeout — tekrar dene
+            try
+            {
+                using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                result = await ListingService.SearchAsync(filters, cts2.Token);
+            }
+            catch { result = new SearchResultDto(); }
+        }
+        catch { result = new SearchResultDto(); }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
+
+    private bool HasActiveFilters() =>
+        !string.IsNullOrWhiteSpace(filters.Query) ||
+        !string.IsNullOrWhiteSpace(filters.Branch) ||
+        !string.IsNullOrWhiteSpace(filters.City) ||
+        !string.IsNullOrWhiteSpace(filters.LessonType) ||
+        !string.IsNullOrWhiteSpace(filters.EducationLevel) ||
+        filters.MinPrice.HasValue || filters.MaxPrice.HasValue ||
+        hasTrialLesson || isGroupLesson;
 }

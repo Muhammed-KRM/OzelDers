@@ -29,6 +29,49 @@
             <!-- Masaüstü linkleri -->
             <div class="navbar-links">
                 <a href="/arama" class="nav-link">Öğretmen Bul</a>
+
+                <!-- Kategoriler Dropdown -->
+                <div class="nav-dropdown-wrapper">
+                    <button class="nav-link nav-dropdown-trigger" @onclick="ToggleCategoryDropdown" @onclick:stopPropagation="true">
+                        Kategoriler
+                        <svg class="nav-chevron @(isCategoryDropdownOpen ? "open" : "")" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    @if (isCategoryDropdownOpen)
+                    {
+                        <div class="nav-category-dropdown" @onclick="CloseCategoryDropdown">
+                            <a href="/kategori/akademik" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#EEF2FF">📚</span>
+                                <div><strong>Akademik</strong><span>Matematik, Fizik, Kimya...</span></div>
+                            </a>
+                            <a href="/kategori/sinav" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#F5F3FF">🎯</span>
+                                <div><strong>Sınav Hazırlık</strong><span>YKS, LGS, KPSS...</span></div>
+                            </a>
+                            <a href="/kategori/yazilim" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#ECFDF5">💻</span>
+                                <div><strong>Yazılım & Teknoloji</strong><span>Python, React, SQL...</span></div>
+                            </a>
+                            <a href="/kategori/muzik" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#F5F3FF">🎵</span>
+                                <div><strong>Müzik & Sanat</strong><span>Piyano, Gitar, Resim...</span></div>
+                            </a>
+                            <a href="/kategori/spor" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#FFFBEB">⚽</span>
+                                <div><strong>Spor & Aktivite</strong><span>Yüzme, Tenis, Yoga...</span></div>
+                            </a>
+                            <a href="/kategori/dil" class="cat-dropdown-item">
+                                <span class="cat-dd-icon" style="background:#F0F9FF">🌍</span>
+                                <div><strong>Yabancı Dil</strong><span>İngilizce, Almanca...</span></div>
+                            </a>
+                            <div class="cat-dropdown-footer">
+                                <a href="/arama">Tüm İlanları Gör →</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+
                 <a href="/nasil-calisir" class="nav-link">Nasıl Çalışır?</a>
 
                 <AuthorizeView>
@@ -101,6 +144,24 @@
     {
         <div class="mobile-menu">
             <a href="/arama" class="mobile-menu-link" @onclick="CloseMobileMenu">Öğretmen Bul</a>
+
+            <!-- Kategoriler (mobil) -->
+            <button class="mobile-menu-link mobile-menu-section-toggle" @onclick="ToggleMobileCategorySection">
+                Kategoriler
+                <svg class="nav-chevron @(isMobileCategorySectionOpen ? "open" : "")" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            @if (isMobileCategorySectionOpen)
+            {
+                <a href="/kategori/akademik" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">📚 Akademik</a>
+                <a href="/kategori/sinav" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">🎯 Sınav Hazırlık</a>
+                <a href="/kategori/yazilim" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">💻 Yazılım & Teknoloji</a>
+                <a href="/kategori/muzik" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">🎵 Müzik & Sanat</a>
+                <a href="/kategori/spor" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">⚽ Spor & Aktivite</a>
+                <a href="/kategori/dil" class="mobile-menu-link mobile-menu-sub" @onclick="CloseMobileMenu">🌍 Yabancı Dil</a>
+            }
+
             <a href="/nasil-calisir" class="mobile-menu-link" @onclick="CloseMobileMenu">Nasıl Çalışır?</a>
 
             <AuthorizeView>
@@ -132,6 +193,8 @@
     private bool isDropdownOpen = false;
     private bool isMobileMenuOpen = false;
     private bool showBackButton = false;
+    private bool isCategoryDropdownOpen = false;
+    private bool isMobileCategorySectionOpen = false;
 
     protected override void OnInitialized()
     {
@@ -144,6 +207,8 @@
         showBackButton = IsSubPage();
         isMobileMenuOpen = false;
         isDropdownOpen = false;
+        isCategoryDropdownOpen = false;
+        isMobileCategorySectionOpen = false;
         InvokeAsync(StateHasChanged);
     }
 
@@ -163,6 +228,10 @@
     private void ToggleDropdown() => isDropdownOpen = !isDropdownOpen;
     private void CloseDropdown() => isDropdownOpen = false;
 
+    private void ToggleCategoryDropdown() => isCategoryDropdownOpen = !isCategoryDropdownOpen;
+    private void CloseCategoryDropdown() => isCategoryDropdownOpen = false;
+    private void ToggleMobileCategorySection() => isMobileCategorySectionOpen = !isMobileCategorySectionOpen;
+
     private void ToggleMobileMenu()
     {
         isMobileMenuOpen = !isMobileMenuOpen;
@@ -173,6 +242,7 @@
     {
         isMobileMenuOpen = false;
         isDropdownOpen = false;
+        isCategoryDropdownOpen = false;
     }
 
     private string GetEmail(AuthenticationState context)

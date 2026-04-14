@@ -40,4 +40,29 @@ public class ListingRepository : GenericRepository<Listing>, IListingRepository
             .OrderByDescending(l => l.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<List<Listing>> SearchWithDetailsAsync()
+    {
+        return await _dbSet
+            .Include(l => l.Owner)
+            .Include(l => l.Branch)
+            .Include(l => l.District)
+                .ThenInclude(d => d.City)
+            .Include(l => l.Images)
+            .Where(l => l.Status == ListingStatus.Active)
+            .ToListAsync();
+    }
+
+    public IQueryable<Listing> GetActiveWithDetailsQueryable()
+    {
+        return _dbSet
+            .Include(l => l.Owner)
+            .Include(l => l.Branch)
+            .Include(l => l.District)
+                .ThenInclude(d => d.City)
+            .Include(l => l.Images)
+            .Where(l => l.Status == ListingStatus.Active)
+            .AsSplitQuery()
+            .AsNoTracking();
+    }
 }

@@ -178,13 +178,16 @@ using (var scope = app.Services.CreateScope())
     await DatabaseSeeder.SeedAsync(context);
     
     // Admin kullanıcı seed — bilgiler appsettings/environment'tan okunur, kaynak koda gömülmez
-    if (!context.Users.Any(u => u.Role == OzelDers.Data.Enums.UserRole.Admin))
-    {
-        var adminEmail = builder.Configuration["AdminSeed:Email"]
-            ?? throw new InvalidOperationException("AdminSeed:Email konfigürasyonu eksik. appsettings.Development.json veya environment variable olarak tanımlayın.");
-        var adminPassword = builder.Configuration["AdminSeed:Password"]
-            ?? throw new InvalidOperationException("AdminSeed:Password konfigürasyonu eksik.");
+    var adminEmail = builder.Configuration["AdminSeed:Email"]
+        ?? throw new InvalidOperationException("AdminSeed:Email konfigürasyonu eksik.");
+    var adminPassword = builder.Configuration["AdminSeed:Password"]
+        ?? throw new InvalidOperationException("AdminSeed:Password konfigürasyonu eksik.");
 
+    var existingAdmin = context.Users
+        .FirstOrDefault(u => u.Role == OzelDers.Data.Enums.UserRole.Admin);
+
+    if (existingAdmin == null)
+    {
         context.Users.Add(new OzelDers.Data.Entities.User
         {
             Email = adminEmail,
@@ -196,7 +199,15 @@ using (var scope = app.Services.CreateScope())
             TokenBalance = 0
         });
         await context.SaveChangesAsync();
-        logger.LogInformation("Admin kullanıcı oluşturuldu.");
+        logger.LogInformation("Admin kullanıcı oluşturuldu: {Email}", adminEmail);
+    }
+    else if (existingAdmin.Email != adminEmail || !BC.Verify(adminPassword, existingAdmin.PasswordHash))
+    {
+        // E-posta veya şifre değişmişse güncelle
+        existingAdmin.Email = adminEmail;
+        existingAdmin.PasswordHash = BC.HashPassword(adminPassword);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Admin bilgileri güncellendi: {Email}", adminEmail);
     }
 
     var settingService = scope.ServiceProvider.GetRequiredService<ISettingService>();

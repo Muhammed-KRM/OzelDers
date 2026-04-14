@@ -14,14 +14,44 @@
     <link rel="stylesheet" href="_content/OzelDers.SharedUI/css/app.css" />
     <link rel="stylesheet" href="OzelDers.Web.styles.css" />
     
-    <!-- SweetAlert2 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <!-- SweetAlert2 — Local -->
+    <link rel="stylesheet" href="_content/OzelDers.SharedUI/lib/sweetalert2/sweetalert2.min.css" />
+    
+    <style>
+        #blazor-error-ui {
+            background: #fff3cd;
+            border-top: 2px solid #ffc107;
+            bottom: 0; left: 0; right: 0;
+            padding: 0.75rem 1.5rem;
+            position: fixed;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 0.9375rem;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+        #blazor-error-ui .reload {
+            background: #1e293b; color: white;
+            padding: 0.4rem 1rem; border-radius: 6px;
+            text-decoration: none; font-weight: 600;
+        }
+        #blazor-error-ui .dismiss { cursor: pointer; margin-left: auto; font-size: 1.1rem; }
+    </style>
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 </head>
 <body>
     <OzelDers.SharedUI.Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
     
+    <!-- blazor-error-ui: Bağlantı kopukluğu bildirimi -->
+    <div id="blazor-error-ui" data-nosnippet>
+        <span>Bağlantı kesildi.</span>
+        <a href="." class="reload">Sayfayı Yenile</a>
+        <span class="dismiss">✕</span>
+    </div>
+
     <script src="_framework/blazor.web.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="_content/OzelDers.SharedUI/lib/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="_content/OzelDers.SharedUI/js/interop.js"></script></body>
 </html>

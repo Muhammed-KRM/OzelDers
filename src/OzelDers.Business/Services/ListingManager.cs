@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using FluentValidation;
 using Ganss.Xss;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Events;
 using OzelDers.Business.Exceptions;
@@ -84,7 +85,17 @@ public class ListingManager : IListingService
             LessonType = dto.LessonType,
             BranchId = dto.BranchId,
             DistrictId = dto.DistrictId,
-            Status = PerformAutoModeration(dto.Title, sanitizedDescription)
+            Status = PerformAutoModeration(dto.Title, sanitizedDescription),
+            // Madde 7 — Yeni alanlar
+            EducationLevel = dto.EducationLevel,
+            ExperienceYears = dto.ExperienceYears,
+            LessonDurationMinutes = dto.LessonDurationMinutes,
+            IsGroupLesson = dto.IsGroupLesson,
+            MaxGroupSize = dto.IsGroupLesson ? dto.MaxGroupSize : null,
+            HasTrialLesson = dto.HasTrialLesson,
+            EducationBackground = dto.EducationBackground,
+            GradeMin = dto.GradeMin,
+            GradeMax = dto.GradeMax,
         };
 
         // 4. Jeton Harcaması
@@ -186,6 +197,16 @@ public class ListingManager : IListingService
         listing.LessonType = dto.LessonType;
         listing.BranchId = dto.BranchId;
         listing.DistrictId = dto.DistrictId;
+        // Madde 7 — Yeni alanlar
+        listing.EducationLevel = dto.EducationLevel;
+        listing.ExperienceYears = dto.ExperienceYears;
+        listing.LessonDurationMinutes = dto.LessonDurationMinutes;
+        listing.IsGroupLesson = dto.IsGroupLesson;
+        listing.MaxGroupSize = dto.IsGroupLesson ? dto.MaxGroupSize : null;
+        listing.HasTrialLesson = dto.HasTrialLesson;
+        listing.EducationBackground = dto.EducationBackground;
+        listing.GradeMin = dto.GradeMin;
+        listing.GradeMax = dto.GradeMax;
         
         var modStatus = PerformAutoModeration(dto.Title, sanitizedDescription);
         if (modStatus == ListingStatus.Active)
@@ -232,22 +253,134 @@ public class ListingManager : IListingService
         }
     }
 
-    public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters)
+    public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters, CancellationToken cancellationToken = default)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-        var all = await _listingRepo.FindAsync(l => l.Status == ListingStatus.Active);
-        var items = all.Select(MapToDto).ToList();
+        // IQueryable — filtreler veritabanında uygulanır, tüm veri belleğe çekilmez
+        var query = _listingRepo.GetActiveWithDetailsQueryable();
+
+        // Metin araması
+        if (!string.IsNullOrWhiteSpace(filters.Query))
+        {
+            var q = filters.Query.ToLower();
+            query = query.Where(l =>
+                l.Title.ToLower().Contains(q) ||
+                l.Description.ToLower().Contains(q) ||
+                (l.Branch != null && l.Branch.Name.ToLower().Contains(q)));
+        }
+
+        // Branş filtresi
+        if (!string.IsNullOrWhiteSpace(filters.Branch))
+            query = query.Where(l => l.Branch != null && l.Branch.Name.ToLower().Contains(filters.Branch.ToLower()));
+
+        // Şehir filtresi
+        if (!string.IsNullOrWhiteSpace(filters.City))
+            query = query.Where(l => l.District != null && l.District.City != null &&
+                l.District.City.Name.ToLower().Contains(filters.City.ToLower()));
+
+        // İlçe filtresi
+        if (!string.IsNullOrWhiteSpace(filters.District))
+            query = query.Where(l => l.District != null && l.District.Name.ToLower().Contains(filters.District.ToLower()));
+
+        // Fiyat filtresi
+        if (filters.MinPrice.HasValue)
+            query = query.Where(l => l.HourlyPrice >= filters.MinPrice.Value);
+        if (filters.MaxPrice.HasValue)
+            query = query.Where(l => l.HourlyPrice <= filters.MaxPrice.Value);
+
+        // Ders türü filtresi
+        if (!string.IsNullOrWhiteSpace(filters.LessonType) &&
+            Enum.TryParse<LessonType>(filters.LessonType, true, out var lessonType))
+            query = query.Where(l => l.LessonType == lessonType || l.LessonType == LessonType.Both);
+
+        // İlan türü filtresi
+        if (!string.IsNullOrWhiteSpace(filters.ListingType) &&
+            Enum.TryParse<ListingType>(filters.ListingType, true, out var listingType))
+            query = query.Where(l => l.Type == listingType);
+
+        // Eğitim seviyesi filtresi
+        if (!string.IsNullOrWhiteSpace(filters.EducationLevel))
+            query = query.Where(l => l.EducationLevel == filters.EducationLevel);
+
+        // Deneme dersi filtresi
+        if (filters.HasTrialLesson == true)
+            query = query.Where(l => l.HasTrialLesson);
+
+        // Grup dersi filtresi
+        if (filters.IsGroupLesson == true)
+            query = query.Where(l => l.IsGroupLesson);
+
+        // Min deneyim filtresi
+        if (filters.MinExperienceYears.HasValue)
+            query = query.Where(l => l.ExperienceYears >= filters.MinExperienceYears.Value);
+
+        // Sınıf filtresi
+        if (filters.GradeLevel.HasValue)
+            query = query.Where(l =>
+                l.GradeMin.HasValue && l.GradeMax.HasValue &&
+                l.GradeMin.Value <= filters.GradeLevel.Value &&
+                l.GradeMax.Value >= filters.GradeLevel.Value);
+
+        // Kategori filtresi — Branch.Category ile
+        if (!string.IsNullOrWhiteSpace(filters.CategorySlug))
+        {
+            var categoryName = filters.CategorySlug.ToLower() switch
+            {
+                "akademik" => "Akademik",
+                "sinav"    => "Sınav Hazırlık",
+                "yazilim"  => "Yazılım",
+                "muzik"    => "Müzik",
+                "spor"     => "Spor",
+                "dil"      => "Dil",
+                _          => null
+            };
+            if (categoryName != null)
+                query = query.Where(l => l.Branch != null && l.Branch.Category == categoryName);
+        }
+
+        // Sıralama
+        query = filters.SortBy switch
+        {
+            "price_asc"  => query.OrderBy(l => l.HourlyPrice),
+            "price_desc" => query.OrderByDescending(l => l.HourlyPrice),
+            "rating"     => query.OrderByDescending(l => l.AverageRating),
+            "newest"     => query.OrderByDescending(l => l.CreatedAt),
+            _            => query.OrderByDescending(l => l.IsVitrin).ThenByDescending(l => l.CreatedAt)
+        };
+
+        // Toplam sayı — Include olmadan count (daha hızlı, navigation property gerekmez)
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((filters.Page - 1) * filters.PageSize)
+            .Take(filters.PageSize)
+            .ToListAsync(cancellationToken);
+
+        sw.Stop();
+        // Performans logu — sadece yavaş sorgular için (>500ms)
+        if (sw.ElapsedMilliseconds > 500)
+            await _logService.LogFunctionErrorAsync("SEARCH_SLOW",
+                new Exception($"Yavaş arama: {sw.ElapsedMilliseconds}ms, filters={System.Text.Json.JsonSerializer.Serialize(filters)}"),
+                filters);
+
         return new SearchResultDto
         {
-            Items = items,
-            TotalCount = items.Count,
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = totalCount,
             Page = filters.Page,
             PageSize = filters.PageSize
         };
         }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            // İptal edildi — normal durum, loglama yapma
+            throw;
+        }
         catch (Exception ex)
         {
+            sw.Stop();
             await _logService.LogFunctionErrorAsync(EC_SEARCH, ex, filters);
             throw;
         }
@@ -299,6 +432,16 @@ public class ListingManager : IListingService
         ReviewCount = l.ReviewCount,
         Status = l.Status,
         CreatedAt = l.CreatedAt,
-        ImageUrls = l.Images?.Select(i => i.ImageUrl).ToList() ?? new()
+        ImageUrls = l.Images?.Select(i => i.ImageUrl).ToList() ?? [],
+        // Madde 7 — Yeni alanlar
+        EducationLevel = l.EducationLevel,
+        ExperienceYears = l.ExperienceYears,
+        LessonDurationMinutes = l.LessonDurationMinutes,
+        IsGroupLesson = l.IsGroupLesson,
+        MaxGroupSize = l.MaxGroupSize,
+        HasTrialLesson = l.HasTrialLesson,
+        EducationBackground = l.EducationBackground,
+        GradeMin = l.GradeMin,
+        GradeMax = l.GradeMax,
     };
 }

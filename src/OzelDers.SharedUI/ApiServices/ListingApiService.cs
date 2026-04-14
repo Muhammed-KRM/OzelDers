@@ -56,15 +56,40 @@ public class ListingApiService : IListingService
         return await _http.GetFromJsonAsync<List<ListingDto>>("api/listings/vitrin") ?? new List<ListingDto>();
     }
 
-    public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters)
+    public async Task<SearchResultDto> SearchAsync(SearchFilterDto filters, CancellationToken cancellationToken = default)
     {
-        // Query param oluşturma
-        var queryStr = $"?page={filters.Page}&pageSize={filters.PageSize}";
-        if (!string.IsNullOrEmpty(filters.Query)) queryStr += $"&query={Uri.EscapeDataString(filters.Query)}";
-        if (!string.IsNullOrEmpty(filters.Branch)) queryStr += $"&branch={Uri.EscapeDataString(filters.Branch)}";
-        if (!string.IsNullOrEmpty(filters.City)) queryStr += $"&city={Uri.EscapeDataString(filters.City)}";
+        var q = $"?page={filters.Page}&pageSize={filters.PageSize}";
+        if (!string.IsNullOrEmpty(filters.Query))          q += $"&query={Uri.EscapeDataString(filters.Query)}";
+        if (!string.IsNullOrEmpty(filters.Branch))         q += $"&branch={Uri.EscapeDataString(filters.Branch)}";
+        if (!string.IsNullOrEmpty(filters.City))           q += $"&city={Uri.EscapeDataString(filters.City)}";
+        if (!string.IsNullOrEmpty(filters.District))       q += $"&district={Uri.EscapeDataString(filters.District)}";
+        if (!string.IsNullOrEmpty(filters.LessonType))     q += $"&lessonType={filters.LessonType}";
+        if (!string.IsNullOrEmpty(filters.ListingType))    q += $"&listingType={filters.ListingType}";
+        if (!string.IsNullOrEmpty(filters.SortBy))         q += $"&sortBy={filters.SortBy}";
+        if (!string.IsNullOrEmpty(filters.EducationLevel)) q += $"&educationLevel={Uri.EscapeDataString(filters.EducationLevel)}";
+        if (!string.IsNullOrEmpty(filters.CategorySlug))   q += $"&categorySlug={filters.CategorySlug}";
+        if (filters.MinPrice.HasValue)                     q += $"&minPrice={filters.MinPrice}";
+        if (filters.MaxPrice.HasValue)                     q += $"&maxPrice={filters.MaxPrice}";
+        if (filters.HasTrialLesson == true)                q += "&hasTrialLesson=true";
+        if (filters.IsGroupLesson == true)                 q += "&isGroupLesson=true";
+        if (filters.MinExperienceYears.HasValue)           q += $"&minExperienceYears={filters.MinExperienceYears}";
+        if (filters.GradeLevel.HasValue)                   q += $"&gradeLevel={filters.GradeLevel}";
 
-        return await _http.GetFromJsonAsync<SearchResultDto>($"api/listings/search{queryStr}") ?? new SearchResultDto();
+        var url = $"api/listings/search{q}";
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var result = await _http.GetFromJsonAsync<SearchResultDto>(url, cancellationToken) ?? new SearchResultDto();
+            sw.Stop();
+            Console.WriteLine($"[ListingApiService] SearchAsync tamamlandı — {sw.ElapsedMilliseconds}ms, totalCount={result.TotalCount}");
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            Console.WriteLine($"[ListingApiService] SearchAsync iptal edildi — {sw.ElapsedMilliseconds}ms");
+            throw;
+        }
     }
 
     public async Task<ListingDto> UpdateAsync(Guid id, ListingUpdateDto dto, Guid userId)

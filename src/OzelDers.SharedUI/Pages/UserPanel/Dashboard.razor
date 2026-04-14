@@ -168,6 +168,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        await JS.InvokeVoidAsync("console.log", "[Dashboard] OnAfterRenderAsync(firstRender) — veri yükleniyor...");
         await LoadDashboardData();
         StateHasChanged();
     }
@@ -178,17 +179,20 @@
         StateHasChanged();
         try
         {
-            // Bakiye
+            await JS.InvokeVoidAsync("console.log", "[Dashboard] TokenService.GetBalanceAsync çağrılıyor...");
             tokenBalance = await TokenService.GetBalanceAsync(Guid.Empty);
+            await JS.InvokeVoidAsync("console.log", $"[Dashboard] Bakiye: {tokenBalance}");
 
-            // İlanlar
+            await JS.InvokeVoidAsync("console.log", "[Dashboard] ListingService.GetMyListingsAsync çağrılıyor...");
             var mylistings = await ListingService.GetMyListingsAsync(Guid.Empty);
             recentListings = mylistings?.Take(3).ToList() ?? new List<ListingDto>();
             activeListingsCount = mylistings?.Count(l => l.Status.ToString().ToLower() == "active") ?? 0;
-            
-            // Mesajlar
+            await JS.InvokeVoidAsync("console.log", $"[Dashboard] İlanlar: toplam={mylistings?.Count}, aktif={activeListingsCount}");
+
+            await JS.InvokeVoidAsync("console.log", "[Dashboard] MessageService.GetInboxAsync çağrılıyor...");
             var inbox = await MessageService.GetInboxAsync(Guid.Empty);
             unreadMessagesCount = inbox?.Count(m => !m.IsUnlocked) ?? 0;
+            await JS.InvokeVoidAsync("console.log", $"[Dashboard] Mesajlar: toplam={inbox?.Count}, okunmamış={unreadMessagesCount}");
 
             averageRating = mylistings?.Select(l => l.AverageRating).DefaultIfEmpty(0).Average() ?? 0;
             totalReviews = mylistings?.Sum(l => l.ReviewCount) ?? 0;
@@ -197,11 +201,11 @@
             {
                 new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
             };
+            await JS.InvokeVoidAsync("console.log", "[Dashboard] Tüm veriler başarıyla yüklendi ✓");
         }
         catch (Exception ex)
         {
-            // Hata logla ama sessizce geçme
-            Console.WriteLine($"[Dashboard] Veri yükleme hatası: {ex.Message}");
+            await JS.InvokeVoidAsync("console.error", $"[Dashboard] HATA: {ex.Message}");
         }
         finally
         {

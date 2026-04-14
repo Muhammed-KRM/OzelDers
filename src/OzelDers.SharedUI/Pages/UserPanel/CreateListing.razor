@@ -85,6 +85,30 @@
                                 </div>
                             </div>
 
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Eğitim Seviyesi</label>
+                                    <select @bind="model.EducationLevel" class="form-select">
+                                        <option value="">Seviye Seçin (opsiyonel)</option>
+                                        <option value="İlkokul">İlkokul</option>
+                                        <option value="Ortaokul">Ortaokul</option>
+                                        <option value="Lise">Lise</option>
+                                        <option value="Üniversite">Üniversite</option>
+                                        <option value="Yetişkin">Yetişkin</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Ders Süresi</label>
+                                    <select @bind="model.LessonDurationMinutes" class="form-select">
+                                        <option value="45">45 dakika</option>
+                                        <option value="60">60 dakika</option>
+                                        <option value="90">90 dakika</option>
+                                        <option value="120">120 dakika</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="form-group">
                                 <label>Saatlik Ücret (TL) <span class="required">*</span></label>
                                 <div class="input-with-icon">
@@ -94,6 +118,62 @@
                                     <span class="input-suffix">TL/saat</span>
                                 </div>
                                 <span class="form-hint">Piyasa ortalamasına uygun bir fiyat belirleyin</span>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Deneyim Yılı</label>
+                                    <input type="number" @bind="model.ExperienceYears" class="form-input"
+                                           placeholder="0" min="0" max="50" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Eğitim Geçmişi</label>
+                                    <input type="text" @bind="model.EducationBackground" class="form-input"
+                                           placeholder="Örn: İTÜ Matematik Mühendisliği" maxlength="200" />
+                                </div>
+                            </div>
+
+                            <!-- Sınıf Aralığı -->
+                            <div class="form-group">
+                                <label>Ders Verdiğiniz Sınıf Aralığı</label>
+                                <div class="grade-range-picker">
+                                    <select @bind="model.GradeMin" class="form-select">
+                                        <option value="">Başlangıç Sınıfı</option>
+                                        @foreach (var g in GradeOptions)
+                                        {
+                                            <option value="@g.Value">@g.Label</option>
+                                        }
+                                    </select>
+                                    <span class="grade-sep">—</span>
+                                    <select @bind="model.GradeMax" class="form-select">
+                                        <option value="">Bitiş Sınıfı</option>
+                                        @foreach (var g in GradeOptions)
+                                        {
+                                            <option value="@g.Value">@g.Label</option>
+                                        }
+                                    </select>
+                                </div>
+                                <span class="form-hint">Örn: 1. Sınıf — 4. Sınıf, veya 9. Sınıf — Lise+</span>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" @bind="model.HasTrialLesson" />
+                                        Ücretsiz deneme dersi sunuyorum
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" @bind="model.IsGroupLesson" />
+                                        Grup dersi verebilirim
+                                    </label>
+                                    @if (model.IsGroupLesson)
+                                    {
+                                        <input type="number" @bind="model.MaxGroupSize" class="form-input mt-2"
+                                               placeholder="Maks. kişi sayısı" min="2" max="20" />
+                                    }
+                                </div>
                             </div>
                         </div>
 
@@ -184,6 +264,16 @@
         Type = ListingType.TeacherOffering,
         LessonType = LessonType.FaceToFace 
     };
+
+    // Sınıf seçenekleri: Value=sınıf numarası, Label=görünen ad
+    private static readonly (int Value, string Label)[] GradeOptions =
+    [
+        (0,  "Anasınıfı"),
+        (1,  "1. Sınıf"),  (2,  "2. Sınıf"),  (3,  "3. Sınıf"),  (4,  "4. Sınıf"),
+        (5,  "5. Sınıf"),  (6,  "6. Sınıf"),  (7,  "7. Sınıf"),  (8,  "8. Sınıf"),
+        (9,  "9. Sınıf"),  (10, "10. Sınıf"), (11, "11. Sınıf"), (12, "12. Sınıf"),
+        (13, "Üniversite"), (14, "Mezun / Yetişkin"),
+    ];
     private List<BranchDto> branches = new();
     private List<CityDto> cities = new();
     private List<DistrictDto> districts = new();

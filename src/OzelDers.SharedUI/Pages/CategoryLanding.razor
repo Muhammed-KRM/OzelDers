@@ -1,0 +1,292 @@
+@page "/kategori/{CategorySlug}"
+@implements IDisposable
+@inject IListingService ListingService
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>@(currentCategory?.Title ?? "Kategori") | OzelDers.com</PageTitle>
+
+@if (currentCategory != null)
+{
+    <!-- Hero -->
+    <section class="cat-hero" style="--cat-color: @currentCategory.Color; --cat-color-light: @currentCategory.ColorLight;">
+        <div class="cat-hero-bg"></div>
+        <div class="container cat-hero-content">
+            <div class="cat-hero-text">
+                <div class="cat-badge">@currentCategory.Icon @currentCategory.Label</div>
+                <h1>@currentCategory.Title</h1>
+                <p>@currentCategory.Description</p>
+                <a href="/arama?branch=@CategorySlug" class="btn btn-cat-primary">
+                    Tüm İlanları Gör →
+                </a>
+            </div>
+            <div class="cat-hero-visual">
+                <div class="cat-visual-circle">
+                    <span class="cat-visual-icon">@currentCategory.BigIcon</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Alt Kategoriler / Popüler Branşlar -->
+    @if (currentCategory.SubBranches.Any())
+    {
+        <section class="section cat-branches">
+            <div class="container">
+                <h2>Popüler Branşlar</h2>
+                <div class="branch-chips">
+                    <button class="branch-chip @(selectedBranch == "" ? "active" : "")"
+                            @onclick='() => SelectBranch("")'>Tümü</button>
+                    @foreach (var branch in currentCategory.SubBranches)
+                    {
+                        <button class="branch-chip @(selectedBranch == branch ? "active" : "")"
+                                @onclick="() => SelectBranch(branch)">
+                            @branch
+                        </button>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
+    <!-- Sınıf Filtresi -->
+    <section class="cat-grade-filter">
+        <div class="container">
+            <div class="grade-filter-row">
+                <span class="grade-filter-label">Sınıf:</span>
+                <div class="grade-chips">
+                    <button class="grade-chip @(selectedGrade == null ? "active" : "")"
+                            @onclick='() => SelectGrade(null)'>Tümü</button>
+                    <button class="grade-chip @(selectedGrade == 0 ? "active" : "")"
+                            @onclick='() => SelectGrade(0)'>Anasınıfı</button>
+                    @for (int i = 1; i <= 4; i++)
+                    {
+                        var g = i;
+                        <button class="grade-chip @(selectedGrade == g ? "active" : "")"
+                                @onclick="() => SelectGrade(g)">@g. Sınıf</button>
+                    }
+                    <button class="grade-chip @(selectedGrade == 99 ? "active" : "")"
+                            @onclick='() => SelectGrade(99)'>5-8. Sınıf</button>
+                    <button class="grade-chip @(selectedGrade == 98 ? "active" : "")"
+                            @onclick='() => SelectGrade(98)'>Lise (9-12)</button>
+                    <button class="grade-chip @(selectedGrade == 13 ? "active" : "")"
+                            @onclick='() => SelectGrade(13)'>Üniversite</button>
+                    <button class="grade-chip @(selectedGrade == 14 ? "active" : "")"
+                            @onclick='() => SelectGrade(14)'>Yetişkin</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- İlanlar -->
+    <section class="section cat-listings">
+        <div class="container">
+            <div class="cat-listings-header">
+                <h2>@currentCategory.Label Eğitmenleri</h2>
+                @if (result != null)
+                {
+                    <span class="text-muted">@result.TotalCount ilan</span>
+                }
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="grid grid-3">
+                    @for (int i = 0; i < 6; i++)
+                    {
+                        <div class="card skeleton" style="height: 280px;"></div>
+                    }
+                </div>
+            }
+            else if (result?.Items.Any() == true)
+            {
+                <div class="grid grid-3">
+                    @foreach (var listing in result.Items)
+                    {
+                        <ListingCard @key="listing.Id" Listing="listing" />
+                    }
+                </div>
+                <Pagination CurrentPage="result.Page" TotalPages="result.TotalPages" OnPageChanged="ChangePage" />
+            }
+            else
+            {
+                <div class="cat-empty">
+                    <div class="empty-icon">@currentCategory.BigIcon</div>
+                    <h3>Henüz ilan yok</h3>
+                    <p class="text-muted">Bu kategoride henüz ilan bulunmuyor. İlk sen ol!</p>
+                    <a href="/panel/ilan-olustur" class="btn btn-primary">İlan Ver</a>
+                </div>
+            }
+        </div>
+    </section>
+}
+else
+{
+    <div class="container section text-center">
+        <h2>Kategori bulunamadı</h2>
+        <a href="/" class="btn btn-primary">Ana Sayfaya Dön</a>
+    </div>
+}
+
+@code {
+    [Parameter] public string CategorySlug { get; set; } = "";
+
+    private CategoryConfig? currentCategory;
+    private SearchResultDto? result;
+    private bool isLoading = true;
+    private string selectedBranch = "";
+    private int? selectedGrade = null;
+
+    private static readonly List<CategoryConfig> Categories =
+    [
+        new("akademik", "📚", "🎓", "Akademik", "Akademik Dersler",
+            "Matematik'ten Edebiyat'a, Fizik'ten Tarihe — tüm akademik branşlarda uzman eğitmenler.",
+            "#1E293B", "#EEF2FF",
+            ["Matematik", "Fizik", "Kimya", "Biyoloji", "Türkçe/Edebiyat", "Tarih", "Coğrafya", "Felsefe", "Din Kültürü"]),
+
+        new("sinav", "🎯", "📝", "Sınav Hazırlık", "Sınav Hazırlık",
+            "YKS, LGS, KPSS, ALES — hedef sınavına özel hazırlık programları.",
+            "#7C3AED", "#F5F3FF",
+            ["YKS/TYT Matematik", "YKS/AYT Fizik", "YKS/AYT Kimya", "LGS Hazırlık", "KPSS", "ALES", "YDS/YÖKDİL"]),
+
+        new("yazilim", "💻", "⌨️", "Yazılım & Teknoloji", "Yazılım & Teknoloji",
+            "Python'dan React'a, Siber Güvenlik'ten Yapay Zeka'ya — geleceğin teknolojilerini öğren.",
+            "#10B981", "#ECFDF5",
+            ["Python", "JavaScript", "C#/.NET", "Java", "React", "Vue.js", "SQL/Veritabanı", "Siber Güvenlik", "Yapay Zeka/ML"]),
+
+        new("muzik", "🎵", "🎸", "Müzik & Sanat", "Müzik & Sanat",
+            "Piyano'dan Gitara, Resim'den Fotoğrafçılığa — sanatın her dalında ustalardan öğren.",
+            "#8B5CF6", "#F5F3FF",
+            ["Piyano", "Gitar (Klasik)", "Gitar (Elektro)", "Keman", "Şan/Vokal", "Resim", "Grafik Tasarım", "Fotoğrafçılık"]),
+
+        new("spor", "⚽", "🏆", "Spor & Aktivite", "Spor & Aktivite",
+            "Yüzme'den Tenise, Yoga'dan Satranç'a — spor ve aktivite eğitmenleri.",
+            "#F59E0B", "#FFFBEB",
+            ["Yüzme", "Tenis", "Satranç", "Yoga", "Pilates", "Dans", "Bale", "Dövüş Sanatları"]),
+
+        new("dil", "🌍", "💬", "Yabancı Dil", "Yabancı Dil",
+            "İngilizce'den Japonca'ya — dil öğreniminde uzman eğitmenlerle hızlı ilerleme.",
+            "#0EA5E9", "#F0F9FF",
+            ["İngilizce", "Almanca", "Fransızca", "İspanyolca", "İtalyanca", "Arapça", "Rusça", "Japonca", "Çince"]),
+    ];
+
+    private string _lastSlug = "";
+
+    protected override void OnParametersSet()
+    {
+        // Sadece slug değişince sıfırla
+        if (_lastSlug == CategorySlug) return;
+        _lastSlug = CategorySlug;
+
+        currentCategory = Categories.FirstOrDefault(c =>
+            c.Slug.Equals(CategorySlug, StringComparison.OrdinalIgnoreCase));
+        selectedBranch = "";
+        selectedGrade = null;
+        _dataLoaded = false; // Yeni kategori — veriyi yeniden yükle
+        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Kategori değişti: '{CategorySlug}', bulundu={currentCategory != null}");
+    }
+
+    private CancellationTokenSource? _cts;
+    private bool _dataLoaded = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] OnAfterRenderAsync — firstRender={firstRender}, dataLoaded={_dataLoaded}");
+        if (_dataLoaded) return;
+        _dataLoaded = true;
+        if (currentCategory != null)
+        {
+            await LoadListings();
+        }
+        else
+        {
+            _ = JS.InvokeVoidAsync("console.error", $"[CategoryLanding] Kategori bulunamadı: '{CategorySlug}'");
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectBranch(string branch)
+    {
+        await JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Branş seçildi: '{branch}'");
+        selectedBranch = branch;
+        await LoadListings();
+    }
+
+    private async Task SelectGrade(int? grade)
+    {
+        await JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Sınıf seçildi: {grade?.ToString() ?? "Tümü"}");
+        selectedGrade = grade;
+        await LoadListings();
+    }
+
+    private async Task LoadListings(int page = 1)
+    {
+        // Önceki isteği iptal et
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        isLoading = true;
+        StateHasChanged();
+
+        int? gradeFilter = selectedGrade switch
+        {
+            99 => 5,
+            98 => 9,
+            _ => selectedGrade
+        };
+
+        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] LoadListings başladı — categorySlug={CategorySlug}, branch={selectedBranch}, grade={gradeFilter?.ToString() ?? "null"}, page={page}");
+
+        try
+        {
+            if (token.IsCancellationRequested) return;
+
+            result = await ListingService.SearchAsync(new SearchFilterDto
+            {
+                CategorySlug = CategorySlug,
+                Branch = string.IsNullOrEmpty(selectedBranch) ? null : selectedBranch,
+                GradeLevel = gradeFilter,
+                Page = page,
+                PageSize = 12,
+                SortBy = "newest"
+            }, token);
+
+            _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] LoadListings BAŞARILI — totalCount={result?.TotalCount}");
+        }
+        catch (TaskCanceledException)
+        {
+            _ = JS.InvokeVoidAsync("console.log", "[CategoryLanding] İstek iptal edildi");
+            isLoading = false;
+            StateHasChanged();
+            return;
+        }
+        catch (Exception ex)
+        {
+            _ = JS.InvokeVoidAsync("console.error", $"[CategoryLanding] HATA: {ex.Message}");
+            result = new SearchResultDto();
+        }
+
+        if (!token.IsCancellationRequested)
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose() => _cts?.Cancel();
+
+    private async Task ChangePage(int page) => await LoadListings(page);
+
+    private record CategoryConfig(
+        string Slug,
+        string Icon,
+        string BigIcon,
+        string Label,
+        string Title,
+        string Description,
+        string Color,
+        string ColorLight,
+        List<string> SubBranches);
+}

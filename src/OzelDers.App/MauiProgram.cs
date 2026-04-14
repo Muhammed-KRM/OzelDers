@@ -32,7 +32,16 @@ public static class MauiProgram
         {
             var handler = sp.GetRequiredService<MauiAuthTokenHandler>();
             handler.InnerHandler = new HttpClientHandler();
-            return new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5001/") }; // API Adresi
+
+            // C-10: Platform bazlı API adresi
+#if ANDROID
+            var apiBase = "http://10.0.2.2:5001/"; // Android emulator → host makine
+#elif IOS
+            var apiBase = "http://localhost:5001/"; // iOS simulator
+#else
+            var apiBase = "http://localhost:5001/"; // Windows / macOS
+#endif
+            return new HttpClient(handler) { BaseAddress = new Uri(apiBase) };
         });
         
         // MAUI için API Wrapper servislerini bağla

@@ -12,6 +12,15 @@ public class SearchFilterDto
     public string? LessonType { get; set; }
     public string? ListingType { get; set; }
     public string? SortBy { get; set; } // "price_asc", "price_desc", "rating", "newest"
+    // Madde 7.4 — Yeni filtre alanları
+    public string? EducationLevel { get; set; }
+    public bool? HasTrialLesson { get; set; }
+    public bool? IsGroupLesson { get; set; }
+    public int? MinExperienceYears { get; set; }
+    // Sınıf filtresi — aranacak sınıf numarası (0=Anasınıfı, 1-12=Sınıf, 13=Üniversite, 14=Mezun)
+    public int? GradeLevel { get; set; }
+    // Kategori filtresi — kategori slug'ı (akademik, sinav, yazilim, muzik, spor, dil)
+    public string? CategorySlug { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 12;
 }
