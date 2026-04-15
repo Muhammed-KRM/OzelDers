@@ -2,7 +2,6 @@
 @implements IDisposable
 @inject IListingService ListingService
 @inject HttpClient Http
-@inject IJSRuntime JS
 
 <PageTitle>@(currentCategory?.Title ?? "Kategori") | OzelDers.com</PageTitle>
 
@@ -171,10 +170,10 @@ else
     ];
 
     private string _lastSlug = "";
+    private CancellationTokenSource? _cts;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        // Sadece slug değişince sıfırla
         if (_lastSlug == CategorySlug) return;
         _lastSlug = CategorySlug;
 
@@ -182,25 +181,11 @@ else
             c.Slug.Equals(CategorySlug, StringComparison.OrdinalIgnoreCase));
         selectedBranch = "";
         selectedGrade = null;
-        _dataLoaded = false; // Yeni kategori — veriyi yeniden yükle
-        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Kategori değişti: '{CategorySlug}', bulundu={currentCategory != null}");
-    }
 
-    private CancellationTokenSource? _cts;
-    private bool _dataLoaded = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] OnAfterRenderAsync — firstRender={firstRender}, dataLoaded={_dataLoaded}");
-        if (_dataLoaded) return;
-        _dataLoaded = true;
         if (currentCategory != null)
-        {
             await LoadListings();
-        }
         else
         {
-            _ = JS.InvokeVoidAsync("console.error", $"[CategoryLanding] Kategori bulunamadı: '{CategorySlug}'");
             isLoading = false;
             StateHasChanged();
         }
@@ -208,21 +193,18 @@ else
 
     private async Task SelectBranch(string branch)
     {
-        await JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Branş seçildi: '{branch}'");
         selectedBranch = branch;
         await LoadListings();
     }
 
     private async Task SelectGrade(int? grade)
     {
-        await JS.InvokeVoidAsync("console.log", $"[CategoryLanding] Sınıf seçildi: {grade?.ToString() ?? "Tümü"}");
         selectedGrade = grade;
         await LoadListings();
     }
 
     private async Task LoadListings(int page = 1)
     {
-        // Önceki isteği iptal et
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
@@ -237,8 +219,6 @@ else
             _ => selectedGrade
         };
 
-        _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] LoadListings başladı — categorySlug={CategorySlug}, branch={selectedBranch}, grade={gradeFilter?.ToString() ?? "null"}, page={page}");
-
         try
         {
             if (token.IsCancellationRequested) return;
@@ -252,19 +232,14 @@ else
                 PageSize = 12,
                 SortBy = "newest"
             }, token);
-
-            _ = JS.InvokeVoidAsync("console.log", $"[CategoryLanding] LoadListings BAŞARILI — totalCount={result?.TotalCount}");
         }
         catch (TaskCanceledException)
         {
-            _ = JS.InvokeVoidAsync("console.log", "[CategoryLanding] İstek iptal edildi");
-            isLoading = false;
-            StateHasChanged();
             return;
         }
         catch (Exception ex)
         {
-            _ = JS.InvokeVoidAsync("console.error", $"[CategoryLanding] HATA: {ex.Message}");
+            Console.WriteLine($"[CategoryLanding] HATA: {ex.Message}");
             result = new SearchResultDto();
         }
 

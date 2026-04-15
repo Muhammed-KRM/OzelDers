@@ -7,16 +7,18 @@ namespace OzelDers.API.Middleware;
 public class RequestResponseLoggingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     private static readonly string[] SkipPaths =
         ["/swagger", "/favicon", "/uploads", "/_blazor", "/health"];
 
-    public RequestResponseLoggingMiddleware(RequestDelegate next)
+    public RequestResponseLoggingMiddleware(RequestDelegate next, IServiceScopeFactory scopeFactory)
     {
         _next = next;
+        _scopeFactory = scopeFactory;
     }
 
-    public async Task InvokeAsync(HttpContext context, ILogService logService)
+    public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
 
@@ -28,12 +30,10 @@ public class RequestResponseLoggingMiddleware
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-        // Request body'yi buffer'a al (stream tek okunabilir)
         context.Request.EnableBuffering();
         var requestBody = await ReadBodyAsync(context.Request.Body);
         context.Request.Body.Position = 0;
 
-        // Response body'yi yakala
         var originalResponseBody = context.Response.Body;
         using var responseBuffer = new MemoryStream();
         context.Response.Body = responseBuffer;
@@ -48,14 +48,12 @@ public class RequestResponseLoggingMiddleware
         await responseBuffer.CopyToAsync(originalResponseBody);
         context.Response.Body = originalResponseBody;
 
-        // Kullanıcı bilgisini JWT'den al
         Guid? userId = null;
         var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (Guid.TryParse(userIdClaim, out var parsedId)) userId = parsedId;
         var userEmail = context.User.FindFirstValue(ClaimTypes.Email);
 
-        // Fire-and-forget: isteği yavaşlatmaz
-        _ = logService.LogEndpointAsync(new EndpointLogEntry
+        var entry = new EndpointLogEntry
         {
             TraceId      = context.TraceIdentifier,
             Method       = context.Request.Method,
@@ -71,6 +69,21 @@ public class RequestResponseLoggingMiddleware
             IpAddress    = context.Connection.RemoteIpAddress?.ToString(),
             UserAgent    = context.Request.Headers.UserAgent.ToString(),
             DurationMs   = (int)stopwatch.ElapsedMilliseconds
+        };
+
+        // Yeni scope ile log yaz — request scope'u dispose olsa bile güvenli
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var logService = scope.ServiceProvider.GetRequiredService<ILogService>();
+                await logService.LogEndpointAsync(entry);
+            }
+            catch
+            {
+                // Log hatası ana akışı etkilemesin
+            }
         });
     }
 
