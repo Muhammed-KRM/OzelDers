@@ -1,6 +1,8 @@
 using FluentValidation;
+using MassTransit;
 using Microsoft.Extensions.Configuration;
 using OzelDers.Business.DTOs;
+using OzelDers.Business.Events;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Helpers;
 using OzelDers.Business.Interfaces;
@@ -27,6 +29,7 @@ public class AuthManager : IAuthService
     private readonly IUserRepository _userRepo;
     private readonly IValidator<UserRegisterDto> _registerValidator;
     private readonly IEmailService _emailService;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly IConfiguration _config;
     private readonly ILogService _logService;
 
@@ -34,12 +37,14 @@ public class AuthManager : IAuthService
         IUserRepository userRepo,
         IValidator<UserRegisterDto> registerValidator,
         IEmailService emailService,
+        IPublishEndpoint publishEndpoint,
         IConfiguration config,
         ILogService logService)
     {
         _userRepo = userRepo;
         _registerValidator = registerValidator;
         _emailService = emailService;
+        _publishEndpoint = publishEndpoint;
         _config = config;
         _logService = logService;
     }
@@ -71,6 +76,25 @@ public class AuthManager : IAuthService
             "Hoş Geldiniz!",
             new Dictionary<string, string> { { "FullName", user.FullName } }
         );
+
+        // Welcome bildirimi — await ile, hata loglanır
+        try
+        {
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = user.Id,
+                Type = "Welcome",
+                Title = "OzelDers'e Hoş Geldiniz! 🎓",
+                Message = "Hesabınız başarıyla oluşturuldu. İlan açabilir veya öğretmen arayabilirsiniz.",
+                ActionUrl = "/arama",
+                SendEmail = false,
+                IdempotencyKey = $"welcome-{user.Id}"
+            });
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync("AM-NOTIF", ex, new { userId = user.Id });
+        }
 
         return new AuthResultDto { Success = true, User = MapToDto(user), Token = "", RefreshToken = "" };
         }

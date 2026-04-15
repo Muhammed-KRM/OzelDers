@@ -43,6 +43,9 @@ public class User
     public DateTime? LastViolationAt { get; set; }
     public string? BanReason { get; set; }
 
+    // Push bildirim için Firebase token
+    public string? FcmToken { get; set; }
+
     // Navigation Properties
     // Öğretmen veya öğrenci olarak kullanıcının açtığı tüm ilanlar
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();

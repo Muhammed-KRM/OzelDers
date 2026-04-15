@@ -1,0 +1,141 @@
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<div class="notif-bell-wrapper">
+    <button class="notif-bell-btn" @onclick="ToggleDropdown" aria-label="Bildirimler">
+        🔔
+        @if (unreadCount > 0)
+        {
+            <span class="notif-badge">@(unreadCount > 99 ? "99+" : unreadCount.ToString())</span>
+        }
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="notif-dropdown">
+            <div class="notif-dropdown-header">
+                <span>Bildirimler</span>
+                @if (unreadCount > 0)
+                {
+                    <button class="notif-read-all" @onclick="MarkAllRead">Tümünü okundu işaretle</button>
+                }
+            </div>
+            @if (notifications.Any())
+            {
+                @foreach (var n in notifications.Take(5))
+                {
+                    <div class="notif-item @(n.IsRead ? "" : "unread")" @onclick="() => OpenNotification(n)">
+                        <div class="notif-icon">@GetIcon(n.Type)</div>
+                        <div class="notif-content">
+                            <div class="notif-title">@n.Title</div>
+                            <div class="notif-msg">@n.Message</div>
+                            <div class="notif-time">@GetTimeAgo(n.CreatedAt)</div>
+                        </div>
+                    </div>
+                }
+                <a href="/bildirimler" class="notif-see-all">Tümünü Gör →</a>
+            }
+            else
+            {
+                <div class="notif-empty">Bildirim yok</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private int unreadCount = 0;
+    private List<NotificationDto> notifications = new();
+    private bool isOpen = false;
+    private System.Threading.Timer? _timer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // İlk yüklemede hem count hem liste çek
+        await LoadUnreadCount();
+        // Her 30 saniyede sadece count poll'la (performans)
+        _timer = new System.Threading.Timer(async _ =>
+        {
+            await LoadUnreadCount();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private async Task LoadUnreadCount()
+    {
+        try
+        {
+            var countResult = await Http.GetFromJsonAsync<UnreadCountDto>("api/notifications/unread-count");
+            if (countResult != null) unreadCount = countResult.Count;
+        }
+        catch { }
+    }
+
+    private async Task LoadNotifications()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>("api/notifications");
+            if (result != null) notifications = result;
+        }
+        catch { }
+    }
+
+    private async Task ToggleDropdown()
+    {
+        isOpen = !isOpen;
+        // Dropdown açılınca listeyi çek (polling değil, on-demand)
+        if (isOpen && !notifications.Any())
+            await LoadNotifications();
+    }
+
+    private async Task MarkAllRead()
+    {
+        await Http.PutAsync("api/notifications/read-all", null);
+        notifications.ForEach(n => n.IsRead = true);
+        unreadCount = 0;
+        StateHasChanged();
+    }
+
+    private async Task OpenNotification(NotificationDto n)
+    {
+        isOpen = false;
+        await Http.PutAsync($"api/notifications/{n.Id}/read", null);
+        if (!string.IsNullOrEmpty(n.ActionUrl))
+            Navigation.NavigateTo(n.ActionUrl);
+    }
+
+    private static string GetIcon(string type) => type switch
+    {
+        "ListingApproved"  => "✅",
+        "ListingRejected"  => "❌",
+        "ListingPending"   => "⏳",
+        "NewApplication"   => "📩",
+        "TokenLoaded"      => "💰",
+        "Warning"          => "⚠️",
+        "Ban"              => "🚫",
+        "MessageReceived"  => "💬",
+        "VitrinExpired"    => "⭐",
+        "PasswordChanged"  => "🔒",
+        _                  => "🔔"
+    };
+
+    private static string GetTimeAgo(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt;
+        if (diff.TotalMinutes < 1) return "Az önce";
+        if (diff.TotalHours < 1) return $"{(int)diff.TotalMinutes} dk önce";
+        if (diff.TotalDays < 1) return $"{(int)diff.TotalHours} saat önce";
+        return $"{(int)diff.TotalDays} gün önce";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_timer != null)
+            await _timer.DisposeAsync();
+    }
+
+    private record UnreadCountDto(int Count);
+}

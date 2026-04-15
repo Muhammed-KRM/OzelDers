@@ -37,6 +37,8 @@ public class ListingDto
     // Sınıf aralığı
     public int? GradeMin { get; set; }
     public int? GradeMax { get; set; }
+    // Moderasyon mesajı — ilan Pending'e düştüğünde kullanıcıya gösterilir
+    public string? ModerationMessage { get; set; }
 }
 
 // İlan oluşturma formu

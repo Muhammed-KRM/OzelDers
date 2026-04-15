@@ -12,9 +12,21 @@ using OzelDers.Data;
 using OzelDers.Data.Context;
 using OzelDers.Data.Seeds;
 using OzelDers.Business.Interfaces;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using BC = BCrypt.Net.BCrypt;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Firebase Admin başlatma (google-services.json dosyası gerekir)
+var firebaseCredPath = builder.Configuration["Firebase:CredentialPath"];
+if (!string.IsNullOrEmpty(firebaseCredPath) && File.Exists(firebaseCredPath))
+{
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(firebaseCredPath)
+    });
+}
 
 // === 1. VERİTABANI ===
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
@@ -55,9 +67,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
+        // SignalR için token query string desteği
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
+
+// === SignalR ===
+builder.Services.AddSignalR();
 
 // === 4. SWAGGER ===
 builder.Services.AddControllers()
@@ -150,6 +177,7 @@ app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter(); // Middleware kuyruğunda Auth'dan sonra gelmesi uygun
 app.MapControllers();
+app.MapHub<OzelDers.API.Hubs.NotificationHub>("/hubs/notifications");
 
 // === VERİTABANI SEED ===
 using (var scope = app.Services.CreateScope())

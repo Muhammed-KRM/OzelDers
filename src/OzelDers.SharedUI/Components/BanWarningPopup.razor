@@ -1,0 +1,84 @@
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+@if (showBanPopup && banInfo != null)
+{
+    <div class="ban-popup-overlay">
+        <div class="ban-popup">
+            <div class="ban-popup-icon">🚫</div>
+            <h2>Hesabınız Askıya Alındı</h2>
+            <p>@banInfo.Message</p>
+            @if (!banInfo.IsPermanent && banInfo.BannedUntil.HasValue)
+            {
+                <p class="ban-until">Ban bitiş: <strong>@banInfo.BannedUntil.Value.ToString("dd.MM.yyyy HH:mm")</strong></p>
+            }
+            <p class="ban-reason">Sebep: @banInfo.Reason</p>
+            <button class="btn btn-secondary" @onclick="() => showBanPopup = false">Tamam</button>
+        </div>
+    </div>
+}
+
+@if (showWarningPopup)
+{
+    <div class="warning-popup-overlay">
+        <div class="warning-popup">
+            <div class="warning-popup-icon">⚠️</div>
+            <h3>Uyarı Aldınız</h3>
+            <p>İlan içeriğiniz platform kurallarına aykırı bulundu. Tekrar eden ihlallerde hesabınız askıya alınabilir.</p>
+            <p class="warning-count">Toplam ihlal: <strong>@violationCount</strong></p>
+            <button class="btn btn-primary" @onclick="() => showWarningPopup = false">Anladım</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showBanPopup = false;
+    private bool showWarningPopup = false;
+    private BanInfoDto? banInfo;
+    private int violationCount = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            // Son okunmamış ban/uyarı bildirimi var mı kontrol et
+            var notifications = await Http.GetFromJsonAsync<List<NotifCheckDto>>("api/notifications");
+            if (notifications == null) return;
+
+            var banNotif = notifications.FirstOrDefault(n => n.Type == "Ban" && !n.IsRead);
+            var warnNotif = notifications.FirstOrDefault(n => n.Type == "Warning" && !n.IsRead);
+
+            if (banNotif != null)
+            {
+                var me = await Http.GetFromJsonAsync<MeDto>("api/account/me");
+                if (me?.BannedUntil != null)
+                {
+                    var isPermanent = me.BannedUntil == DateTime.MaxValue;
+                    banInfo = new BanInfoDto(
+                        isPermanent,
+                        me.BannedUntil,
+                        me.BanReason ?? "",
+                        isPermanent
+                            ? "Hesabınız kalıcı olarak askıya alınmıştır."
+                            : $"Hesabınız {me.BannedUntil:dd.MM.yyyy} tarihine kadar askıya alınmıştır."
+                    );
+                    showBanPopup = true;
+                    StateHasChanged();
+                }
+            }
+            else if (warnNotif != null)
+            {
+                var me = await Http.GetFromJsonAsync<MeDto>("api/account/me");
+                violationCount = me?.ViolationCount ?? 0;
+                showWarningPopup = true;
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
+    private record BanInfoDto(bool IsPermanent, DateTime? BannedUntil, string Reason, string Message);
+    private record MeDto(DateTime? BannedUntil, string? BanReason, int ViolationCount);
+    private record NotifCheckDto(int Id, string Type, bool IsRead);
+}

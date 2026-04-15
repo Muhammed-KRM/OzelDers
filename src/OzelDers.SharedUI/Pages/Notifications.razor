@@ -1,0 +1,182 @@
+@page "/bildirimler"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Bildirimler | OzelDers.com</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <section class="section notifications-page">
+            <div class="container">
+                <PageHeader Title="Bildirimler" Subtitle="Tüm bildirimleriniz" ShowBack="true" />
+
+                <div class="notifications-toolbar">
+                    @if (unreadCount > 0)
+                    {
+                        <button class="btn btn-secondary btn-sm" @onclick="MarkAllRead">
+                            ✅ Tümünü Okundu İşaretle (@unreadCount)
+                        </button>
+                    }
+                </div>
+
+                @if (isLoading)
+                {
+                    <div class="notifications-list">
+                        @for (int i = 0; i < 5; i++)
+                        {
+                            <div class="skeleton" style="height: 80px; margin-bottom: 0.75rem;"></div>
+                        }
+                    </div>
+                }
+                else if (!notifications.Any())
+                {
+                    <div class="empty-state card text-center" style="padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔔</div>
+                        <h3>Henüz bildirim yok</h3>
+                        <p class="text-muted">Yeni bildirimler burada görünecek.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="notifications-list">
+                        @foreach (var n in notifications)
+                        {
+                            <div class="notification-item card @(n.IsRead ? "read" : "unread")"
+                                 @onclick="() => OpenNotification(n)"
+                                 style="cursor: @(string.IsNullOrEmpty(n.ActionUrl) ? "default" : "pointer")">
+                                <div class="notif-item-icon">@GetIcon(n.Type)</div>
+                                <div class="notif-item-content">
+                                    <div class="notif-item-header">
+                                        <strong>@n.Title</strong>
+                                        @if (!n.IsRead)
+                                        {
+                                            <span class="badge badge-primary" style="font-size: 0.7rem;">Yeni</span>
+                                        }
+                                    </div>
+                                    <p class="notif-item-message text-muted">@n.Message</p>
+                                    <span class="notif-item-time text-muted" style="font-size: 0.8rem;">
+                                        @n.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (hasMore)
+                    {
+                        <div class="text-center" style="margin-top: 1.5rem;">
+                            <button class="btn btn-secondary" @onclick="LoadMore" disabled="@isLoadingMore">
+                                @(isLoadingMore ? "Yükleniyor..." : "Daha Fazla Göster")
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container section text-center" style="min-height: 50vh; display: flex; align-items: center; justify-content: center;">
+            <div class="card" style="max-width: 400px; padding: 2rem;">
+                <h3>Giriş Yapmanız Gerekiyor</h3>
+                <a href="/giris" class="btn btn-primary" style="margin-top: 1rem;">Giriş Yap</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<NotificationDto> notifications = new();
+    private int unreadCount = 0;
+    private bool isLoading = true;
+    private bool isLoadingMore = false;
+    private bool hasMore = false;
+    private int currentPage = 1;
+    private const int PageSize = 20;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await LoadNotifications();
+        StateHasChanged();
+    }
+
+    private async Task LoadNotifications()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>(
+                $"api/notifications?page={currentPage}");
+            if (result != null)
+            {
+                notifications = result;
+                hasMore = result.Count == PageSize;
+                unreadCount = result.Count(n => !n.IsRead);
+            }
+        }
+        catch { }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        isLoadingMore = true;
+        currentPage++;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>(
+                $"api/notifications?page={currentPage}");
+            if (result != null)
+            {
+                notifications.AddRange(result);
+                hasMore = result.Count == PageSize;
+            }
+        }
+        catch { currentPage--; }
+        finally
+        {
+            isLoadingMore = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        await Http.PutAsync("api/notifications/read-all", null);
+        foreach (var n in notifications) n.IsRead = true;
+        unreadCount = 0;
+        StateHasChanged();
+    }
+
+    private async Task OpenNotification(NotificationDto n)
+    {
+        if (!n.IsRead)
+        {
+            await Http.PutAsync($"api/notifications/{n.Id}/read", null);
+            n.IsRead = true;
+            unreadCount = Math.Max(0, unreadCount - 1);
+            StateHasChanged();
+        }
+        if (!string.IsNullOrEmpty(n.ActionUrl))
+            Navigation.NavigateTo(n.ActionUrl);
+    }
+
+    private static string GetIcon(string type) => type switch
+    {
+        "ListingApproved"  => "✅",
+        "ListingRejected"  => "❌",
+        "ListingPending"   => "⏳",
+        "NewApplication"   => "📩",
+        "TokenLoaded"      => "💰",
+        "Warning"          => "⚠️",
+        "Ban"              => "🚫",
+        "MessageReceived"  => "💬",
+        "VitrinExpired"    => "⭐",
+        "PasswordChanged"  => "🔒",
+        "Welcome"          => "🎉",
+        _                  => "🔔"
+    };
+}

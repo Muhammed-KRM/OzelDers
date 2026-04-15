@@ -1,5 +1,7 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using OzelDers.Business.DTOs;
+using OzelDers.Business.Events;
 using OzelDers.Business.Interfaces;
 using OzelDers.Data.Context;
 using OzelDers.Data.Enums;
@@ -23,11 +25,13 @@ public class AdminManager : IAdminService
     // ═══════════════════════════════════════════════
 
     private readonly AppDbContext _context;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogService _logService;
 
-    public AdminManager(AppDbContext context, ILogService logService)
+    public AdminManager(AppDbContext context, IPublishEndpoint publishEndpoint, ILogService logService)
     {
         _context = context;
+        _publishEndpoint = publishEndpoint;
         _logService = logService;
     }
 
@@ -136,8 +140,25 @@ public class AdminManager : IAdminService
     {
         try
         {
-        var listing = await _context.Listings.FindAsync(listingId);
-        if (listing != null) { listing.Status = ListingStatus.Active; await _context.SaveChangesAsync(); }
+        var listing = await _context.Listings.Include(l => l.Owner).FirstOrDefaultAsync(l => l.Id == listingId);
+        if (listing != null)
+        {
+            listing.Status = ListingStatus.Active;
+            await _context.SaveChangesAsync();
+
+            // Onay bildirimi
+            if (listing.Owner != null)
+                _ = _publishEndpoint.Publish(new SendNotificationEvent
+                {
+                    UserId = listing.OwnerId,
+                    Type = "ListingApproved",
+                    Title = "İlanınız Onaylandı ✅",
+                    Message = $"\"{listing.Title}\" başlıklı ilanınız onaylandı ve yayında.",
+                    ActionUrl = $"/ilan/{listing.Slug}",
+                    SendEmail = true,
+                    UserEmail = listing.Owner.Email
+                });
+        }
         }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_APPROVELISTING, ex, listingId); throw; }
     }
@@ -146,8 +167,25 @@ public class AdminManager : IAdminService
     {
         try
         {
-        var listing = await _context.Listings.FindAsync(listingId);
-        if (listing != null) { listing.Status = ListingStatus.Suspended; await _context.SaveChangesAsync(); }
+        var listing = await _context.Listings.Include(l => l.Owner).FirstOrDefaultAsync(l => l.Id == listingId);
+        if (listing != null)
+        {
+            listing.Status = ListingStatus.Suspended;
+            await _context.SaveChangesAsync();
+
+            // Red bildirimi
+            if (listing.Owner != null)
+                _ = _publishEndpoint.Publish(new SendNotificationEvent
+                {
+                    UserId = listing.OwnerId,
+                    Type = "ListingRejected",
+                    Title = "İlanınız Reddedildi ❌",
+                    Message = $"\"{listing.Title}\" başlıklı ilanınız admin tarafından reddedildi. Düzenleyerek tekrar gönderebilirsiniz.",
+                    ActionUrl = "/panel/ilanlarim",
+                    SendEmail = true,
+                    UserEmail = listing.Owner.Email
+                });
+        }
         }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_REJECTLISTING, ex, listingId); throw; }
     }

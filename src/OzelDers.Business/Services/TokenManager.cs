@@ -1,4 +1,6 @@
+using MassTransit;
 using OzelDers.Business.DTOs;
+using OzelDers.Business.Events;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Interfaces;
 using OzelDers.Data.Entities;
@@ -22,17 +24,20 @@ public class TokenManager : ITokenService
     private readonly IUserRepository _userRepo;
     private readonly IRepository<TokenTransaction> _transactionRepo;
     private readonly IRepository<TokenPackage> _packageRepo;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogService _logService;
 
     public TokenManager(
         IUserRepository userRepo,
         IRepository<TokenTransaction> transactionRepo,
         IRepository<TokenPackage> packageRepo,
+        IPublishEndpoint publishEndpoint,
         ILogService logService)
     {
         _userRepo = userRepo;
         _transactionRepo = transactionRepo;
         _packageRepo = packageRepo;
+        _publishEndpoint = publishEndpoint;
         _logService = logService;
     }
 
@@ -107,6 +112,25 @@ public class TokenManager : ITokenService
             UserId = userId, Amount = amount, Type = TransactionType.Purchase, Description = reason
         });
         await _userRepo.SaveChangesAsync();
+
+        // Jeton yükleme bildirimi — await ile, hata loglanır
+        try
+        {
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = userId,
+                Type = "TokenLoaded",
+                Title = "Jeton Yüklendi 💰",
+                Message = $"{amount} jeton hesabınıza yüklendi. Yeni bakiyeniz: {user.TokenBalance} jeton.",
+                ActionUrl = "/panel/jetonlarim",
+                SendEmail = false,
+                IdempotencyKey = $"token-{userId}-{DateTime.UtcNow:yyyyMMddHHmm}"
+            });
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync("TM-NOTIF", ex, new { userId, amount });
+        }
         }
         catch (NotFoundException) { throw; }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_ADD, ex, new { userId, amount, reason }, userId); throw; }

@@ -24,6 +24,11 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, OzelDers.Business.Infrastructure.Email.SmtpEmailService>();
         services.AddScoped<IModerationService, ModerationManager>();
 
+        // Bildirim Sistemi
+        services.AddScoped<INotificationService, NotificationManager>();
+        services.AddScoped<ISmsService, OzelDers.Business.Infrastructure.Sms.NetgsmSmsService>();
+        services.AddHttpClient("Netgsm");
+
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
         services.AddValidatorsFromAssemblyContaining<AuthManager>();
 

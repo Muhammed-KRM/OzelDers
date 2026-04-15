@@ -373,9 +373,19 @@
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ------------------------------");
 
             // API'ye gönder
-            await ListingService.CreateAsync(model, Guid.Empty);
-            
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] İlan BAŞARIYLA oluşturuldu. İlanlarım sayfasına yönlendiriliyor...");
+            var result = await ListingService.CreateAsync(model, Guid.Empty);
+
+            // Moderasyon uyarısı varsa SweetAlert2 ile büyük popup göster
+            if (!string.IsNullOrEmpty(result.ModerationMessage))
+            {
+                await JS.InvokeVoidAsync("ozelders.showSwal", "warning",
+                    "⚠️ İlan İncelemeye Alındı",
+                    $"İlanınız platform kurallarına aykırı içerik barındırdığı için incelemeye alındı.\n\nSebep: {result.ModerationMessage}\n\nİlanınız admin onayından sonra yayına girecektir.",
+                    0);
+                Navigation.NavigateTo("/panel/ilanlarim");
+                return;
+            }
+
             await JS.InvokeVoidAsync("ozelders.showSwal", "success", "İlan Yayınlandı! 🎉", "İlanınız başarıyla oluşturuldu.", 2500);
             await Task.Delay(2600);
             Navigation.NavigateTo("/panel/ilanlarim");

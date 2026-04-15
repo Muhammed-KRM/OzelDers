@@ -182,4 +182,57 @@ public class AdminController : ControllerBase
 
         return Ok(new { total, page, pageSize, items });
     }
+
+    // ─── Moderasyon / İhlal Yönetimi ─────────────────────────────
+
+    [HttpGet("violations")]
+    public async Task<IActionResult> GetViolations(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var items = await _db.ViolationLogs
+            .Include(v => v.User)
+            .OrderByDescending(v => v.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(v => new {
+                v.Id, v.UserId,
+                UserEmail = v.User.Email,
+                UserName = v.User.FullName,
+                v.ListingTitle, v.ViolationType,
+                v.DetectedContent, v.DetectedBy,
+                v.CreatedAt,
+                v.User.ViolationCount,
+                v.User.BannedUntil
+            })
+            .ToListAsync();
+
+        var total = await _db.ViolationLogs.CountAsync();
+        return Ok(new { total, page, pageSize, items });
+    }
+
+    [HttpPost("users/{userId}/ban")]
+    public async Task<IActionResult> BanUser(Guid userId, [FromBody] BanRequestDto dto)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.BannedUntil = dto.IsPermanent ? DateTime.MaxValue : DateTime.UtcNow.AddDays(dto.Days);
+        user.BanReason = $"Admin: {dto.Reason}";
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Ban uygulandı." });
+    }
+
+    [HttpPost("users/{userId}/unban")]
+    public async Task<IActionResult> UnbanUser(Guid userId)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.BannedUntil = null;
+        user.BanReason = null;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Ban kaldırıldı." });
+    }
 }
+
+public record BanRequestDto(bool IsPermanent, int Days, string Reason);

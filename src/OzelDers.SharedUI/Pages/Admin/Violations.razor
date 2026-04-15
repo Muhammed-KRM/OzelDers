@@ -1,0 +1,288 @@
+@page "/admin/violations"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>İhlal Yönetimi | Admin Panel</PageTitle>
+
+<section class="section violations-management">
+    <div class="container">
+        <PageHeader Title="İhlal ve Ban Yönetimi"
+                    Subtitle="Kullanıcı ihlallerini görüntüleyin, ban uygulayın veya kaldırın"
+                    BackUrl="/admin">
+            <Actions>
+                <button class="btn btn-secondary" @onclick="LoadViolations">🔄 Yenile</button>
+            </Actions>
+        </PageHeader>
+
+        @if (isLoading)
+        {
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <p>İhlaller yükleniyor...</p>
+            </div>
+        }
+
+        <!-- İhlal Tablosu -->
+        <div class="users-table card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kullanıcı</th>
+                        <th>İhlal Türü</th>
+                        <th>Tespit Eden</th>
+                        <th>İlan Başlığı</th>
+                        <th>Toplam İhlal</th>
+                        <th>Ban Durumu</th>
+                        <th>Tarih</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in violations)
+                    {
+                        <tr>
+                            <td class="user-cell">
+                                <div class="user-avatar">@(v.UserName?.Length > 0 ? v.UserName[0].ToString() : "?")</div>
+                                <div class="user-info">
+                                    <strong>@v.UserName</strong>
+                                    <span class="user-id">@v.UserEmail</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="role-badge @v.ViolationType.ToLower()">
+                                    @GetViolationIcon(v.ViolationType) @v.ViolationType
+                                </span>
+                            </td>
+                            <td>@v.DetectedBy</td>
+                            <td title="@v.DetectedContent">
+                                @(v.ListingTitle?.Length > 30 ? v.ListingTitle[..30] + "..." : v.ListingTitle)
+                            </td>
+                            <td>
+                                <span class="@(v.ViolationCount >= 11 ? "text-danger" : v.ViolationCount >= 5 ? "text-warning" : "")">
+                                    <strong>@v.ViolationCount</strong>
+                                </span>
+                            </td>
+                            <td>
+                                @if (v.BannedUntil == null)
+                                {
+                                    <span class="status-badge active">Aktif</span>
+                                }
+                                else if (v.BannedUntil == DateTime.MaxValue)
+                                {
+                                    <span class="status-badge suspended">Kalıcı Ban</span>
+                                }
+                                else if (v.BannedUntil > DateTime.UtcNow)
+                                {
+                                    <span class="status-badge suspended" title="@v.BannedUntil?.ToString("dd.MM.yyyy HH:mm")">
+                                        Ban: @v.BannedUntil?.ToString("dd.MM.yyyy")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge active">Ban Bitti</span>
+                                }
+                            </td>
+                            <td class="date-cell">@v.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td class="actions-cell">
+                                @if (v.BannedUntil == null || v.BannedUntil <= DateTime.UtcNow)
+                                {
+                                    <button class="action-icon-btn danger" title="Ban Uygula"
+                                            @onclick="() => OpenBanModal(v.UserId, v.UserName ?? string.Empty)">
+                                        🚫
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="action-icon-btn success" title="Ban Kaldır"
+                                            @onclick="() => UnbanUser(v.UserId, v.UserName ?? string.Empty)">
+                                        ✅
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (!violations.Any() && !isLoading)
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <p>Henüz ihlal kaydı yok</p>
+                </div>
+            }
+        </div>
+
+        <!-- Sayfalama -->
+        @if (totalCount > pageSize)
+        {
+            <div class="flex justify-center gap-4" style="margin-top: 1.5rem;">
+                <button class="btn btn-secondary btn-sm" @onclick="PrevPage" disabled="@(currentPage == 1)">← Önceki</button>
+                <span class="text-muted" style="padding: 0.5rem 1rem;">@currentPage / @TotalPages</span>
+                <button class="btn btn-secondary btn-sm" @onclick="NextPage" disabled="@(currentPage >= TotalPages)">Sonraki →</button>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Ban Modal -->
+@if (showBanModal)
+{
+    <div class="modal-overlay" @onclick="CloseBanModal">
+        <div class="modal-box card" @onclick:stopPropagation="true">
+            <h3>Ban Uygula — @banTargetName</h3>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Ban Türü</label>
+                <select @bind="banIsPermanent" class="form-select">
+                    <option value="false">Geçici Ban</option>
+                    <option value="true">Kalıcı Ban</option>
+                </select>
+            </div>
+            @if (!banIsPermanent)
+            {
+                <div class="form-group">
+                    <label>Süre (Gün)</label>
+                    <input type="number" @bind="banDays" class="form-input" min="1" max="365" />
+                </div>
+            }
+            <div class="form-group">
+                <label>Sebep</label>
+                <input type="text" @bind="banReason" class="form-input" placeholder="Ban sebebini yazın..." />
+            </div>
+            <div class="form-actions" style="margin-top: 1.5rem;">
+                <button class="btn btn-secondary" @onclick="CloseBanModal">İptal</button>
+                <button class="btn btn-primary" @onclick="ApplyBan" disabled="@(string.IsNullOrWhiteSpace(banReason))">
+                    🚫 Ban Uygula
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ViolationItem> violations = new();
+    private bool isLoading = false;
+    private int currentPage = 1;
+    private int pageSize = 50;
+    private int totalCount = 0;
+    private int TotalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+
+    // Ban modal
+    private bool showBanModal = false;
+    private Guid banTargetUserId;
+    private string banTargetName = "";
+    private bool banIsPermanent = false;
+    private int banDays = 7;
+    private string banReason = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadViolations();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadViolations()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await Http.GetFromJsonAsync<ViolationPageResult>(
+                $"api/admin/violations?page={currentPage}&pageSize={pageSize}");
+            if (result != null)
+            {
+                violations = result.Items;
+                totalCount = result.Total;
+            }
+        }
+        catch { }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PrevPage() { if (currentPage > 1) { currentPage--; await LoadViolations(); } }
+    private async Task NextPage() { if (currentPage < TotalPages) { currentPage++; await LoadViolations(); } }
+
+    private void OpenBanModal(Guid userId, string userName)
+    {
+        banTargetUserId = userId;
+        banTargetName = userName;
+        banIsPermanent = false;
+        banDays = 7;
+        banReason = "";
+        showBanModal = true;
+    }
+
+    private void CloseBanModal() => showBanModal = false;
+
+    private async Task ApplyBan()
+    {
+        try
+        {
+            var dto = new { IsPermanent = banIsPermanent, Days = banDays, Reason = banReason };
+            var response = await Http.PostAsJsonAsync($"api/admin/users/{banTargetUserId}/ban", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                showBanModal = false;
+                await JS.InvokeVoidAsync("alert", $"{banTargetName} kullanıcısına ban uygulandı.");
+                await LoadViolations();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Hata: " + ex.Message);
+        }
+    }
+
+    private async Task UnbanUser(Guid userId, string userName)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"{userName} kullanıcısının banını kaldırmak istiyor musunuz?");
+        if (!confirmed) return;
+
+        try
+        {
+            var response = await Http.PostAsync($"api/admin/users/{userId}/unban", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "Ban kaldırıldı.");
+                await LoadViolations();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Hata: " + ex.Message);
+        }
+    }
+
+    private static string GetViolationIcon(string type) => type switch
+    {
+        "Phone" => "📞",
+        "Email" => "📧",
+        "Link"  => "🔗",
+        _       => "⚠️"
+    };
+
+    // DTO'lar
+    private record ViolationPageResult(int Total, int Page, int PageSize, List<ViolationItem> Items);
+
+    private class ViolationItem
+    {
+        public int Id { get; set; }
+        public Guid UserId { get; set; }
+        public string? UserEmail { get; set; }
+        public string? UserName { get; set; }
+        public string ListingTitle { get; set; } = "";
+        public string ViolationType { get; set; } = "";
+        public string DetectedContent { get; set; } = "";
+        public string DetectedBy { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public int ViolationCount { get; set; }
+        public DateTime? BannedUntil { get; set; }
+    }
+}

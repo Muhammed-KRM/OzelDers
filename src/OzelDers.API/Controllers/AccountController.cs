@@ -66,12 +66,28 @@ public class AccountController : ControllerBase
     }
 
     /// <summary>
+    /// Mobil uygulama için Firebase Cloud Messaging token'ını kaydeder.
+    /// </summary>
+    [HttpPost("fcm-token")]
+    public async Task<IActionResult> SaveFcmToken([FromBody] FcmTokenDto dto)
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        user.FcmToken = dto.Token;
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    /// <summary>
     /// KVK Kapsamında hesabı kalıcı silmez, yasal saklama süreleri nedeniyle "Soft Delete" (Askıya Alma) uygular.
     /// 6 ay sonra anonimleştirilecek.
     /// </summary>
     [HttpDelete]
-    public async Task<IActionResult> DeleteAccount()
-    {
+    public async Task<IActionResult> DeleteAccount()    {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
 
@@ -97,4 +113,30 @@ public class AccountController : ControllerBase
 
         return Ok(new { Message = "Hesabınız başarıyla dondurulmuştur. KVK politikamız gereği verileriniz yasal süre bitiminde tamemen anonimleştirilecektir." });
     }
+
+    /// <summary>
+    /// Mevcut kullanıcının temel bilgilerini döndürür (ban durumu, ihlal sayısı vb.).
+    /// </summary>
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        return Ok(new
+        {
+            user.Id,
+            user.FullName,
+            user.Email,
+            user.ViolationCount,
+            user.BannedUntil,
+            user.BanReason,
+            user.FcmToken
+        });
+    }
 }
+
+public record FcmTokenDto(string Token);

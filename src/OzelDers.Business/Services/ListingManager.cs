@@ -76,6 +76,10 @@ public class ListingManager : IListingService
         var sanitizer = new HtmlSanitizer();
         string sanitizedDescription = sanitizer.Sanitize(dto.Description);
 
+        // Moderasyon kontrolü — kullanıcıya açıklama yap
+        var modResult = _moderationService.CheckContent(dto.Title, sanitizedDescription);
+        var listingStatus = modResult.IsViolation ? ListingStatus.Pending : ListingStatus.Active;
+
         var listing = new Listing
         {
             OwnerId = userId,
@@ -87,9 +91,7 @@ public class ListingManager : IListingService
             LessonType = dto.LessonType,
             BranchId = dto.BranchId,
             DistrictId = dto.DistrictId,
-            Status = _moderationService.CheckContent(dto.Title, sanitizedDescription).IsViolation
-                ? ListingStatus.Pending
-                : ListingStatus.Active,
+            Status = listingStatus,
             // Madde 7 — Yeni alanlar
             EducationLevel = dto.EducationLevel,
             ExperienceYears = dto.ExperienceYears,
@@ -113,8 +115,41 @@ public class ListingManager : IListingService
         // 5. Event fırlat (Consumer ES'e indexleyecek + cache'i temizleyecek)
         await _publishEndpoint.Publish(new ListingCreatedEvent { ListingId = listing.Id });
 
-        // 6. DTO olarak döndür
-        return MapToDto(listing);
+        // 6. Bildirim gönder
+        if (modResult.IsViolation)
+        {
+            // Moderasyon ihlali — uyarı bildirimi
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = userId,
+                Type = "Warning",
+                Title = "İlan İçeriği Uyarısı",
+                Message = $"İlanınız incelemeye alındı. Sebep: {modResult.Message}",
+                ActionUrl = "/panel/ilanlarim",
+                SendEmail = true,
+                UserEmail = listing.Owner?.Email
+            });
+        }
+        else
+        {
+            // Normal ilan oluşturma bildirimi
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = userId,
+                Type = "ListingPending",
+                Title = "İlanınız Oluşturuldu",
+                Message = $"\"{listing.Title}\" başlıklı ilanınız başarıyla oluşturuldu ve yayında.",
+                ActionUrl = $"/ilan/{listing.Slug}",
+                SendEmail = true,
+                UserEmail = listing.Owner?.Email
+            });
+        }
+
+        // 7. DTO olarak döndür — moderasyon mesajını da ekle
+        var resultDto = MapToDto(listing);
+        if (modResult.IsViolation)
+            resultDto.ModerationMessage = modResult.Message;
+        return resultDto;
         }
         catch (BusinessException) { throw; }
         catch (Exception ex)

@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<EndpointLog> EndpointLogs => Set<EndpointLog>();
     public DbSet<FunctionLog> FunctionLogs => Set<FunctionLog>();
     public DbSet<ViolationLog> ViolationLogs => Set<ViolationLog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

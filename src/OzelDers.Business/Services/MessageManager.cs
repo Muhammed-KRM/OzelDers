@@ -1,6 +1,8 @@
 using FluentValidation;
 using Ganss.Xss;
+using MassTransit;
 using OzelDers.Business.DTOs;
+using OzelDers.Business.Events;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Interfaces;
 using OzelDers.Data.Entities;
@@ -24,6 +26,7 @@ public class MessageManager : IMessageService
     private readonly ITokenService _tokenService;
     private readonly IValidator<MessageSendDto> _sendValidator;
     private readonly ISettingService _settingService;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogService _logService;
 
     public MessageManager(
@@ -31,12 +34,14 @@ public class MessageManager : IMessageService
         ITokenService tokenService,
         IValidator<MessageSendDto> sendValidator,
         ISettingService settingService,
+        IPublishEndpoint publishEndpoint,
         ILogService logService)
     {
         _messageRepo = messageRepo;
         _tokenService = tokenService;
         _sendValidator = sendValidator;
         _settingService = settingService;
+        _publishEndpoint = publishEndpoint;
         _logService = logService;
     }
 
@@ -106,6 +111,27 @@ public class MessageManager : IMessageService
 
         await _messageRepo.AddAsync(message);
         await _messageRepo.SaveChangesAsync();
+
+        // Alıcıya bildirim gönder
+        try
+        {
+            await _publishEndpoint.Publish(new SendNotificationEvent
+            {
+                UserId = dto.ReceiverId,
+                Type = "MessageReceived",
+                Title = "Yeni Mesajınız Var 💬",
+                Message = dto.IsDirectOffer
+                    ? "Birileri size direkt teklif gönderdi."
+                    : "İlanınıza yeni bir mesaj geldi.",
+                ActionUrl = "/panel/mesajlarim",
+                SendEmail = true,
+                IdempotencyKey = $"msg-{message.Id}"
+            });
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync("MSG-NOTIF", ex, new { messageId = message.Id });
+        }
 
         return MapToDto(message);
         }
