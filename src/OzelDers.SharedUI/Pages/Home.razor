@@ -1,5 +1,6 @@
 @page "/"
 @inject IListingService ListingService
+@inject HttpClient Http
 
 <PageTitle>Özel Ders Bul | OzelDers.com</PageTitle>
 
@@ -8,12 +9,52 @@
     <div class="container">
         <h1 class="hero-title animate-slide-up">Aradığın <span>Öğretmeni</span> Bul</h1>
         <p class="hero-subtitle animate-fade-in">Türkiye'nin en güvenilir özel ders platformunda binlerce uzman öğretmen seni bekliyor.</p>
+
+        <!-- Ana arama kutusu -->
         <div class="search-container animate-fade-in">
             <span style="padding-left: 1rem; font-size: 1.5rem;">🔍</span>
             <input type="text" @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleKeyDown"
                    class="search-input"
                    placeholder="Ne öğrenmek istersin? (Matematik, İngilizce...)" />
             <button class="btn btn-primary search-btn" @onclick="ExecuteSearch">Hemen Bul</button>
+        </div>
+
+        <!-- Mega Filter -->
+        <div class="mega-filter animate-fade-in">
+            <div class="mega-filter-inner">
+                <div class="mf-group">
+                    <label class="mf-label">📚 Branş</label>
+                    <select @bind="filterBranch" class="mf-select">
+                        <option value="">Tüm Branşlar</option>
+                        @foreach (var b in branches)
+                        {
+                            <option value="@b.Name">@b.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mf-divider"></div>
+                <div class="mf-group">
+                    <label class="mf-label">📍 Şehir</label>
+                    <select @bind="filterCity" class="mf-select">
+                        <option value="">Tüm Şehirler</option>
+                        @foreach (var c in cities)
+                        {
+                            <option value="@c.Name">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mf-divider"></div>
+                <div class="mf-group mf-price-group">
+                    <label class="mf-label">💰 Maks. Fiyat: <strong>@(filterMaxPrice == 2000 ? "Tümü" : filterMaxPrice + " TL")</strong></label>
+                    <input type="range" min="0" max="2000" step="50"
+                           @bind="filterMaxPrice" @bind:event="oninput"
+                           class="mf-range" />
+                    <div class="mf-range-labels"><span>Ücretsiz</span><span>2000 TL</span></div>
+                </div>
+                <button class="btn btn-primary mf-search-btn" @onclick="ExecuteMegaSearch">
+                    Ara
+                </button>
+            </div>
         </div>
     </div>
 </section>
@@ -149,24 +190,49 @@
     private List<ListingDto> vitrinListings = new();
     private string searchQuery = string.Empty;
 
+    // Mega filter
+    private string filterBranch = "";
+    private string filterCity = "";
+    private int filterMaxPrice = 2000;
+    private List<BranchDto> branches = new();
+    private List<CityDto> cities = new();
+
     protected override async Task OnInitializedAsync()
     {
         try { vitrinListings = await ListingService.GetVitrinListingsAsync(); }
-        catch { /* API henüz çalışmıyorsa sessizce geç */ }
+        catch { }
+
+        try
+        {
+            var b = await Http.GetFromJsonAsync<List<BranchDto>>("api/branches");
+            if (b != null) branches = b;
+        }
+        catch { }
+
+        try
+        {
+            var c = await Http.GetFromJsonAsync<List<CityDto>>("api/cities");
+            if (c != null) cities = c;
+        }
+        catch { }
     }
 
     private async Task ExecuteSearch()
     {
         if (!string.IsNullOrWhiteSpace(searchQuery))
-        {
-            await JS.InvokeVoidAsync("console.log", $"[OzelDers Tracker] Arama yapılıyor: {searchQuery}");
             NavManager.NavigateTo($"/arama?q={Uri.EscapeDataString(searchQuery)}");
-        }
         else
-        {
-            await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] Boş arama yapıldı, tüm listeye yönlendiriliyor.");
             NavManager.NavigateTo("/arama");
-        }
+    }
+
+    private void ExecuteMegaSearch()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(filterBranch)) parts.Add($"branch={Uri.EscapeDataString(filterBranch)}");
+        if (!string.IsNullOrEmpty(filterCity))   parts.Add($"city={Uri.EscapeDataString(filterCity)}");
+        if (filterMaxPrice < 2000)               parts.Add($"maxPrice={filterMaxPrice}");
+        var url = "/arama" + (parts.Any() ? "?" + string.Join("&", parts) : "");
+        NavManager.NavigateTo(url);
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)

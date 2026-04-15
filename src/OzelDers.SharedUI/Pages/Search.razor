@@ -1,6 +1,7 @@
 @page "/arama"
 @inject IListingService ListingService
 @inject HttpClient Http
+@inject NavigationManager Navigation
 
 <PageTitle>Öğretmen Arama | OzelDers.com</PageTitle>
 
@@ -204,14 +205,26 @@
 
     private List<BranchDto> branches = [];
     private List<CityDto> cities = [];
-    private bool dataLoaded = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         await LoadFormData();
+        ReadQueryString();
         await LoadListings();
         StateHasChanged();
+    }
+
+    private void ReadQueryString()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("q",      out var q))      filters.Query  = q;
+        if (query.TryGetValue("branch", out var branch)) filters.Branch = branch;
+        if (query.TryGetValue("city",   out var city))   filters.City   = city;
+        if (query.TryGetValue("maxPrice", out var maxP) && int.TryParse(maxP, out var mp)) filters.MaxPrice = mp;
+        if (query.TryGetValue("minPrice", out var minP) && int.TryParse(minP, out var mnp)) filters.MinPrice = mnp;
     }
 
     private async Task LoadFormData()
@@ -222,7 +235,6 @@
             if (b != null) branches = b;
             var c = await Http.GetFromJsonAsync<List<CityDto>>("api/cities");
             if (c != null) cities = c;
-            dataLoaded = true;
         }
         catch { }
     }

@@ -1,0 +1,218 @@
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+@if (isVisible)
+{
+    <div class="onboarding-overlay">
+        <div class="onboarding-modal">
+
+            <!-- Kapat -->
+            <button class="onboarding-close" @onclick="Close" aria-label="Kapat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <!-- Sol panel (dekoratif) -->
+            <div class="ob-left">
+                <div class="ob-left-content">
+                    <div class="ob-brand">🎓 OzelDers</div>
+                    <h2 class="ob-left-title">
+                        @if (currentStep == 1) { <span>Türkiye'nin en esnek özel ders platformu.</span> }
+                        @if (currentStep == 2) { <span>Hem öğren,<br/>hem öğret.</span> }
+                        @if (currentStep == 3) { <span>Hadi başlayalım!</span> }
+                    </h2>
+                    <p class="ob-left-sub">
+                        @if (currentStep == 1) { <span>Tek hesapla ders ver, ders al. Rol seçmene gerek yok.</span> }
+                        @if (currentStep == 2) { <span>İstediğin zaman öğretmen, istediğin zaman öğrenci olabilirsin.</span> }
+                        @if (currentStep == 3) { <span>Sana özel başlangıç noktaları hazır.</span> }
+                    </p>
+                    <div class="ob-left-dots">
+                        @for (int i = 1; i <= TotalSteps; i++)
+                        {
+                            var s = i;
+                            <div class="ob-dot @(currentStep == s ? "active" : "") @(currentStep > s ? "done" : "")"></div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ panel (içerik) -->
+            <div class="ob-right">
+
+                @if (currentStep == 1)
+                {
+                    <div class="ob-step">
+                        <h3>Nasıl çalışır?</h3>
+                        <div class="ob-features">
+                            <div class="ob-feature-item">
+                                <div class="ob-feature-icon">📋</div>
+                                <div>
+                                    <strong>İki yönlü ilanlar</strong>
+                                    <p>Ders vermek veya almak için ilan aç. Her ikisini de yapabilirsin.</p>
+                                </div>
+                            </div>
+                            <div class="ob-feature-item">
+                                <div class="ob-feature-icon">💬</div>
+                                <div>
+                                    <strong>Jeton sistemi</strong>
+                                    <p>İlanlara ücretsiz başvur. Direkt mesaj için jeton kullan.</p>
+                                </div>
+                            </div>
+                            <div class="ob-feature-item">
+                                <div class="ob-feature-icon">⭐</div>
+                                <div>
+                                    <strong>Vitrin paketi</strong>
+                                    <p>İlanını öne çıkar, daha fazla kişiye ulaş.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary ob-next-btn" @onclick="NextStep">
+                            Devam Et →
+                        </button>
+                        <button class="ob-skip" @onclick="Close">Atla, siteyi keşfedeyim</button>
+                    </div>
+                }
+
+                @if (currentStep == 2)
+                {
+                    <div class="ob-step">
+                        <h3>Ne yapmak istiyorsun?</h3>
+                        <p class="ob-step-sub">İkisini de seçebilirsin.</p>
+                        <div class="ob-intent-grid">
+                            <button class="ob-intent-card @(wantsLearn ? "selected" : "")" @onclick="() => wantsLearn = !wantsLearn">
+                                <span class="ob-intent-emoji">📖</span>
+                                <strong>Ders almak istiyorum</strong>
+                                <span>Branşıma uygun öğretmen bul</span>
+                                @if (wantsLearn) { <div class="ob-check">✓</div> }
+                            </button>
+                            <button class="ob-intent-card @(wantsTeach ? "selected" : "")" @onclick="() => wantsTeach = !wantsTeach">
+                                <span class="ob-intent-emoji">🏫</span>
+                                <strong>Ders vermek istiyorum</strong>
+                                <span>İlan aç, öğrencilere ulaş</span>
+                                @if (wantsTeach) { <div class="ob-check">✓</div> }
+                            </button>
+                        </div>
+                        <div class="ob-nav">
+                            <button class="ob-back-btn" @onclick="PrevStep">← Geri</button>
+                            <button class="btn btn-primary" @onclick="NextStep" disabled="@(!wantsLearn && !wantsTeach)">
+                                Devam →
+                            </button>
+                        </div>
+                        <button class="ob-skip" @onclick="Close">Atla</button>
+                    </div>
+                }
+
+                @if (currentStep == 3)
+                {
+                    <div class="ob-step">
+                        <h3>Başlangıç noktanı seç</h3>
+                        <div class="ob-action-list">
+                            @if (wantsLearn)
+                            {
+                                <div class="ob-action-block">
+                                    <div class="ob-action-title"><span>📖</span> Öğretmen Ara</div>
+                                    <div class="ob-filter-row">
+                                        <select @bind="selectedBranch" class="ob-select">
+                                            <option value="">Branş (opsiyonel)</option>
+                                            @foreach (var b in branches)
+                                            {
+                                                <option value="@b.Name">@b.Name</option>
+                                            }
+                                        </select>
+                                        <select @bind="selectedCity" class="ob-select">
+                                            <option value="">Şehir (opsiyonel)</option>
+                                            @foreach (var c in cities)
+                                            {
+                                                <option value="@c.Name">@c.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-primary ob-action-btn" @onclick="GoSearch">
+                                        🔍 Öğretmen Bul
+                                    </button>
+                                </div>
+                            }
+                            @if (wantsTeach)
+                            {
+                                <div class="ob-action-block teach">
+                                    <div class="ob-action-title"><span>🏫</span> İlan Oluştur</div>
+                                    <p>Ücretsiz ilan aç, binlerce öğrenciye ulaş.</p>
+                                    <button class="btn btn-secondary ob-action-btn" @onclick="GoCreateListing">
+                                        ➕ İlan Oluştur
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                        <div class="ob-nav">
+                            <button class="ob-back-btn" @onclick="PrevStep">← Geri</button>
+                        </div>
+                        <button class="ob-skip" @onclick="Close">Şimdi değil</button>
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isVisible = false;
+    private int currentStep = 1;
+    private const int TotalSteps = 3;
+    private bool wantsLearn = false;
+    private bool wantsTeach = false;
+    private string selectedBranch = "";
+    private string selectedCity = "";
+    private List<BranchDto> branches = new();
+    private List<CityDto> cities = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var done = await JS.InvokeAsync<string?>("localStorage.getItem", "onboarding_done");
+        if (string.IsNullOrEmpty(done))
+        {
+            await LoadData();
+            isVisible = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var b = await Http.GetFromJsonAsync<List<BranchDto>>("api/branches");
+            if (b != null) branches = b.Take(60).ToList();
+            var c = await Http.GetFromJsonAsync<List<CityDto>>("api/cities");
+            if (c != null) cities = c;
+        }
+        catch { }
+    }
+
+    private void NextStep() { if (currentStep < TotalSteps) currentStep++; }
+    private void PrevStep() { if (currentStep > 1) currentStep--; }
+
+    private async Task Close()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "onboarding_done", "1");
+        isVisible = false;
+    }
+
+    private async Task GoSearch()
+    {
+        await Close();
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(selectedBranch)) parts.Add($"branch={Uri.EscapeDataString(selectedBranch)}");
+        if (!string.IsNullOrEmpty(selectedCity))   parts.Add($"city={Uri.EscapeDataString(selectedCity)}");
+        Navigation.NavigateTo("/arama" + (parts.Any() ? "?" + string.Join("&", parts) : ""));
+    }
+
+    private async Task GoCreateListing()
+    {
+        await Close();
+        Navigation.NavigateTo("/panel/ilan-olustur");
+    }
+}
