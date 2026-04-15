@@ -146,6 +146,7 @@ else
 app.UseCors(app.Environment.IsDevelopment() ? "AllowAll" : "Production");
 app.UseStaticFiles(); // uploads klasörü için
 app.UseAuthentication();
+app.UseMiddleware<BanCheckMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter(); // Middleware kuyruğunda Auth'dan sonra gelmesi uygun
 app.MapControllers();

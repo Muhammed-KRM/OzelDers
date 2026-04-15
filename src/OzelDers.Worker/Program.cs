@@ -11,6 +11,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 OzelDers.Data.ServiceRegistration.AddDataLayer(builder.Services, connectionString);
 OzelDers.Business.DependencyInjection.AddBusinessServices(builder.Services);
 
+builder.Services.AddSingleton<OzelDers.Worker.Services.OllamaService>();
+
 // MassTransit v8 — RabbitMQ (ücretsiz, lisans gerektirmez)
 builder.Services.AddMassTransit(x =>
 {

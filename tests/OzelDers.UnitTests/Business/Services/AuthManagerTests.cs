@@ -23,6 +23,7 @@ public class AuthManagerTests
     private readonly Mock<IValidator<UserRegisterDto>> _validatorMock;
     private readonly Mock<IEmailService> _emailServiceMock;
     private readonly Mock<IConfiguration> _configMock;
+    private readonly Mock<ILogService> _logServiceMock;
     private readonly AuthManager _authManager;
 
     public AuthManagerTests()
@@ -31,12 +32,14 @@ public class AuthManagerTests
         _validatorMock = new Mock<IValidator<UserRegisterDto>>();
         _emailServiceMock = new Mock<IEmailService>();
         _configMock = new Mock<IConfiguration>();
+        _logServiceMock = new Mock<ILogService>();
 
         _authManager = new AuthManager(
             _userRepoMock.Object,
             _validatorMock.Object,
             _emailServiceMock.Object,
-            _configMock.Object);
+            _configMock.Object,
+            _logServiceMock.Object);
     }
 
     [Fact]

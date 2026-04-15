@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
     public DbSet<EndpointLog> EndpointLogs => Set<EndpointLog>();
     public DbSet<FunctionLog> FunctionLogs => Set<FunctionLog>();
+    public DbSet<ViolationLog> ViolationLogs => Set<ViolationLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

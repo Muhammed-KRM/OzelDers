@@ -7,6 +7,7 @@ using MassTransit;
 using Moq;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Exceptions;
+using OzelDers.Business.Interfaces;
 using OzelDers.Business.Services;
 using OzelDers.Data.Entities;
 using OzelDers.Data.Repositories;
@@ -21,6 +22,10 @@ public class ListingManagerTests
     private readonly Mock<IRepository<District>> _districtRepoMock;
     private readonly Mock<IValidator<ListingCreateDto>> _validatorMock;
     private readonly Mock<IPublishEndpoint> _publishEndpointMock;
+    private readonly Mock<ITokenService> _tokenServiceMock;
+    private readonly Mock<ISettingService> _settingServiceMock;
+    private readonly Mock<ILogService> _logServiceMock;
+    private readonly Mock<IModerationService> _moderationServiceMock;
     private readonly ListingManager _listingManager;
 
     public ListingManagerTests()
@@ -30,13 +35,26 @@ public class ListingManagerTests
         _districtRepoMock = new Mock<IRepository<District>>();
         _validatorMock = new Mock<IValidator<ListingCreateDto>>();
         _publishEndpointMock = new Mock<IPublishEndpoint>();
+        _tokenServiceMock = new Mock<ITokenService>();
+        _settingServiceMock = new Mock<ISettingService>();
+        _logServiceMock = new Mock<ILogService>();
+        _moderationServiceMock = new Mock<IModerationService>();
+
+        // Default: moderation returns clean
+        _moderationServiceMock
+            .Setup(m => m.CheckContent(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(ModerationResult.Clean());
 
         _listingManager = new ListingManager(
             _listingRepoMock.Object,
             _branchRepoMock.Object,
             _districtRepoMock.Object,
             _validatorMock.Object,
-            _publishEndpointMock.Object);
+            _publishEndpointMock.Object,
+            _tokenServiceMock.Object,
+            _settingServiceMock.Object,
+            _logServiceMock.Object,
+            _moderationServiceMock.Object);
     }
 
     [Fact]
@@ -71,6 +89,8 @@ public class ListingManagerTests
         };
 
         _validatorMock.Setup(v => v.ValidateAsync(dto, default)).ReturnsAsync(new FluentValidation.Results.ValidationResult());
+        _settingServiceMock.Setup(s => s.GetIntSettingAsync("ListingCreationCost", 5)).ReturnsAsync(5);
+        _tokenServiceMock.Setup(t => t.SpendTokenAsync(userId, 5, It.IsAny<string>())).Returns(Task.CompletedTask);
         _listingRepoMock.Setup(r => r.AddAsync(It.IsAny<Listing>())).ReturnsAsync((Listing l) => l);
         _listingRepoMock.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
 

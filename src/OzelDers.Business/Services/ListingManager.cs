@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using FluentValidation;
 using Ganss.Xss;
 using MassTransit;
@@ -37,6 +36,7 @@ public class ListingManager : IListingService
     private readonly ITokenService _tokenService;
     private readonly ISettingService _settingService;
     private readonly ILogService _logService;
+    private readonly IModerationService _moderationService;
 
     public ListingManager(
         IListingRepository listingRepo,
@@ -46,7 +46,8 @@ public class ListingManager : IListingService
         IPublishEndpoint publishEndpoint,
         ITokenService tokenService,
         ISettingService settingService,
-        ILogService logService)
+        ILogService logService,
+        IModerationService moderationService)
     {
         _listingRepo = listingRepo;
         _branchRepo = branchRepo;
@@ -56,6 +57,7 @@ public class ListingManager : IListingService
         _tokenService = tokenService;
         _settingService = settingService;
         _logService = logService;
+        _moderationService = moderationService;
     }
 
     public async Task<ListingDto> CreateAsync(ListingCreateDto dto, Guid userId)
@@ -85,7 +87,9 @@ public class ListingManager : IListingService
             LessonType = dto.LessonType,
             BranchId = dto.BranchId,
             DistrictId = dto.DistrictId,
-            Status = PerformAutoModeration(dto.Title, sanitizedDescription),
+            Status = _moderationService.CheckContent(dto.Title, sanitizedDescription).IsViolation
+                ? ListingStatus.Pending
+                : ListingStatus.Active,
             // Madde 7 — Yeni alanlar
             EducationLevel = dto.EducationLevel,
             ExperienceYears = dto.ExperienceYears,
@@ -208,11 +212,10 @@ public class ListingManager : IListingService
         listing.GradeMin = dto.GradeMin;
         listing.GradeMax = dto.GradeMax;
         
-        var modStatus = PerformAutoModeration(dto.Title, sanitizedDescription);
-        if (modStatus == ListingStatus.Active)
-            listing.Status = dto.IsActive ? ListingStatus.Active : ListingStatus.Suspended;
-        else
-            listing.Status = ListingStatus.Pending;
+        var modResult = _moderationService.CheckContent(dto.Title, sanitizedDescription);
+        listing.Status = modResult.IsViolation
+            ? ListingStatus.Pending
+            : (dto.IsActive ? ListingStatus.Active : ListingStatus.Suspended);
 
         _listingRepo.Update(listing);
         await _listingRepo.SaveChangesAsync();
@@ -384,32 +387,6 @@ public class ListingManager : IListingService
             await _logService.LogFunctionErrorAsync(EC_SEARCH, ex, filters);
             throw;
         }
-    }
-
-    /// <summary>
-    /// İçerikte telefon numarası, e-posta veya yasaklı kelimeler olup olmadığını kontrol eder.
-    /// Kurallara uyuyorsa otomatik olarak Active (Yayında) statüsü döndürür.
-    /// Uymuyorsa manuel admin kontrolü için Pending (Onay Bekliyor) döndürür.
-    /// </summary>
-    private ListingStatus PerformAutoModeration(string title, string description)
-    {
-        string fullText = $"{title} {description}";
-
-        // Basit Telefon Numarası Taraması (Örn: 0555 555 5555, 05555555555)
-        var phoneRegex = new Regex(@"0?\s*5\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d\s*\d");
-        
-        // Basit E-posta Taraması
-        var emailRegex = new Regex(@"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}");
-
-        // Yasaklı kelimeler vs.
-        string[] forbiddenWords = { "escort", "kumar", "bahis" }; // vs...
-
-        if (phoneRegex.IsMatch(fullText) || emailRegex.IsMatch(fullText) || forbiddenWords.Any(w => fullText.Contains(w, StringComparison.OrdinalIgnoreCase)))
-        {
-            return ListingStatus.Pending;
-        }
-
-        return ListingStatus.Active;
     }
 
     private static ListingDto MapToDto(Listing l) => new()

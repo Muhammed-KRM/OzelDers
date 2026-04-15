@@ -37,6 +37,12 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    // Moderasyon alanları
+    public int ViolationCount { get; set; } = 0;
+    public DateTime? BannedUntil { get; set; }
+    public DateTime? LastViolationAt { get; set; }
+    public string? BanReason { get; set; }
+
     // Navigation Properties
     // Öğretmen veya öğrenci olarak kullanıcının açtığı tüm ilanlar
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();

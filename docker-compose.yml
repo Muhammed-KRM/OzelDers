@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: src/OzelDers.Worker/Dockerfile
-    depends_on: [postgres, redis]
+    depends_on: [postgres, redis, rabbitmq, ollama]
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=ozelders;Username=ozelders_user;Password=${DB_PASSWORD:?DB_PASSWORD is required}
@@ -71,7 +71,15 @@ services:
     image: rabbitmq:3-management
     ports: ["5672:5672", "15672:15672"]
 
+  ollama:
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: [ollama_data:/root/.ollama]
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+
 volumes:
   pgdata:
   esdata:
   uploads_data:
+  ollama_data:
