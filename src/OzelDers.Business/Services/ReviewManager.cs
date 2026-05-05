@@ -48,11 +48,19 @@ public class ReviewManager : IReviewService
         {
             ReviewerId = reviewerId, ReviewedId = listing.OwnerId, ListingId = dto.ListingId,
             ProfessionalismRating = dto.ProfessionalismRating, CommunicationRating = dto.CommunicationRating,
-            ValueRating = dto.ValueRating, Content = dto.Content, IsApproved = false
+            ValueRating = dto.ValueRating, Content = dto.Content, IsApproved = true // Otomatik onay
         };
 
         await _reviewRepo.AddAsync(review);
         await _reviewRepo.SaveChangesAsync();
+
+        // Listing'in AverageRating ve ReviewCount'unu güncelle
+        var allReviews = await _reviewRepo.FindAsync(r => r.ListingId == dto.ListingId && r.IsApproved);
+        listing.AverageRating = allReviews.Any() ? allReviews.Average(r => r.AverageRating) : 0;
+        listing.ReviewCount = allReviews.Count();
+        _listingRepo.Update(listing);
+        await _listingRepo.SaveChangesAsync();
+
         return MapToDto(review);
         }
         catch (BusinessException) { throw; }
