@@ -36,3 +36,15 @@ appsettings.Staging.json
 # .env.example git'e gÃ¶nderilir (ÅŸablon olarak)
 
 /net-commander
+
+# Temp ve log dosyalarý
+*.log
+*.txt.log
+MauiErrorLogs.txt
+docker-daemon-dns.json
+msbuild.binlog
+*.binlog
+
+# .NET build artifacts (zaten var ama emin olalým)
+[Bb]in/
+[Oo]bj/

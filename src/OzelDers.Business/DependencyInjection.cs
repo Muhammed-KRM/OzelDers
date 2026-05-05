@@ -49,7 +49,8 @@ public static class DependencyInjection
         // Dosya Yükleme (Local → ileride Azure Blob'a geçilebilir)
         services.AddScoped<IFileStorageService, OzelDers.Business.Infrastructure.Storage.LocalFileStorageService>();
 
-        // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)
+        // RabbitMQ/MassTransit — RabbitMQ disabled olduğunda DummyPublishEndpoint kullanılır
+        // RabbitMQ enabled olduğunda Program.cs'deki AddMassTransit bu kaydın üzerine yazar
         services.AddScoped<MassTransit.IPublishEndpoint, OzelDers.Business.Infrastructure.Messaging.DummyPublishEndpoint>();
         
         return services;
