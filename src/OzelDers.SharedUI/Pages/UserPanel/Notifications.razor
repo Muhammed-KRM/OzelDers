@@ -1,0 +1,213 @@
+@page "/bildirimler"
+@page "/panel/bildirimler"
+@using OzelDers.Business.DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Bildirimler - OzelDers</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <PageHeader Title="Bildirimler" 
+                       Subtitle="Tüm bildirimlerinizi buradan takip edebilirsiniz" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Tüm Bildirimler</h5>
+                    @if (notifications.Any(n => !n.IsRead))
+                    {
+                        <button class="btn btn-outline-primary btn-sm" @onclick="MarkAllRead">
+                            Tümünü Okundu İşaretle
+                        </button>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!notifications.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <div class="mb-3" style="font-size: 3rem;">🔔</div>
+                            <h6>Henüz bildirim yok</h6>
+                            <p class="mb-0">Yeni bildirimler burada görünecek</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="notifications-list">
+                            @foreach (var notification in notifications)
+                            {
+                                <div class="notification-item @(notification.IsRead ? "read" : "unread")" 
+                                     @onclick="() => OpenNotification(notification)">
+                                    <div class="notification-icon">
+                                        @GetIcon(notification.Type)
+                                    </div>
+                                    <div class="notification-content">
+                                        <div class="notification-title">@notification.Title</div>
+                                        <div class="notification-message">@notification.Message</div>
+                                        <div class="notification-time">@GetTimeAgo(notification.CreatedAt)</div>
+                                    </div>
+                                    @if (!notification.IsRead)
+                                    {
+                                        <div class="notification-unread-dot"></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (hasMore)
+                        {
+                            <div class="text-center p-3">
+                                <button class="btn btn-outline-secondary" @onclick="LoadMore" disabled="@isLoadingMore">
+                                    @if (isLoadingMore)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    }
+                                    Daha Fazla Yükle
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<NotificationDto> notifications = new();
+    private bool isLoading = true;
+    private bool isLoadingMore = false;
+    private bool hasMore = true;
+    private int currentPage = 1;
+    private const int PageSize = 20;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        try
+        {
+            isLoading = true;
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>($"api/notifications?page=1&pageSize={PageSize}");
+            if (result != null)
+            {
+                notifications = result;
+                hasMore = result.Count == PageSize;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Bildirimler yüklenirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        if (isLoadingMore || !hasMore) return;
+
+        try
+        {
+            isLoadingMore = true;
+            currentPage++;
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>($"api/notifications?page={currentPage}&pageSize={PageSize}");
+            if (result != null && result.Any())
+            {
+                notifications.AddRange(result);
+                hasMore = result.Count == PageSize;
+            }
+            else
+            {
+                hasMore = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Daha fazla bildirim yüklenirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingMore = false;
+        }
+    }
+
+    private async Task MarkAllRead()
+    {
+        try
+        {
+            await Http.PutAsync("api/notifications/read-all", null);
+            notifications.ForEach(n => n.IsRead = true);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Bildirimler okundu işaretlenirken hata: {ex.Message}");
+        }
+    }
+
+    private async Task OpenNotification(NotificationDto notification)
+    {
+        try
+        {
+            if (!notification.IsRead)
+            {
+                await Http.PutAsync($"api/notifications/{notification.Id}/read", null);
+                notification.IsRead = true;
+                StateHasChanged();
+            }
+
+            if (!string.IsNullOrEmpty(notification.ActionUrl))
+            {
+                Navigation.NavigateTo(notification.ActionUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Bildirim açılırken hata: {ex.Message}");
+        }
+    }
+
+    private static string GetIcon(string type) => type switch
+    {
+        "ListingApproved" => "✅",
+        "ListingRejected" => "❌", 
+        "ListingPending" => "⏳",
+        "NewApplication" => "📩",
+        "TokenLoaded" => "💰",
+        "Warning" => "⚠️",
+        "Ban" => "🚫",
+        "MessageReceived" => "💬",
+        "VitrinExpired" => "⭐",
+        "PasswordChanged" => "🔒",
+        _ => "🔔"
+    };
+
+    private static string GetTimeAgo(DateTime dt)
+    {
+        var diff = DateTime.UtcNow - dt;
+        if (diff.TotalMinutes < 1) return "Az önce";
+        if (diff.TotalHours < 1) return $"{(int)diff.TotalMinutes} dk önce";
+        if (diff.TotalDays < 1) return $"{(int)diff.TotalHours} saat önce";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} gün önce";
+        return dt.ToString("dd.MM.yyyy");
+    }
+}

@@ -1,22 +1,12 @@
-# d:\OZELDERS\docker-compose.dev.yml
-# Geliştirme ortamı altyapı servisleri
 services:
   postgres:
     image: postgres:16
     ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
     environment:
       POSTGRES_DB: ozelders
       POSTGRES_USER: ozelders_user
-      POSTGRES_PASSWORD: dev_password
-    volumes: [pgdata:/var/lib/postgresql/data]
-
-  elasticsearch:
-    image: elasticsearch:8.12.0
-    ports: ["9200:9200"]
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      POSTGRES_PASSWORD: OzelDers_Dev_2024!
 
   redis:
     image: redis:7-alpine
@@ -26,5 +16,15 @@ services:
     image: rabbitmq:3-management
     ports: ["5672:5672", "15672:15672"]
 
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports: ["9200:9200"]
+    volumes: [esdata:/usr/share/elasticsearch/data]
+
 volumes:
   pgdata:
+  esdata:

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
     /* Primary Colors (Daha canlı ve premium ton) */
@@ -57,7 +57,7 @@
     --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07); /* Glassmorphism gölgesi */
 
     /* Font (Google Fonts) */
-    --font-heading: 'Outfit', sans-serif;
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'Inter', sans-serif;
 
     /* Transition */
@@ -67,4 +67,23 @@
 
     /* Container */
     --container-max: 1200px;
+}
+
+/* Dark Mode Variables */
+[data-theme="dark"], body.dark {
+    --color-surface: #1E293B;
+    --color-background: #0F172A;
+    --color-border: #334155;
+    --color-glass-bg: rgba(30, 41, 59, 0.7);
+
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    --color-text-inverse: #0F172A;
+    --color-light: #1E293B;
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 25px 30px -5px rgba(0, 0, 0, 0.6);
 }

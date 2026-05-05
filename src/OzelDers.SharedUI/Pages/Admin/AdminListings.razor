@@ -1,0 +1,303 @@
+@page "/admin/listings"
+@using OzelDers.Business.DTOs
+@using OzelDers.Business.Interfaces
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>İlan Yönetimi - Admin</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <PageHeader Title="İlan Yönetimi" 
+                       Subtitle="Tüm ilanları görüntüle ve yönet" />
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="İlan ara..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
+                <button class="btn btn-outline-secondary" @onclick="SearchListings">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedStatus" @bind:after="SearchListings">
+                <option value="">Tüm Durumlar</option>
+                <option value="Pending">Beklemede</option>
+                <option value="Active">Aktif</option>
+                <option value="Suspended">Askıda</option>
+                <option value="Rejected">Reddedilmiş</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedType" @bind:after="SearchListings">
+                <option value="">Tüm Tipler</option>
+                <option value="TeacherOffering">Ders Veriyorum</option>
+                <option value="StudentLooking">Ders Arıyorum</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" @bind="showVitrinOnly" @bind:after="SearchListings" />
+                <label class="form-check-label">Sadece Vitrin</label>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!listings.Any())
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-list fa-3x text-muted mb-3"></i>
+                <h5>İlan bulunamadı</h5>
+                <p class="text-muted">Arama kriterlerinize uygun ilan yok.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">İlanlar (@listings.Count)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>İlan</th>
+                                <th>Öğretmen</th>
+                                <th>Branş</th>
+                                <th>Şehir</th>
+                                <th>Fiyat</th>
+                                <th>Durum</th>
+                                <th>İstatistik</th>
+                                <th>Tarih</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var listing in listings)
+                            {
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <div class="fw-semibold">@listing.Title</div>
+                                            <div class="d-flex gap-1 mt-1">
+                                                <span class="badge @(listing.Type == "TeacherOffering" ? "bg-success" : "bg-info") badge-sm">
+                                                    @(listing.Type == "TeacherOffering" ? "Ders Veriyorum" : "Ders Arıyorum")
+                                                </span>
+                                                @if (listing.IsVitrin)
+                                                {
+                                                    <span class="badge bg-warning badge-sm">⭐ Vitrin</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@listing.TeacherName</td>
+                                    <td>@listing.Branch</td>
+                                    <td>@listing.City</td>
+                                    <td>
+                                        @if (listing.HourlyPrice > 0)
+                                        {
+                                            <span class="fw-semibold">₺@listing.HourlyPrice</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Belirtilmemiş</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(listing.Status)">
+                                            @GetStatusText(listing.Status)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            👁️ @listing.ViewCount | 💬 @listing.MessageCount
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @listing.CreatedAt.ToString("dd.MM.yyyy")
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            @if (listing.Status == "Pending")
+                                            {
+                                                <button class="btn btn-outline-success" @onclick="() => ApproveListing(listing.Id)" title="Onayla">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" @onclick="() => RejectListing(listing.Id)" title="Reddet">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            }
+                                            else if (listing.Status == "Active")
+                                            {
+                                                <button class="btn btn-outline-warning" @onclick="() => SuspendListing(listing.Id)" title="Askıya Al">
+                                                    <i class="fas fa-pause"></i>
+                                                </button>
+                                            }
+                                            
+                                            <button class="btn btn-outline-danger" @onclick="() => DeleteListing(listing.Id)" title="Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<AdminListingDto> listings = new();
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private string selectedStatus = "";
+    private string selectedType = "";
+    private bool showVitrinOnly = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadListings();
+    }
+
+    private async Task LoadListings()
+    {
+        try
+        {
+            isLoading = true;
+            var query = $"api/admin/listings?search={Uri.EscapeDataString(searchTerm)}&status={selectedStatus}&type={selectedType}";
+            if (showVitrinOnly) query += "&vitrin=true";
+            
+            listings = await Http.GetFromJsonAsync<List<AdminListingDto>>(query) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"İlanlar yüklenirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchListings()
+    {
+        await LoadListings();
+    }
+
+    private async Task OnSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchListings();
+        }
+    }
+
+    private async Task ApproveListing(Guid listingId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/admin/listings/{listingId}/approve", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadListings();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"İlan onaylanırken hata: {ex.Message}");
+        }
+    }
+
+    private async Task RejectListing(Guid listingId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/admin/listings/{listingId}/reject", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadListings();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"İlan reddedilirken hata: {ex.Message}");
+        }
+    }
+
+    private async Task SuspendListing(Guid listingId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/admin/listings/{listingId}/suspend", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadListings();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"İlan askıya alınırken hata: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteListing(Guid listingId)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bu ilanı silmek istediğinizden emin misiniz?"))
+            return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/admin/listings/{listingId}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadListings();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"İlan silinirken hata: {ex.Message}");
+        }
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Pending" => "bg-warning",
+        "Active" => "bg-success",
+        "Suspended" => "bg-secondary",
+        "Rejected" => "bg-danger",
+        _ => "bg-light"
+    };
+
+    private string GetStatusText(string status) => status switch
+    {
+        "Pending" => "Beklemede",
+        "Active" => "Aktif",
+        "Suspended" => "Askıda",
+        "Rejected" => "Reddedilmiş",
+        _ => status
+    };
+}

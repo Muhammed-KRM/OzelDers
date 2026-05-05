@@ -28,6 +28,10 @@ public class User
     public DateTime? BirthDate { get; set; }
     public bool EmailNotifications { get; set; } = true;
     public bool MarketingEmails { get; set; } = false;
+    
+    // FCM Push Notification
+    public string? FcmToken { get; set; }
+    public DateTime? FcmTokenUpdatedAt { get; set; }
     public bool SmsNotifications { get; set; } = true;
 
     // Refresh Token for JWT
@@ -42,9 +46,6 @@ public class User
     public DateTime? BannedUntil { get; set; }
     public DateTime? LastViolationAt { get; set; }
     public string? BanReason { get; set; }
-
-    // Push bildirim için Firebase token
-    public string? FcmToken { get; set; }
 
     // Navigation Properties
     // Öğretmen veya öğrenci olarak kullanıcının açtığı tüm ilanlar

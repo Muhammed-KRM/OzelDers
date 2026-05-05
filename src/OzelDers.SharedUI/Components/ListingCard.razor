@@ -1,4 +1,5 @@
 @* ListingCard Component — Döküman satır 341 *@
+@using OzelDers.Data.Enums
 
 <div class="listing-card card @(Listing.IsVitrin ? "card-vitrin" : "") animate-fade-in">
     @if (Listing.IsVitrin)
@@ -28,13 +29,35 @@
     </h3>
 
     <div class="card-meta">
-        <span class="badge badge-primary">@Listing.BranchName</span>
+        <div class="badges-row">
+            <span class="badge badge-primary">@Listing.BranchName</span>
+            @switch (Listing.LessonType)
+            {
+                case LessonType.Online:
+                    <span class="badge" style="background-color: var(--color-info); color: white;">🌐 Online</span>
+                    break;
+                case LessonType.FaceToFace:
+                    <span class="badge" style="background-color: var(--color-success); color: white;">👥 Yüz Yüze</span>
+                    break;
+                case LessonType.Both:
+                    <span class="badge" style="background-color: var(--color-secondary); color: white;">🌐/👥 İkisi de</span>
+                    break;
+            }
+        </div>
         <span class="price">@Listing.HourlyPrice TL/saat</span>
     </div>
 
     <div class="card-footer">
-        <div class="rating">
-            ⭐ @Listing.AverageRating.ToString("F1") (@Listing.ReviewCount yorum)
+        <div class="rating-stars">
+            @{
+                int fullStars = (int)Math.Floor(Listing.AverageRating);
+                int emptyStars = 5 - fullStars;
+            }
+            <span class="stars">
+                @for (int i = 0; i < fullStars; i++) { <i class="star filled">★</i> }
+                @for (int i = 0; i < emptyStars; i++) { <i class="star empty">★</i> }
+            </span>
+            <span class="rating-text">@Listing.AverageRating.ToString("F1") (@Listing.ReviewCount yorum)</span>
         </div>
         <a href="/ilan/@Listing.Slug" class="btn btn-secondary btn-sm">Detaylar</a>
     </div>

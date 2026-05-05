@@ -36,21 +36,25 @@ builder.Services.AddDataLayer(connectionString);
 builder.Services.AddBusinessServices();
 
 // === 3. MassTransit + RabbitMQ ===
-builder.Services.AddMassTransit(x =>
+var enableRabbitMQ = builder.Configuration.GetValue<bool>("RabbitMQ:Enabled", false);
+if (enableRabbitMQ)
 {
-    x.UsingRabbitMq((context, cfg) =>
+    builder.Services.AddMassTransit(x =>
     {
-        var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "rabbitmq";
-        var mqUser = builder.Configuration["RabbitMQ:Username"] ?? "guest";
-        var mqPass = builder.Configuration["RabbitMQ:Password"] ?? "guest";
-
-        cfg.Host(mqHost, "/", h =>
+        x.UsingRabbitMq((context, cfg) =>
         {
-            h.Username(mqUser);
-            h.Password(mqPass);
+            var mqHost = builder.Configuration["RabbitMQ:Host"] ?? "rabbitmq";
+            var mqUser = builder.Configuration["RabbitMQ:Username"] ?? "guest";
+            var mqPass = builder.Configuration["RabbitMQ:Password"] ?? "guest";
+
+            cfg.Host(mqHost, "/", h =>
+            {
+                h.Username(mqUser);
+                h.Password(mqPass);
+            });
         });
     });
-});
+}
 
 // === 4. JWT KİMLİK DOĞRULAMA ===
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

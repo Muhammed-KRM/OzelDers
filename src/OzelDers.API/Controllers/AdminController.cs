@@ -233,6 +233,38 @@ public class AdminController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(new { message = "Ban kaldırıldı." });
     }
+
+    // ─── SMS Test ─────────────────────────────────────────────
+    [HttpPost("test-sms")]
+    public async Task<IActionResult> TestSms([FromBody] SmsTestDto dto, [FromServices] ISmsService smsService)
+    {
+        try
+        {
+            await smsService.SendAsync(dto.PhoneNumber, dto.Message);
+            return Ok(new { message = "SMS test başarılı." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"SMS test başarısız: {ex.Message}" });
+        }
+    }
+
+    // ─── FCM Test ─────────────────────────────────────────────
+    [HttpPost("test-fcm")]
+    public async Task<IActionResult> TestFcm([FromBody] FcmTestDto dto, [FromServices] OzelDers.Business.Infrastructure.Messaging.IFcmService fcmService)
+    {
+        try
+        {
+            await fcmService.SendNotificationAsync(dto.Token, dto.Title, dto.Body);
+            return Ok(new { message = "FCM test başarılı." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"FCM test başarısız: {ex.Message}" });
+        }
+    }
 }
 
 public record BanRequestDto(bool IsPermanent, int Days, string Reason);
+public record SmsTestDto(string PhoneNumber, string Message);
+public record FcmTestDto(string Token, string Title, string Body);

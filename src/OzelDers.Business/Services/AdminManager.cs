@@ -82,9 +82,21 @@ public class AdminManager : IAdminService
         }
         return await query.OrderByDescending(u => u.CreatedAt).Select(u => new AdminUserDto
         {
-            Id = u.Id, FullName = u.FullName, Email = u.Email, Phone = u.PhoneEncrypted ?? "—",
+            Id = u.Id, 
+            FullName = u.FullName, 
+            Email = u.Email, 
+            Phone = u.PhoneEncrypted ?? "—",
             Role = u.Role == UserRole.Admin ? "Admin" : (u.IsTeacherProfileComplete ? "Teacher" : "Student"),
-            Status = u.IsActive ? "Active" : "Suspended", CreatedAt = u.CreatedAt
+            Status = u.IsActive ? "Active" : "Suspended", 
+            IsActive = u.IsActive,
+            IsEmailVerified = u.IsEmailVerified,
+            IsTeacherProfileComplete = u.IsTeacherProfileComplete,
+            TokenBalance = u.TokenBalance,
+            ViolationCount = u.ViolationCount,
+            BannedUntil = u.BannedUntil,
+            BanReason = u.BanReason,
+            ProfileImageUrl = u.ProfileImageUrl,
+            CreatedAt = u.CreatedAt
         }).ToListAsync();
         }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_GETUSERS, ex, new { search, role, status }); throw; }
@@ -123,14 +135,14 @@ public class AdminManager : IAdminService
             if (Enum.TryParse<ListingStatus>(status, out var parsed)) query = query.Where(l => l.Status == parsed);
         if (!string.IsNullOrWhiteSpace(type))
         {
-            if (type == "Teacher") query = query.Where(l => l.Type == ListingType.TeacherOffering);
-            else if (type == "Student") query = query.Where(l => l.Type == ListingType.StudentLooking);
+            if (type == "TeacherOffering") query = query.Where(l => l.Type == ListingType.TeacherOffering);
+            else if (type == "StudentLooking") query = query.Where(l => l.Type == ListingType.StudentLooking);
         }
         return await query.OrderByDescending(l => l.CreatedAt).Select(l => new AdminListingDto
         {
             Id = l.Id, Title = l.Title, TeacherName = l.Owner.FullName, Branch = l.Branch.Name,
             City = l.District.City.Name, HourlyPrice = l.HourlyPrice, Status = l.Status.ToString(),
-            IsVitrin = l.IsVitrin, ViewCount = l.ReviewCount, MessageCount = 0, CreatedAt = l.CreatedAt
+            Type = l.Type.ToString(), IsVitrin = l.IsVitrin, ViewCount = l.ReviewCount, MessageCount = 0, CreatedAt = l.CreatedAt
         }).ToListAsync();
         }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_GETLISTINGS, ex, new { search, status, type }); throw; }

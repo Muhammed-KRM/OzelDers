@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using OzelDers.Business.Interfaces;
+using OzelDers.App.Interfaces;
 
 namespace OzelDers.App.States;
 

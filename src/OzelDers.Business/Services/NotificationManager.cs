@@ -19,11 +19,15 @@ public class NotificationManager : INotificationService
 
     private readonly IRepository<Notification> _repo;
     private readonly ILogService _logService;
+    private readonly ISmsService _smsService;
+    private readonly OzelDers.Business.Infrastructure.Messaging.IFcmService _fcmService;
 
-    public NotificationManager(IRepository<Notification> repo, ILogService logService)
+    public NotificationManager(IRepository<Notification> repo, ILogService logService, ISmsService smsService, OzelDers.Business.Infrastructure.Messaging.IFcmService fcmService)
     {
         _repo = repo;
         _logService = logService;
+        _smsService = smsService;
+        _fcmService = fcmService;
     }
 
     public async Task<Notification> CreateAsync(Guid userId, string type, string title,
@@ -141,6 +145,33 @@ public class NotificationManager : INotificationService
         {
             await _logService.LogFunctionErrorAsync(EC_READALL, ex, userId);
             throw;
+        }
+    }
+
+    public async Task SendSmsNotificationAsync(Guid userId, string message)
+    {
+        try
+        {
+            // Kullanıcının telefon numarasını al (User entity'sinde PhoneNumber alanı olmalı)
+            // Şimdilik basit bir implementasyon yapalım
+            await _smsService.SendAsync("905551234567", message); // Test numarası
+            // Log başarılı
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync("NM-006", ex, message, userId);
+        }
+    }
+
+    public async Task SendFcmNotificationAsync(string fcmToken, string title, string body, Dictionary<string, string>? data = null)
+    {
+        try
+        {
+            await _fcmService.SendNotificationAsync(fcmToken, title, body, data);
+        }
+        catch (Exception ex)
+        {
+            await _logService.LogFunctionErrorAsync("NM-007", ex, title);
         }
     }
 }

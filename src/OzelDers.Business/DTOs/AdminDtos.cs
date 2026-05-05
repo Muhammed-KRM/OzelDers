@@ -31,6 +31,14 @@ public class AdminUserDto
     public string Phone { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public bool IsEmailVerified { get; set; }
+    public bool IsTeacherProfileComplete { get; set; }
+    public int TokenBalance { get; set; }
+    public int ViolationCount { get; set; }
+    public DateTime? BannedUntil { get; set; }
+    public string? BanReason { get; set; }
+    public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

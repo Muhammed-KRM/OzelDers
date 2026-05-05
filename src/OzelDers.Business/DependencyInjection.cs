@@ -27,7 +27,9 @@ public static class DependencyInjection
         // Bildirim Sistemi
         services.AddScoped<INotificationService, NotificationManager>();
         services.AddScoped<ISmsService, OzelDers.Business.Infrastructure.Sms.NetgsmSmsService>();
+        services.AddScoped<OzelDers.Business.Infrastructure.Messaging.IFcmService, OzelDers.Business.Infrastructure.Messaging.FcmService>();
         services.AddHttpClient("Netgsm");
+        services.AddHttpClient<OzelDers.Business.Infrastructure.Messaging.FcmService>();
 
         // FluentValidation — Bu assembly'deki tüm Validator'ları otomatik tarayıp kaydet
         services.AddValidatorsFromAssemblyContaining<AuthManager>();
@@ -48,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, OzelDers.Business.Infrastructure.Storage.LocalFileStorageService>();
 
         // RabbitMQ/MassTransit (Bu adım worker'a ekleneceği için burada temel ayar yapılabilir veya bırakılabilir)
+        services.AddScoped<MassTransit.IPublishEndpoint, OzelDers.Business.Infrastructure.Messaging.DummyPublishEndpoint>();
         
         return services;
     }

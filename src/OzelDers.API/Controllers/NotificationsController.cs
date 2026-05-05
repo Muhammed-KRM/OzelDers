@@ -19,8 +19,8 @@ public class NotificationsController : ControllerBase
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications([FromQuery] int page = 1)
-        => Ok(await _notificationService.GetUserNotificationsAsync(GetUserId(), page));
+    public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        => Ok(await _notificationService.GetUserNotificationsAsync(GetUserId(), page, pageSize));
 
     [HttpGet("unread-count")]
     public async Task<IActionResult> GetUnreadCount()

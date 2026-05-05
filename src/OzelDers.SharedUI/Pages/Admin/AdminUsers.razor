@@ -1,0 +1,380 @@
+@page "/admin/users"
+@using OzelDers.Business.DTOs
+@using OzelDers.Business.Interfaces
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Kullanıcı Yönetimi - Admin</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <PageHeader Title="Kullanıcı Yönetimi" 
+                       Subtitle="Tüm kullanıcıları görüntüle ve yönet" />
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Kullanıcı ara..." @bind="searchTerm" @onkeypress="OnSearchKeyPress" />
+                <button class="btn btn-outline-secondary" @onclick="SearchUsers">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedRole" @bind:after="SearchUsers">
+                <option value="">Tüm Roller</option>
+                <option value="User">Kullanıcı</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedStatus" @bind:after="SearchUsers">
+                <option value="">Tüm Durumlar</option>
+                <option value="Active">Aktif</option>
+                <option value="Inactive">Pasif</option>
+                <option value="Banned">Banlanmış</option>
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Yükleniyor...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!users.Any())
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5>Kullanıcı bulunamadı</h5>
+                <p class="text-muted">Arama kriterlerinize uygun kullanıcı yok.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Kullanıcılar (@users.Count)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kullanıcı</th>
+                                <th>E-posta</th>
+                                <th>Rol</th>
+                                <th>Durum</th>
+                                <th>Jeton</th>
+                                <th>Kayıt Tarihi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in users)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                                @if (!string.IsNullOrEmpty(user.ProfileImageUrl))
+                                                {
+                                                    <img src="@user.ProfileImageUrl" class="rounded-circle" width="32" height="32" alt="Avatar" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                        @user.FullName.FirstOrDefault()
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">@user.FullName</div>
+                                                @if (user.IsTeacherProfileComplete)
+                                                {
+                                                    <small class="text-success">Öğretmen</small>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @user.Email
+                                        @if (user.IsEmailVerified)
+                                        {
+                                            <i class="fas fa-check-circle text-success ms-1" title="E-posta doğrulanmış"></i>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-primary")">
+                                            @user.Role
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (user.BannedUntil.HasValue && user.BannedUntil > DateTime.UtcNow)
+                                        {
+                                            <span class="badge bg-danger">Banlanmış</span>
+                                        }
+                                        else if (user.IsActive)
+                                        {
+                                            <span class="badge bg-success">Aktif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Pasif</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold">@user.TokenBalance</span>
+                                    </td>
+                                    <td>
+                                        @user.CreatedAt.ToString("dd.MM.yyyy")
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            @if (user.BannedUntil.HasValue && user.BannedUntil > DateTime.UtcNow)
+                                            {
+                                                <button class="btn btn-outline-success" @onclick="() => UnbanUser(user.Id)" title="Ban Kaldır">
+                                                    <i class="fas fa-unlock"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-outline-danger" @onclick="() => ShowBanModal(user)" title="Ban Ver">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            }
+                                            
+                                            @if (user.IsActive)
+                                            {
+                                                <button class="btn btn-outline-warning" @onclick="() => SuspendUser(user.Id)" title="Askıya Al">
+                                                    <i class="fas fa-pause"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-outline-success" @onclick="() => ActivateUser(user.Id)" title="Aktifleştir">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Ban Modal -->
+@if (showBanModal && selectedUser != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kullanıcıyı Banla</h5>
+                    <button type="button" class="btn-close" @onclick="CloseBanModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>@selectedUser.FullName</strong> kullanıcısını banlamak istediğinizden emin misiniz?</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ban Süresi</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="banType" id="temp" @onchange="() => isPermanentBan = false" checked="@(!isPermanentBan)" />
+                            <label class="form-check-label" for="temp">Geçici Ban</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="banType" id="perm" @onchange="() => isPermanentBan = true" checked="@isPermanentBan" />
+                            <label class="form-check-label" for="perm">Kalıcı Ban</label>
+                        </div>
+                    </div>
+
+                    @if (!isPermanentBan)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Gün Sayısı</label>
+                            <input type="number" class="form-control" @bind="banDays" min="1" max="365" />
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Ban Nedeni</label>
+                        <textarea class="form-control" @bind="banReason" rows="3" placeholder="Ban nedenini açıklayın..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseBanModal">İptal</button>
+                    <button type="button" class="btn btn-danger" @onclick="BanUser" disabled="@isBanning">
+                        @if (isBanning)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Ban Ver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AdminUserDto> users = new();
+    private bool isLoading = true;
+    private string searchTerm = "";
+    private string selectedRole = "";
+    private string selectedStatus = "";
+
+    // Ban Modal
+    private bool showBanModal = false;
+    private AdminUserDto? selectedUser;
+    private bool isPermanentBan = false;
+    private int banDays = 7;
+    private string banReason = "";
+    private bool isBanning = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            var query = $"api/admin/users?search={Uri.EscapeDataString(searchTerm)}&role={selectedRole}&status={selectedStatus}";
+            users = await Http.GetFromJsonAsync<List<AdminUserDto>>(query) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Kullanıcılar yüklenirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchUsers()
+    {
+        await LoadUsers();
+    }
+
+    private async Task OnSearchKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchUsers();
+        }
+    }
+
+    private void ShowBanModal(AdminUserDto user)
+    {
+        selectedUser = user;
+        showBanModal = true;
+        isPermanentBan = false;
+        banDays = 7;
+        banReason = "";
+    }
+
+    private void CloseBanModal()
+    {
+        showBanModal = false;
+        selectedUser = null;
+    }
+
+    private async Task BanUser()
+    {
+        if (selectedUser == null || string.IsNullOrWhiteSpace(banReason)) return;
+
+        try
+        {
+            isBanning = true;
+            var response = await Http.PostAsJsonAsync($"api/admin/users/{selectedUser.Id}/ban", new
+            {
+                IsPermanent = isPermanentBan,
+                Days = banDays,
+                Reason = banReason
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                CloseBanModal();
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ban verirken hata: {ex.Message}");
+        }
+        finally
+        {
+            isBanning = false;
+        }
+    }
+
+    private async Task UnbanUser(Guid userId)
+    {
+        try
+        {
+            var response = await Http.PostAsync($"api/admin/users/{userId}/unban", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ban kaldırırken hata: {ex.Message}");
+        }
+    }
+
+    private async Task SuspendUser(Guid userId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/admin/users/{userId}/suspend", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Kullanıcı askıya alınırken hata: {ex.Message}");
+        }
+    }
+
+    private async Task ActivateUser(Guid userId)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"api/admin/users/{userId}/activate", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Kullanıcı aktifleştirilirken hata: {ex.Message}");
+        }
+    }
+}

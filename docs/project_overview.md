@@ -44,7 +44,10 @@ Kullanıcının ilk karşılaştığı, güven veren ve harekete geçiren bölü
 ### 4. Kullanıcı Paneli (Unified Dashboard)
 Herkesin tek bir hesabı vardır (Öğretmen/Öğrenci ayrımı yoktur).
 *   **İlanlarım:** "Ders Veriyorum" ve "Ders Arıyorum" tiplerindeki tüm ilanların yönetimi.
-*   **Mesajlarım:** bakiye takibi ve jeton satın alma ekranı.
+*   **Mesajlarım:**
+    *   *Teklif Gelenler:* İlana gelen (Jetonla açılacak) mesajlar.
+    *   *Direkt Gelenler:* Başkasının jetonla gönderdiği (Ücretsiz açılacak) mesajlar.
+*   **Jeton ve Cüzdan:** Bakiye takibi ve jeton satın alma ekranı.
 *   **Profil Ayarları:** Temel bilgiler, IBAN ve onay belgeleri doğrulaması.
 
 ### 5. Admin Paneli (Kontrol Kulesi)

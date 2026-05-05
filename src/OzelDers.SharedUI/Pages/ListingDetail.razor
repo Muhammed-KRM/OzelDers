@@ -1,7 +1,8 @@
 @page "/ilan/{slug}"
 @inject IListingService ListingService
+@inject IMessageService MessageService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>@(listing?.Title ?? "İlan Detayı") | OzelDers.com</PageTitle>
 
@@ -115,14 +116,17 @@ else
 
                         <AuthorizeView>
                             <Authorized>
-                                <button class="btn btn-primary btn-full" @onclick="SendMessage">
-                                    💬 Mesaj Gönder
+                                <button class="btn btn-primary btn-full" style="margin-bottom: 0.5rem;" @onclick="SendMessage">
+                                    💬 İlana Başvur (Ücretsiz)
                                 </button>
-                                <p class="text-muted text-center text-sm">İlk mesaj ücretsiz</p>
+                                <button class="btn btn-outline-primary btn-full" style="border: 2px solid var(--color-accent); color: var(--color-accent); font-weight: 600;" @onclick="SendOfferWithToken">
+                                    💎 Direkt Teklif Ver (1 Jeton)
+                                </button>
+                                <p class="text-muted text-center text-sm" style="margin-top: 0.5rem;">İlk başvuru mesajı ücretsizdir</p>
                             </Authorized>
                             <NotAuthorized>
                                 <a href="/giris?returnUrl=@Navigation.Uri" class="btn btn-primary btn-full">
-                                    Mesaj Göndermek İçin Giriş Yap
+                                    İletişime Geçmek İçin Giriş Yap
                                 </a>
                             </NotAuthorized>
                         </AuthorizeView>
@@ -196,4 +200,46 @@ else
         Navigation.NavigateTo($"/panel/mesajlarim?newMessage={listing?.OwnerId}");
     }
 
+    private async Task SendOfferWithToken()
+    {
+        bool confirmed = false;
+        try 
+        {
+            var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("Swal.fire", new
+            {
+                title = "Direkt Teklif Gönder",
+                text = "Bu kişiye 1 Jeton harcayarak direkt teklif göndermek istiyor musunuz? Mesajınız karşı tarafa direkt açık (okunabilir) olarak ulaşır.",
+                icon = "question",
+                showCancelButton = true,
+                confirmButtonColor = "#F59E0B",
+                confirmButtonText = "Evet, 1 Jeton Harca",
+                cancelButtonText = "İptal"
+            });
+            confirmed = result.GetProperty("isConfirmed").GetBoolean();
+        }
+        catch { confirmed = true; /* fallback if swal fails */ }
+
+        if (confirmed && listing != null)
+        {
+            try
+            {
+                var dto = new OzelDers.Business.DTOs.MessageSendDto
+                {
+                    ReceiverId = listing.OwnerId,
+                    ListingId = listing.Id,
+                    Content = "Merhaba! İlanınızı inceledim ve size hizmetlerimle ilgili direkt teklif sunmak istiyorum. İlgilenirseniz detayları görüşebiliriz.",
+                    IsDirectOffer = true
+                };
+                
+                await MessageService.SendMessageAsync(dto, Guid.Empty);
+                
+                await JS.InvokeVoidAsync("Swal.fire", "Başarılı", "Teklifiniz başarıyla iletildi!", "success");
+                Navigation.NavigateTo("/panel/mesajlarim");
+            }
+            catch (Exception ex)
+            {
+                await JS.InvokeVoidAsync("Swal.fire", "Hata", ex.Message, "error");
+            }
+        }
+    }
 }

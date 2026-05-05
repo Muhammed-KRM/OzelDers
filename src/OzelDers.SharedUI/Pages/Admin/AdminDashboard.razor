@@ -1,170 +1,230 @@
 @page "/admin"
 @page "/admin/dashboard"
-@attribute [Authorize(Roles = "Admin")]
 @using OzelDers.Business.DTOs
-@inject NavigationManager Navigation
+@using OzelDers.Business.Interfaces
 @inject HttpClient Http
-@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Admin")]
 
-<PageTitle>Admin Paneli | OzelDers.com</PageTitle>
+<PageTitle>Admin Paneli - OzelDers</PageTitle>
 
-<section class="section admin-dashboard">
-    <div class="container">
-        <PageHeader Title="Admin Paneli" Subtitle="Sistem genel bakış ve yönetim" ShowBack="false">
-            <Actions>
-                <button class="btn btn-secondary" @onclick="LoadDashboard">🔄 Yenile</button>
-            </Actions>
-        </PageHeader>
-
-        @if (isLoading)
-        {
-            <div class="loading-overlay">
-                <div class="spinner"></div>
-                <p>İstatistikler yükleniyor...</p>
-            </div>
-        }
-
-        <!-- İstatistik Kartları -->
-        <div class="stats-grid">
-            <div class="stat-card card">
-                <div class="stat-icon users">👥</div>
-                <div class="stat-content">
-                    <h3 class="stat-number">@stats.TotalUsers</h3>
-                    <p class="stat-label">Toplam Kullanıcı</p>
-                    <span class="stat-change neutral">@stats.TotalTeachers Öğretmen</span>
-                </div>
-            </div>
-
-            <div class="stat-card card">
-                <div class="stat-icon listings">📋</div>
-                <div class="stat-content">
-                    <h3 class="stat-number">@stats.TotalListings</h3>
-                    <p class="stat-label">Toplam İlan</p>
-                    <span class="stat-change positive">@stats.ActiveListings Aktif</span>
-                </div>
-            </div>
-
-            <div class="stat-card card">
-                <div class="stat-icon messages">💬</div>
-                <div class="stat-content">
-                    <h3 class="stat-number">@stats.TotalMessages</h3>
-                    <p class="stat-label">Toplam Mesaj</p>
-                    <span class="stat-change warning">@stats.PendingListings Bekleyen İlan</span>
-                </div>
-            </div>
-
-            <div class="stat-card card">
-                <div class="stat-icon revenue">💰</div>
-                <div class="stat-content">
-                    <h3 class="stat-number">@stats.TotalRevenue.ToString("N0") TL</h3>
-                    <p class="stat-label">Toplam Ciro</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hızlı Aksiyonlar -->
-        <div class="quick-actions card">
-            <h2>⚡ Hızlı İşlemler</h2>
-            <div class="actions-grid">
-                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/users")'>
-                    <span class="action-icon">👥</span>
-                    <span class="action-text">Kullanıcı Yönetimi</span>
-                </button>
-                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/listings")'>
-                    <span class="action-icon">📋</span>
-                    <span class="action-text">İlan Yönetimi</span>
-                </button>
-                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/reports")'>
-                    <span class="action-icon">📊</span>
-                    <span class="action-text">Raporlar</span>
-                </button>
-                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/settings")'>
-                    <span class="action-icon">⚙️</span>
-                    <span class="action-text">Sistem Ayarları</span>
-                </button>
-                <button class="action-btn" @onclick='() => Navigation.NavigateTo("/admin/violations")'>
-                    <span class="action-icon">🚫</span>
-                    <span class="action-text">İhlal Yönetimi</span>
-                </button>
-                <button class="action-btn" @onclick="ClearCache">
-                    <span class="action-icon">🗑️</span>
-                    <span class="action-text">Cache Temizle</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Son Aktiviteler -->
-        <div class="recent-activity card">
-            <h2>📌 Son Aktiviteler</h2>
-            <div class="activity-list">
-                @if (stats.RecentActivities == null || !stats.RecentActivities.Any())
-                {
-                    <p class="text-muted p-20 text-center">Henüz aktivite bulunmuyor.</p>
-                }
-                else
-                {
-                    @foreach (var activity in stats.RecentActivities)
-                    {
-                        <div class="activity-item">
-                            <div class="activity-icon">@activity.Icon</div>
-                            <div class="activity-content">
-                                <p class="activity-text">@activity.Description</p>
-                                <span class="activity-time">@activity.CreatedAt.ToString("g")</span>
-                            </div>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-
-        <!-- Sistem Durumu -->
-        <div class="system-status card">
-            <h2>🔧 Sistem Durumu</h2>
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">API</span>
-                    <span class="status-badge online">🟢 Aktif</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Veritabanı</span>
-                    <span class="status-badge online">🟢 Bağlı</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Mail Servisi</span>
-                    <span class="status-badge online">🟢 Hazır</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Dosya Servisi</span>
-                    <span class="status-badge online">🟢 Hazır</span>
-                </div>
-            </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <PageHeader Title="Admin Paneli" 
+                       Subtitle="Sistem yönetimi ve istatistikler" />
         </div>
     </div>
-</section>
+
+    @if (isLoading)
+    {
+        <div class="row">
+            @for (int i = 0; i < 4; i++)
+            {
+                <div class="col-md-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="skeleton" style="height: 60px;"></div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (stats != null)
+    {
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">@stats.TotalUsers</h4>
+                                <p class="mb-0">Toplam Kullanıcı</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">@stats.TotalListings</h4>
+                                <p class="mb-0">Toplam İlan</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-list fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">@stats.TotalMessages</h4>
+                                <p class="mb-0">Toplam Mesaj</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-comments fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">₺@stats.TotalRevenue.ToString("N0")</h4>
+                                <p class="mb-0">Toplam Gelir</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-money-bill-wave fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Hızlı İşlemler</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/admin/users" class="btn btn-outline-primary">
+                                <i class="fas fa-users me-2"></i>Kullanıcı Yönetimi
+                            </a>
+                            <a href="/admin/listings" class="btn btn-outline-success">
+                                <i class="fas fa-list me-2"></i>İlan Yönetimi
+                            </a>
+                            <a href="/admin/violations" class="btn btn-outline-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>İhlal Yönetimi
+                            </a>
+                            <a href="/admin/settings" class="btn btn-outline-info">
+                                <i class="fas fa-cog me-2"></i>Sistem Ayarları
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">SMS Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Telefon Numarası</label>
+                            <input type="text" class="form-control" @bind="smsPhone" placeholder="05321234567" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mesaj</label>
+                            <textarea class="form-control" @bind="smsMessage" rows="3" placeholder="Test mesajı..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" @onclick="SendTestSms" disabled="@isSendingSms">
+                            @if (isSendingSms)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            SMS Gönder
+                        </button>
+                        @if (!string.IsNullOrEmpty(smsResult))
+                        {
+                            <div class="alert @(smsSuccess ? "alert-success" : "alert-danger") mt-3">
+                                @smsResult
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">FCM Push Notification Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">FCM Token</label>
+                            <input type="text" class="form-control" @bind="fcmToken" placeholder="Firebase token..." />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Başlık</label>
+                            <input type="text" class="form-control" @bind="fcmTitle" placeholder="Bildirim başlığı" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mesaj</label>
+                            <textarea class="form-control" @bind="fcmBody" rows="2" placeholder="Bildirim mesajı..."></textarea>
+                        </div>
+                        <button class="btn btn-success" @onclick="SendTestFcm" disabled="@isSendingFcm">
+                            @if (isSendingFcm)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            FCM Gönder
+                        </button>
+                        @if (!string.IsNullOrEmpty(fcmResult))
+                        {
+                            <div class="alert @(fcmSuccess ? "alert-success" : "alert-danger") mt-3">
+                                @fcmResult
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
-    private AdminDashboardDto stats = new();
-    private bool isLoading = false;
+    private AdminDashboardDto? stats;
+    private bool isLoading = true;
+    
+    private string smsPhone = "";
+    private string smsMessage = "OzelDers test mesajı";
+    private bool isSendingSms = false;
+    private string smsResult = "";
+    private bool smsSuccess = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string fcmToken = "";
+    private string fcmTitle = "OzelDers Test";
+    private string fcmBody = "Bu bir test bildirimidir";
+    private bool isSendingFcm = false;
+    private string fcmResult = "";
+    private bool fcmSuccess = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            await LoadDashboard();
-            StateHasChanged();
-        }
+        await LoadStats();
     }
 
-    private async Task LoadDashboard()
+    private async Task LoadStats()
     {
-        isLoading = true;
         try
         {
-            stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard") ?? new();
+            isLoading = true;
+            stats = await Http.GetFromJsonAsync<AdminDashboardDto>("api/admin/dashboard");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Prerendering sırasında JS çağırılamaz, hata sunucu tarafında loglanabilir
+            Console.WriteLine($"Dashboard yüklenirken hata: {ex.Message}");
         }
         finally
         {
@@ -172,12 +232,90 @@
         }
     }
 
-    private async Task ClearCache()
+    private async Task SendTestSms()
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", "Sistem önbelleğini temizlemek istediğinize emin misiniz?");
-        if (confirmed)
+        if (string.IsNullOrWhiteSpace(smsPhone) || string.IsNullOrWhiteSpace(smsMessage))
         {
-            await JS.InvokeVoidAsync("alert", "Sistem önbelleği başarıyla temizlendi.");
+            smsResult = "Telefon numarası ve mesaj gerekli.";
+            smsSuccess = false;
+            return;
+        }
+
+        try
+        {
+            isSendingSms = true;
+            smsResult = "";
+
+            var response = await Http.PostAsJsonAsync("api/admin/test-sms", new
+            {
+                PhoneNumber = smsPhone,
+                Message = smsMessage
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                smsResult = "SMS başarıyla gönderildi!";
+                smsSuccess = true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                smsResult = $"SMS gönderimi başarısız: {error}";
+                smsSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            smsResult = $"Hata: {ex.Message}";
+            smsSuccess = false;
+        }
+        finally
+        {
+            isSendingSms = false;
+        }
+    }
+
+    private async Task SendTestFcm()
+    {
+        if (string.IsNullOrWhiteSpace(fcmToken) || string.IsNullOrWhiteSpace(fcmTitle) || string.IsNullOrWhiteSpace(fcmBody))
+        {
+            fcmResult = "FCM token, başlık ve mesaj gerekli.";
+            fcmSuccess = false;
+            return;
+        }
+
+        try
+        {
+            isSendingFcm = true;
+            fcmResult = "";
+
+            var response = await Http.PostAsJsonAsync("api/admin/test-fcm", new
+            {
+                Token = fcmToken,
+                Title = fcmTitle,
+                Body = fcmBody
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                fcmResult = "FCM bildirimi başarıyla gönderildi!";
+                fcmSuccess = true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                fcmResult = $"FCM gönderimi başarısız: {error}";
+                fcmSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            fcmResult = $"Hata: {ex.Message}";
+            fcmSuccess = false;
+        }
+        finally
+        {
+            isSendingFcm = false;
         }
     }
 }
