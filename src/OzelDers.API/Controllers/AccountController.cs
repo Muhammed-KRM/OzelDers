@@ -137,6 +137,69 @@ public class AccountController : ControllerBase
             user.FcmToken
         });
     }
+
+    /// <summary>
+    /// Kullanıcının son aktivitelerini döndürür (mesajlar, ilanlar, yorumlar).
+    /// </summary>
+    [HttpGet("activities")]
+    public async Task<IActionResult> GetActivities()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        var activities = new List<object>();
+
+        // Son mesajlar
+        var recentMessages = await _context.Messages
+            .Where(m => m.ReceiverId == userId && m.CreatedAt > DateTime.UtcNow.AddDays(-30))
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(5)
+            .Select(m => new { m.CreatedAt, Type = "message" })
+            .ToListAsync();
+
+        foreach (var msg in recentMessages)
+            activities.Add(new { Icon = "💬", Description = "Yeni mesaj aldınız", msg.CreatedAt });
+
+        // Son ilanlar
+        var recentListings = await _context.Listings
+            .Where(l => l.OwnerId == userId && l.CreatedAt > DateTime.UtcNow.AddDays(-30))
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(3)
+            .Select(l => new { l.Title, l.CreatedAt, l.Status })
+            .ToListAsync();
+
+        foreach (var listing in recentListings)
+            activities.Add(new { Icon = "📋", Description = $"\"{listing.Title}\" ilanınız {(listing.Status.ToString() == "Active" ? "yayında" : "oluşturuldu")}", listing.CreatedAt });
+
+        // Son yorumlar
+        var recentReviews = await _context.Reviews
+            .Where(r => r.ReviewedId == userId && r.CreatedAt > DateTime.UtcNow.AddDays(-30))
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(3)
+            .Select(r => new { r.AverageRating, r.CreatedAt })
+            .ToListAsync();
+
+        foreach (var review in recentReviews)
+            activities.Add(new { Icon = "⭐", Description = $"Yeni değerlendirme aldınız ({review.AverageRating:F1} puan)", review.CreatedAt });
+
+        // Token işlemleri
+        var recentTokens = await _context.TokenTransactions
+            .Where(t => t.UserId == userId && t.CreatedAt > DateTime.UtcNow.AddDays(-30))
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(3)
+            .Select(t => new { t.Amount, t.Type, t.CreatedAt })
+            .ToListAsync();
+
+        foreach (var token in recentTokens)
+            activities.Add(new { Icon = "💰", Description = $"{(token.Type.ToString() == "Purchase" ? "Jeton satın aldınız" : "Jeton harcandı")} ({token.Amount} jeton)", token.CreatedAt });
+
+        var sorted = activities
+            .OrderByDescending(a => (DateTime)a.GetType().GetProperty("CreatedAt")!.GetValue(a)!)
+            .Take(10)
+            .ToList();
+
+        return Ok(sorted);
+    }
 }
 
 public record FcmTokenDto(string Token);

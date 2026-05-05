@@ -35,10 +35,7 @@ public class ListingApiService : IListingService
 
     public async Task<ListingDto?> GetByIdAsync(Guid id)
     {
-        // Not: Controller tarafında {slug} alıyorduk, 
-        // id için varlık eksikse fallback veya slug üstünden çağrılabilir. 
-        // Ya da API tarafına GetById eklenebilir. Şimdilik mock veya slug-based ID:
-        throw new NotImplementedException();
+        return await _http.GetFromJsonAsync<ListingDto>($"api/listings/{id}");
     }
 
     public async Task<ListingDto?> GetBySlugAsync(string slug)

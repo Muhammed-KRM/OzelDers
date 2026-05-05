@@ -76,6 +76,7 @@ public class ListingCreateDto
     public string? EducationBackground { get; set; }
     public int? GradeMin { get; set; }
     public int? GradeMax { get; set; }
+    public List<string> ImageUrls { get; set; } = new();
 }
 
 // İlan güncelleme formu

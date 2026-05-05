@@ -26,6 +26,12 @@ public class ListingsController : ControllerBase
     [HttpGet("{slug}")]
     public async Task<ActionResult<ListingDto>> GetBySlug(string slug)
     {
+        // Guid ise ID ile ara, değilse slug ile
+        if (Guid.TryParse(slug, out var id))
+        {
+            var byId = await _listingService.GetByIdAsync(id);
+            return byId is null ? NotFound() : Ok(byId);
+        }
         var listing = await _listingService.GetBySlugAsync(slug);
         return listing is null ? NotFound() : Ok(listing);
     }

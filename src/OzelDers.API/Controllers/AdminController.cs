@@ -51,7 +51,6 @@ public class AdminController : ControllerBase
         var stats = await _adminService.GetDashboardStatsAsync();
         return Ok(stats);
     }
-
     // ─── Kullanıcı Yönetimi ──────────────────────────────────
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] string? role, [FromQuery] string? status)

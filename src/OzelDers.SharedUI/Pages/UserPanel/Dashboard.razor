@@ -3,6 +3,7 @@
 @inject ITokenService TokenService
 @inject IMessageService MessageService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
 @inject IJSRuntime JS
 
 <PageTitle>Kontrol Paneli | OzelDers.com</PageTitle>
@@ -196,10 +197,24 @@
             averageRating = mylistings?.Select(l => l.AverageRating).DefaultIfEmpty(0).Average() ?? 0;
             totalReviews = mylistings?.Sum(l => l.ReviewCount) ?? 0;
 
-            recentActivities = new List<UserActivityDto>
+            // Gerçek aktiviteleri API'den çek
+            try
             {
-                new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
-            };
+                var activitiesResult = await Http.GetFromJsonAsync<List<UserActivityDto>>("api/account/activities");
+                recentActivities = activitiesResult ?? new List<UserActivityDto>();
+                if (!recentActivities.Any())
+                    recentActivities = new List<UserActivityDto>
+                    {
+                        new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
+                    };
+            }
+            catch
+            {
+                recentActivities = new List<UserActivityDto>
+                {
+                    new() { Icon = "🎉", Description = "OzelDers.com'a hoş geldiniz!", CreatedAt = DateTime.Now }
+                };
+            }
             await JS.InvokeVoidAsync("console.log", "[Dashboard] Tüm veriler başarıyla yüklendi ✓");
         }
         catch (Exception ex)

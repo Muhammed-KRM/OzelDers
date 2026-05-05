@@ -138,8 +138,17 @@
                         </label>
                     </div>
                 </div>
-
-                <!-- Ara Butonu -->
+                <!-- Min Deneyim -->
+                <div class="filter-group">
+                    <label>Min. Deneyim (Yıl)</label>
+                    <select @bind="minExperienceYears" class="form-select">
+                        <option value="">Fark etmez</option>
+                        <option value="1">1+ yıl</option>
+                        <option value="3">3+ yıl</option>
+                        <option value="5">5+ yıl</option>
+                        <option value="10">10+ yıl</option>
+                    </select>
+                </div>
                 <div class="filter-group filter-action">
                     <label>&nbsp;</label>
                     <button class="btn btn-primary" @onclick="ApplyFilters" disabled="@isLoading">
@@ -202,6 +211,7 @@
     private bool hasTrialLesson;
     private bool isGroupLesson;
     private string gradeLevel = "";
+    private string minExperienceYears = "";
 
     private List<BranchDto> branches = [];
     private List<CityDto> cities = [];
@@ -249,6 +259,7 @@
         filters.HasTrialLesson = hasTrialLesson ? true : null;
         filters.IsGroupLesson = isGroupLesson ? true : null;
         filters.GradeLevel = string.IsNullOrEmpty(gradeLevel) ? null : int.Parse(gradeLevel);
+        filters.MinExperienceYears = string.IsNullOrEmpty(minExperienceYears) ? null : int.Parse(minExperienceYears);
         await LoadListings(1);
     }
 
@@ -258,6 +269,7 @@
         hasTrialLesson = false;
         isGroupLesson = false;
         gradeLevel = "";
+        minExperienceYears = "";
         await LoadListings(1);
     }
 

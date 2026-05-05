@@ -177,6 +177,55 @@
                             </div>
                         </div>
 
+                        <!-- Fotoğraf Yükleme -->
+                        <div class="form-section">
+                            <h2>Fotoğraflar</h2>
+                            <p class="text-muted" style="margin-bottom: 1rem;">İlanınıza en fazla 5 fotoğraf ekleyebilirsiniz. (Max 5MB, JPG/PNG/WebP)</p>
+
+                            <div class="upload-area" style="border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; text-align: center; margin-bottom: 1rem;">
+                                <InputFile OnChange="HandleImageUpload" multiple accept="image/jpeg,image/png,image/webp"
+                                           style="display: none;" id="imageUploadInput" />
+                                <label for="imageUploadInput" style="cursor: pointer; display: block;">
+                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📷</div>
+                                    <p style="margin: 0; color: var(--color-text-secondary);">
+                                        Fotoğraf seçmek için tıklayın
+                                    </p>
+                                    <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--color-text-muted);">
+                                        JPG, PNG veya WebP · Max 5MB
+                                    </p>
+                                </label>
+                            </div>
+
+                            @if (isUploadingImages)
+                            {
+                                <div class="text-center text-muted" style="margin-bottom: 1rem;">
+                                    <span>Yükleniyor...</span>
+                                </div>
+                            }
+
+                            @if (uploadedImageUrls.Any())
+                            {
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                                    @foreach (var url in uploadedImageUrls)
+                                    {
+                                        <div style="position: relative; width: 100px; height: 100px;">
+                                            <img src="@url" alt="Yüklenen fotoğraf"
+                                                 style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-sm);" />
+                                            <button type="button" @onclick="() => RemoveImage(url)"
+                                                    style="position: absolute; top: -8px; right: -8px; background: var(--color-danger); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center;">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(uploadError))
+                            {
+                                <div class="alert alert-danger" style="margin-top: 0.5rem;">@uploadError</div>
+                            }
+                        </div>
+
                         <!-- Konum -->
                         <div class="form-section">
                             <h2>Konum Bilgileri</h2>
@@ -281,6 +330,11 @@
     private bool isSubmitting = false;
     private string? errorMessage;
 
+    // Fotoğraf yükleme
+    private List<string> uploadedImageUrls = new();
+    private bool isUploadingImages = false;
+    private string? uploadError;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -373,8 +427,8 @@
             await JS.InvokeVoidAsync("console.log", "[OzelDers Tracker] ------------------------------");
 
             // API'ye gönder
+            model.ImageUrls = uploadedImageUrls;
             var result = await ListingService.CreateAsync(model, Guid.Empty);
-
             // Moderasyon uyarısı varsa SweetAlert2 ile büyük popup göster
             if (!string.IsNullOrEmpty(result.ModerationMessage))
             {
@@ -425,4 +479,62 @@
     {
         Navigation.NavigateTo("/panel/ilanlarim");
     }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        if (uploadedImageUrls.Count >= 5)
+        {
+            uploadError = "En fazla 5 fotoğraf yükleyebilirsiniz.";
+            return;
+        }
+
+        isUploadingImages = true;
+        StateHasChanged();
+
+        foreach (var file in e.GetMultipleFiles(5))
+        {
+            if (uploadedImageUrls.Count >= 5) break;
+
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                uploadError = $"{file.Name} dosyası 5MB'dan büyük.";
+                continue;
+            }
+
+            try
+            {
+                using var content = new MultipartFormDataContent();
+                using var stream = file.OpenReadStream(5 * 1024 * 1024);
+                using var streamContent = new StreamContent(stream);
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                content.Add(streamContent, "file", file.Name);
+
+                var response = await Http.PostAsync("api/upload", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<UploadResultDto>();
+                    if (result?.ImageUrl != null)
+                        uploadedImageUrls.Add(result.ImageUrl);
+                }
+                else
+                {
+                    uploadError = $"{file.Name} yüklenemedi.";
+                }
+            }
+            catch (Exception ex)
+            {
+                uploadError = $"Yükleme hatası: {ex.Message}";
+            }
+        }
+
+        isUploadingImages = false;
+    }
+
+    private void RemoveImage(string url)
+    {
+        uploadedImageUrls.Remove(url);
+    }
+
+    private record UploadResultDto(string ImageUrl);
 }
