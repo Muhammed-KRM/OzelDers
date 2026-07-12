@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using OzelDers.Business.DTOs;
 using OzelDers.Business.Exceptions;
 using OzelDers.Business.Interfaces;
+using OzelDers.Data.Context;
 using OzelDers.Data.Entities;
 using OzelDers.Data.Repositories;
 
@@ -8,21 +10,17 @@ namespace OzelDers.Business.Services;
 
 public class ReviewManager : IReviewService
 {
-    // ═══════════════════════════════════════════════
-    // HATA KODLARI — ReviewManager (Prefix: RM)
-    // ═══════════════════════════════════════════════
-    private const string EC_GETBYLISTING = "RM-001"; // GetByListingAsync
-    private const string EC_CREATE       = "RM-002"; // CreateAsync
-    private const string EC_APPROVE      = "RM-003"; // ApproveReviewAsync
-    // ═══════════════════════════════════════════════
+    private const string EC_GETBYLISTING = "RM-001";
+    private const string EC_CREATE       = "RM-002";
+    private const string EC_APPROVE      = "RM-003";
 
-    private readonly IRepository<Review> _reviewRepo;
+    private readonly AppDbContext _context;
     private readonly IListingRepository _listingRepo;
     private readonly ILogService _logService;
 
-    public ReviewManager(IRepository<Review> reviewRepo, IListingRepository listingRepo, ILogService logService)
+    public ReviewManager(AppDbContext context, IListingRepository listingRepo, ILogService logService)
     {
-        _reviewRepo = reviewRepo;
+        _context = context;
         _listingRepo = listingRepo;
         _logService = logService;
     }
@@ -31,8 +29,12 @@ public class ReviewManager : IReviewService
     {
         try
         {
-            var reviews = await _reviewRepo.FindAsync(r => r.ListingId == listingId && r.IsApproved);
-            return reviews.OrderByDescending(r => r.CreatedAt).Select(MapToDto).ToList();
+            return await _context.Reviews
+                .Include(r => r.Reviewer)
+                .Where(r => r.ListingId == listingId && r.IsApproved)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => MapToDto(r))
+                .ToListAsync();
         }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_GETBYLISTING, ex, listingId); throw; }
     }
@@ -41,27 +43,43 @@ public class ReviewManager : IReviewService
     {
         try
         {
-        var listing = await _listingRepo.GetByIdAsync(dto.ListingId) ?? throw new NotFoundException("İlan", dto.ListingId);
-        if (listing.OwnerId == reviewerId) throw new BusinessException("Kendi ilanınıza yorum yapamazsınız.");
+            var listing = await _listingRepo.GetByIdAsync(dto.ListingId)
+                ?? throw new NotFoundException("İlan", dto.ListingId);
 
-        var review = new Review
-        {
-            ReviewerId = reviewerId, ReviewedId = listing.OwnerId, ListingId = dto.ListingId,
-            ProfessionalismRating = dto.ProfessionalismRating, CommunicationRating = dto.CommunicationRating,
-            ValueRating = dto.ValueRating, Content = dto.Content, IsApproved = true // Otomatik onay
-        };
+            if (listing.OwnerId == reviewerId)
+                throw new BusinessException("Kendi ilanınıza yorum yapamazsınız.");
 
-        await _reviewRepo.AddAsync(review);
-        await _reviewRepo.SaveChangesAsync();
+            var review = new Review
+            {
+                ReviewerId = reviewerId,
+                ReviewedId = listing.OwnerId,
+                ListingId = dto.ListingId,
+                ProfessionalismRating = dto.ProfessionalismRating,
+                CommunicationRating = dto.CommunicationRating,
+                ValueRating = dto.ValueRating,
+                Content = dto.ReviewText,
+                IsApproved = true
+            };
 
-        // Listing'in AverageRating ve ReviewCount'unu güncelle
-        var allReviews = await _reviewRepo.FindAsync(r => r.ListingId == dto.ListingId && r.IsApproved);
-        listing.AverageRating = allReviews.Any() ? allReviews.Average(r => r.AverageRating) : 0;
-        listing.ReviewCount = allReviews.Count();
-        _listingRepo.Update(listing);
-        await _listingRepo.SaveChangesAsync();
+            _context.Reviews.Add(review);
+            await _context.SaveChangesAsync();
 
-        return MapToDto(review);
+            // Listing AverageRating ve ReviewCount güncelle
+            var allReviews = await _context.Reviews
+                .Where(r => r.ListingId == dto.ListingId && r.IsApproved)
+                .ToListAsync();
+
+            listing.AverageRating = allReviews.Any() ? allReviews.Average(r => r.AverageRating) : 0;
+            listing.ReviewCount = allReviews.Count;
+            _listingRepo.Update(listing);
+            await _listingRepo.SaveChangesAsync();
+
+            // Reviewer bilgisiyle birlikte döndür
+            var saved = await _context.Reviews
+                .Include(r => r.Reviewer)
+                .FirstOrDefaultAsync(r => r.Id == review.Id);
+
+            return MapToDto(saved ?? review);
         }
         catch (BusinessException) { throw; }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_CREATE, ex, dto, reviewerId); throw; }
@@ -71,10 +89,10 @@ public class ReviewManager : IReviewService
     {
         try
         {
-        var review = await _reviewRepo.GetByIdAsync(reviewId) ?? throw new NotFoundException("Yorum", reviewId);
-        review.IsApproved = true;
-        _reviewRepo.Update(review);
-        await _reviewRepo.SaveChangesAsync();
+            var review = await _context.Reviews.FindAsync(reviewId)
+                ?? throw new NotFoundException("Yorum", reviewId);
+            review.IsApproved = true;
+            await _context.SaveChangesAsync();
         }
         catch (NotFoundException) { throw; }
         catch (Exception ex) { await _logService.LogFunctionErrorAsync(EC_APPROVE, ex, reviewId); throw; }
@@ -84,7 +102,7 @@ public class ReviewManager : IReviewService
     {
         Id = r.Id,
         ReviewerId = r.ReviewerId,
-        ReviewerName = r.Reviewer?.FullName ?? "",
+        ReviewerName = r.Reviewer?.FullName ?? "Kullanıcı",
         ReviewerImageUrl = r.Reviewer?.ProfileImageUrl,
         ProfessionalismRating = r.ProfessionalismRating,
         CommunicationRating = r.CommunicationRating,

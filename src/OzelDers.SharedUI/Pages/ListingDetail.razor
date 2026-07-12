@@ -199,7 +199,7 @@ else
                                 <div class="form-group" style="margin-bottom: 1rem;">
                                     <label class="form-label">Yorumunuz</label>
                                     <textarea class="form-control" rows="3" placeholder="Deneyiminizi paylaşın..." 
-                                              @bind="newReview.Content" style="resize: vertical;"></textarea>
+                                              @bind="newReview.ReviewText" style="resize: vertical;"></textarea>
                                 </div>
 
                                 @if (!string.IsNullOrEmpty(reviewError))
@@ -250,7 +250,7 @@ else
                                 }
                                 else
                                 {
-                                    @review.ReviewerName[..1]
+                                    @(string.IsNullOrEmpty(review.ReviewerName) ? "?" : review.ReviewerName[..1])
                                 }
                             </div>
                             <div style="flex: 1;">
@@ -353,7 +353,7 @@ else
             reviewError = "Lütfen tüm kategoriler için puan verin.";
             return;
         }
-        if (string.IsNullOrWhiteSpace(newReview.Content) || newReview.Content.Length < 10)
+        if (string.IsNullOrWhiteSpace(newReview.ReviewText) || newReview.ReviewText.Length < 10)
         {
             reviewError = "Yorum en az 10 karakter olmalıdır.";
             return;
@@ -365,7 +365,7 @@ else
         {
             await ReviewService.CreateAsync(newReview, currentUserId);
             await LoadReviews();
-            newReview = new ReviewCreateDto { ListingId = listing!.Id, ProfessionalismRating = 5, CommunicationRating = 5, ValueRating = 5 };
+            newReview = new ReviewCreateDto { ListingId = listing!.Id, ProfessionalismRating = 5, CommunicationRating = 5, ValueRating = 5, ReviewText = "" };
             await JS.InvokeVoidAsync("Swal.fire", "Teşekkürler!", "Değerlendirmeniz başarıyla gönderildi.", "success");
         }
         catch (Exception ex)

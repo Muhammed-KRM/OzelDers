@@ -20,5 +20,5 @@ public class ReviewCreateDto
     public int ProfessionalismRating { get; set; }
     public int CommunicationRating { get; set; }
     public int ValueRating { get; set; }
-    public string Content { get; set; } = string.Empty;
+    public string ReviewText { get; set; } = string.Empty;
 }
